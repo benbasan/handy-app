@@ -21,11 +21,13 @@
 - דף בית זמני ("Hello Handy") שמוכיח שה-build עובד ושה-deploy ל-Vercel מצליח.
 
 **הגדרת סיום:**
-- [ ] `npm run build` ו-`npm run lint` עוברים
-- [ ] דיפלוי ל-Vercel חי ונגיש
-- [ ] פרויקט Supabase מחובר, ניתן להריץ `supabase migration list` בהצלחה
-- [ ] `CLAUDE.md` ו-`docs/*.md` נמצאים בריפו
-- [ ] commit ראשון ב-`main`, לפי מוסכמת ה-commits מ-`CLAUDE.md`
+- [x] `npm run build` ו-`npm run lint` עוברים (וגם `npm run typecheck` ו-`format:check`)
+- [ ] דיפלוי ל-Vercel חי ונגיש — **ממתין למשתמש**: הקוד וה-CI מוכנים, החיבור בדשבורד Vercel נעשה על ידיו
+- [x] פרויקט Supabase מחובר, ניתן להריץ `supabase migration list` בהצלחה — עובד מול הסטאק הלוקאלי (`--local`); הלינק לפרויקט הקלאוד (`supabase login` + `link`) **ממתין למשתמש** כי הוא דורש טוקן אישי
+- [x] `CLAUDE.md` ו-`docs/*.md` נמצאים בריפו
+- [x] commit ראשון ב-`main`, לפי מוסכמת ה-commits מ-`CLAUDE.md`
+
+**הערה:** Vitest לא הוקם ב-Phase 0 — הוא לא מופיע ברשימת "מה נכלל" של השלב, וכלל "שלב אחד בכל פעם" אוסר לבנות קדימה. יוקם בשלב שידרוש אותו בפועל.
 
 **טקסט קיקאוף לקלוד קוד:**
 > קרא את `CLAUDE.md` ואת כל הקבצים ב-`docs/`. נתחיל ב-Phase 0 מתוך `docs/roadmap.md`: הקמת תשתית הפרויקט בלבד — Next.js scaffold, חיבור Supabase, מבנה תיקיות, lint/CI בסיסי, ודף בית זמני שמוכיח שהכל עובד. אל תבנה שום פיצ'ר מוצרי בשלב הזה. בסוף, ודא שכל סעיפי ה"הגדרת סיום" של Phase 0 מתקיימים, ותן לי סיכום.

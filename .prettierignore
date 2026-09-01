@@ -1,0 +1,14 @@
+.next/
+out/
+build/
+node_modules/
+package-lock.json
+next-env.d.ts
+supabase/.temp/
+supabase/config.toml
+
+# Hebrew/RTL planning docs. Prettier pads markdown table cells by Latin
+# character width, which misaligns bidi tables and rewrites these files on
+# every run. They are the project's source of truth — keep them hand-edited.
+CLAUDE.md
+docs/
