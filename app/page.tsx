@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 // The Supabase check must run per request, not be frozen into the build
@@ -71,8 +72,24 @@ export default async function HomePage() {
         )}
       </div>
 
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href="/login"
+          className="rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white"
+        >
+          כניסת לקוחות
+        </Link>
+        <Link
+          href="/pro/login"
+          className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold"
+        >
+          כניסת בעלי מקצוע
+        </Link>
+      </div>
+
       <p className="text-sm text-neutral-500">
-        דף זמני של Phase 0. הפיצ&apos;רים המוצריים מתחילים ב-Phase 1 — ראו{" "}
+        דף זמני. עמוד הנחיתה האמיתי נבנה ב-Phase 8; כרגע יש כאן רק את שכבת
+        ההתחברות של Phase 1 — ראו{" "}
         <code className="rounded bg-neutral-100 px-1">docs/roadmap.md</code>.
       </p>
     </main>
