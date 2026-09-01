@@ -34,7 +34,9 @@ Do not introduce an alternative to any of these without discussing it with the u
 | PDF generation (receipts) | `@react-pdf/renderer` or a Supabase Edge Function calling a PDF service | Decide inside the phase that needs it, record the decision here |
 | Hosting | Vercel (frontend/Next.js) + Supabase Cloud (DB/backend) | |
 | Package manager | npm (unless the user says otherwise) | |
-| Testing | Vitest (unit) + Playwright (critical E2E flows only, added from Phase 4 onward) | |
+| Validation | **Zod** | Every server-side write path. Schemas in `lib/validation`, one file per entity |
+| Testing (DB) | **pgTAP** via `supabase test db` (`npm run db:test`) | RLS policies are tested in the database, where they run — not mocked in JS. Added in Phase 1 |
+| Testing (app) | Vitest (unit) + Playwright (critical E2E flows only, added from Phase 4 onward) | Neither exists yet — added by the first phase with logic that needs them |
 | Language | TypeScript everywhere, `strict: true` | No `any` without a comment explaining why |
 
 **Mobile strategy:** web-only, fully responsive (mobile-web + desktop breakpoints), matching the two viewport variants already designed in Claude Design. No native app in this phase of the roadmap.
@@ -75,24 +77,46 @@ Add new rows here whenever a new domain concept appears — do not let this glos
 ## 5. Folder structure convention
 
 ```
+/proxy.ts               → session refresh + anonymous gate (Next 16's name for middleware.ts)
 /app                    → Next.js App Router routes
-  /(customer)            → customer-facing routes (job posting, tracking, account)
-  /(pro)                 → pro-facing routes (job feed, bidding, earnings, profile)
-  /(admin)               → admin dashboard routes
+  /(customer)            → customer-facing routes — AT THE ROOT: /login, /account
+  /(pro)                 → pro-facing routes, prefixed: /pro/login, /pro
+  /(admin)               → admin dashboard routes, prefixed: /admin/login, /admin
   /(marketing)            → public marketing/SEO pages (category pages, guides, about)
   /api                    → route handlers only where a server action doesn't fit (webhooks, etc.)
 /components
   /ui                     → generic design-system components (buttons, inputs, cards)
   /customer, /pro, /admin → role-specific components
 /lib
-  /supabase               → client factory, generated DB types
+  /routes.ts              → role → home/login path maps (importable from proxy.ts)
+  /supabase               → client factory, generated DB types, session DAL
   /validation              → Zod schemas, one file per entity
   /actions                 → server actions, grouped by entity
 /supabase
   /migrations              → SQL migrations (source of truth for schema — see below)
+  /tests                   → pgTAP tests (`npm run db:test`) — RLS policy assertions
   /seed.sql
 /docs                      → this project's planning docs (this folder)
 ```
+
+**Route groups add no path segment**, so each role's area carries an explicit
+prefix — otherwise `(customer)/login` and `(pro)/login` both resolve to
+`/login` and collide. Inside each group, a nested `(authed)` group holds the
+`requireRole()` layout, and the login page sits *outside* it so the gate can't
+lock people out of the door they came in through.
+
+**Auth enforcement has three layers, and only the last one is security:**
+`proxy.ts` bounces anonymous visitors (optimistic, no DB — Next runs proxy on
+prefetches), `requireRole()` in each `(authed)` layout checks the role against
+`profiles`, and **RLS in the database is what actually protects the data**. A
+redirect is a courtesy. Never treat one as a control.
+
+**RLS is column-aware only through grants.** RLS picks rows, never columns, so
+every table's client grants are column-scoped (`grant update (full_name) on
+profiles to authenticated`). This is what stops a customer setting their own
+`role = 'admin'` or a pro setting their own `verification_status = 'verified'`
+through a policy that legitimately allows them to update their own row. When
+adding a column, decide explicitly whether a client may write it.
 
 **Schema changes always go through a Supabase migration file** (`supabase/migrations/<timestamp>_<name>.sql`), never a manual change in the Supabase dashboard that isn't captured in a migration. This is what keeps the database reproducible and what lets Claude Code "remember" the schema across sessions instead of re-deriving it.
 
@@ -107,8 +131,9 @@ Add new rows here whenever a new domain concept appears — do not let this glos
 
 ## 7. Definition of Done (applies to every phase, in addition to the phase-specific checklist in the roadmap)
 
-- [ ] Migration files exist for any schema change, and `supabase db reset` (or equivalent) applies cleanly
-- [ ] RLS policies exist and were tested for every new table (at least: can a customer see another customer's data? Can a pro see another pro's earnings? No.)
+- [ ] Migration files exist for any schema change, and `npm run db:reset` applies cleanly
+- [ ] RLS policies exist for every new table, **and an assertion was added to `supabase/tests/rls_test.sql`** — `npm run db:test` passes (at least: can a customer see another customer's data? Can a pro see another pro's earnings? No.)
+- [ ] `npm run db:types` re-run and the regenerated types committed, if the schema changed
 - [ ] All new forms/inputs validate with Zod on the server, not just the client
 - [ ] No hardcoded secrets; `.env.example` updated if new env vars were added
 - [ ] Build passes (`npm run build`) and lint passes (`npm run lint`)

@@ -35,52 +35,37 @@ insert into public.categories (id, name_he, slug) values
 -- normalises E.164.
 -- ---------------------------------------------------------------------------
 
+-- The last user asks for role 'customer' rather than 'admin' on purpose:
+-- handle_new_user would ignore 'admin' anyway, and the grant happens by direct
+-- SQL further down.
 insert into auth.users (
   instance_id, id, aud, role, phone, phone_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
-) values
-  (
-    '00000000-0000-0000-0000-000000000000',
-    'a0000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated',
-    '972500000001', now(),
-    '{"provider":"phone","providers":["phone"]}',
-    '{"role":"customer","full_name":"דנה לוי"}',
-    now(), now()
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    'a0000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated',
-    '972500000002', now(),
-    '{"provider":"phone","providers":["phone"]}',
-    '{"role":"customer","full_name":"יוסי כהן"}',
-    now(), now()
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    'a0000000-0000-4000-8000-000000000003', 'authenticated', 'authenticated',
-    '972500000003', now(),
-    '{"provider":"phone","providers":["phone"]}',
-    '{"role":"pro","full_name":"דוד מזרחי"}',
-    now(), now()
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    'a0000000-0000-4000-8000-000000000004', 'authenticated', 'authenticated',
-    '972500000004', now(),
-    '{"provider":"phone","providers":["phone"]}',
-    '{"role":"pro","full_name":"אבי פרץ"}',
-    now(), now()
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    'a0000000-0000-4000-8000-000000000005', 'authenticated', 'authenticated',
-    '972500000005', now(),
-    '{"provider":"phone","providers":["phone"]}',
-    -- Asking for admin here would be ignored by handle_new_user's whitelist,
-    -- which is the point. The role is granted below, by direct SQL.
-    '{"role":"customer","full_name":"מנהלת Handy"}',
-    now(), now()
-  );
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  -- GoTrue scans these four into non-nullable Go strings, and unlike the other
+  -- token columns on auth.users they carry no DEFAULT ''. Leave them NULL and
+  -- every /otp and /verify request dies with "Database error finding user".
+  confirmation_token, recovery_token, email_change_token_new, email_change
+)
+select
+  '00000000-0000-0000-0000-000000000000',
+  u.id,
+  'authenticated',
+  'authenticated',
+  u.phone,
+  now(),
+  '{"provider":"phone","providers":["phone"]}'::jsonb,
+  jsonb_build_object('role', u.signup_role, 'full_name', u.full_name),
+  now(),
+  now(),
+  '', '', '', ''
+from (
+  values
+    ('a0000000-0000-4000-8000-000000000001'::uuid, '972500000001', 'customer', 'דנה לוי'),
+    ('a0000000-0000-4000-8000-000000000002'::uuid, '972500000002', 'customer', 'יוסי כהן'),
+    ('a0000000-0000-4000-8000-000000000003'::uuid, '972500000003', 'pro',      'דוד מזרחי'),
+    ('a0000000-0000-4000-8000-000000000004'::uuid, '972500000004', 'pro',      'אבי פרץ'),
+    ('a0000000-0000-4000-8000-000000000005'::uuid, '972500000005', 'customer', 'מנהלת Handy')
+) as u (id, phone, signup_role, full_name);
 
 -- Phone sign-in needs a matching identity row, or verifyOtp has nothing to
 -- attach the session to.
@@ -92,13 +77,7 @@ select
   jsonb_build_object('sub', u.id::text, 'phone', u.phone),
   now(), now(), now()
 from auth.users u
-where u.id in (
-  'a0000000-0000-4000-8000-000000000001',
-  'a0000000-0000-4000-8000-000000000002',
-  'a0000000-0000-4000-8000-000000000003',
-  'a0000000-0000-4000-8000-000000000004',
-  'a0000000-0000-4000-8000-000000000005'
-);
+where u.phone is not null;
 
 -- The admin. Not reachable through sign-up by design — see handle_new_user.
 update public.profiles
