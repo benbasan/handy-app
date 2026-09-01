@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Handy
 
-## Getting Started
+מרקטפלייס On-Demand מבוסס מיקום שמחבר לקוחות לבעלי מקצוע מאומתים בישראל.
 
-First, run the development server:
+- **מה בונים ולמה** — [docs/product-spec.md](docs/product-spec.md)
+- **איך זה בנוי** — [docs/architecture.md](docs/architecture.md)
+- **מה בונים עכשיו** — [docs/roadmap.md](docs/roadmap.md)
+- **הכללים לעבודה עם Claude Code** — [CLAUDE.md](CLAUDE.md)
+
+## Prerequisites
+
+- Node.js 22+
+- Docker Desktop (running) — needed for the local Supabase stack
+
+## Local setup
 
 ```bash
+npm install
+
+# Start the local Supabase stack (Postgres + Auth + Storage + Studio).
+# Prints the URL and keys you need in the next step.
+npm run db:start
+
+cp .env.example .env.local
+# Fill NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY and
+# SUPABASE_SERVICE_ROLE_KEY from the `npm run db:start` output.
+
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 — the Phase 0 page reports whether the build, RTL
+rendering, and the Supabase connection are all working.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Local Supabase ports
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project uses **5442x** instead of the Supabase default **5432x**, so it can
+run alongside other local Supabase projects on the same machine without a port
+clash. Configured in [supabase/config.toml](supabase/config.toml).
 
-## Learn More
+| Service  | URL                                   |
+| -------- | ------------------------------------- |
+| API      | http://127.0.0.1:54421                |
+| Postgres | postgres://…@127.0.0.1:54422/postgres |
+| Studio   | http://127.0.0.1:54423                |
+| Mailpit  | http://127.0.0.1:54424                |
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command             | What it does                                  |
+| ------------------- | --------------------------------------------- |
+| `npm run dev`       | Dev server                                    |
+| `npm run build`     | Production build                              |
+| `npm run lint`      | ESLint                                        |
+| `npm run typecheck` | `tsc --noEmit`                                |
+| `npm run format`    | Prettier write                                |
+| `npm run db:start`  | Start local Supabase                          |
+| `npm run db:stop`   | Stop local Supabase                           |
+| `npm run db:reset`  | Re-apply all migrations + `supabase/seed.sql` |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Database changes
 
-## Deploy on Vercel
+Schema changes go through a migration file — never a manual edit in the Supabase
+dashboard:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npx supabase migration new <name>   # creates supabase/migrations/<ts>_<name>.sql
+npm run db:reset                    # re-apply from scratch and verify
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Secrets
+
+Never commit real keys. `.env.local` is git-ignored; `.env.example` lists every
+required variable and must be updated whenever a new one is introduced.
+
+## Connecting to the cloud Supabase project
+
+```bash
+npx supabase login
+npx supabase link --project-ref <project-ref>
+npx supabase db push
+```

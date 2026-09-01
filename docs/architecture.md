@@ -17,6 +17,23 @@
 | Hosting | Vercel (Next.js) + Supabase Cloud | |
 | בדיקות | Vitest (יחידה) + Playwright (E2E לזרימות קריטיות, מ-Phase 4 והלאה) | |
 
+### גרסאות בפועל (הותקנו ב-Phase 0)
+
+Next **16.3.4** · React **19.2.8** · Tailwind **4.3.3** · TypeScript 5 · `@supabase/supabase-js` **2.112.4** · `@supabase/ssr` **0.12.5** · Supabase CLI **2.116.0** (devDependency, מורץ ב-`npx supabase`) · PostGIS **3.3** (בסטאק הלוקאלי).
+
+שתי נקודות שנובעות מהגרסאות האלה ושלא היו במסמך המקורי:
+
+1. **Tailwind v4 הוא CSS-first — אין `tailwind.config.ts`.** טוקני העיצוב מ-Claude Design נכנסים לבלוק `@theme` בתוך `app/globals.css`. שם מחפשים אותם, לא בקובץ קונפיג.
+2. **`CLAUDE.md` ותיקיית `docs/` מוחרגות מ-Prettier** (ב-`.prettierignore`). Prettier מרפד תאי טבלה במרקדאון לפי רוחב תווים לטיניים, מה שהורס את היישור של טבלאות עבריות דו-כיווניות ומשכתב את המסמכים בכל הרצה.
+
+### RTL — כלל מחייב
+
+האפליקציה מרונדרת `<html lang="he" dir="rtl">` עם הפונט Heebo. **כל** מרווח/מיקום נכתב ב-logical properties של Tailwind (`ms-`/`me-`/`ps-`/`pe-`/`start-`/`end-`) ולא בפיזיים (`ml-`/`mr-`/`left-`/`right-`). ראו `CLAUDE.md` סעיף 3.
+
+### פורטים לוקאליים
+
+הסטאק הלוקאלי רץ על **5442x** במקום ברירת המחדל של Supabase (5432x), כדי שאפשר יהיה להריץ אותו במקביל לפרויקטי Supabase אחרים על אותה מכונה בלי התנגשות פורטים. מוגדר ב-`supabase/config.toml`, מתועד ב-`README.md`.
+
 **החלטה חשובה:** אין שרת backend נפרד. כל הלוגיקה העסקית שרצה בצד שרת רצה כ-Next.js Server Actions / Route Handlers שמדברות עם Supabase, בתוספת Supabase Edge Functions למקומות שבהם נדרש טריגר מה-DB עצמו (למשל: שליחת התראה כשמתקבלת הצעה חדשה).
 
 ## 2. מבנה תיקיות

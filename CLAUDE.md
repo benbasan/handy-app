@@ -26,7 +26,8 @@ Do not introduce an alternative to any of these without discussing it with the u
 | Backend/DB | **Supabase** (Postgres, Auth, Storage, Realtime, Edge Functions) | Managed — do not stand up a separate custom backend |
 | Auth | Supabase Auth, **phone number + SMS OTP** (no passwords) | SMS provider: Twilio (configured inside Supabase Auth) |
 | ORM/DB access | Supabase JS client + generated types (`supabase gen types typescript`) | Avoid adding Prisma/Drizzle on top — one data-access layer only |
-| Styling | Tailwind CSS | Matches the exported design tokens from Claude Design |
+| Supabase CLI | Installed as a **devDependency**, run via `npx supabase` | Version is locked in the repo and identical for everyone — not dependent on what happens to be installed globally |
+| Styling | **Tailwind CSS v4** | v4 is CSS-first: there is **no `tailwind.config.ts`**. Design tokens from Claude Design go in the `@theme` block in `app/globals.css` |
 | Maps / geocoding / distance | Google Maps Platform (Maps JS API, Geocoding, Places, Distance Matrix) | Needed for: address autocomplete, radius search, live "pro en route" tracking |
 | File/media uploads | Supabase Storage | Job photos/videos/voice notes, pro verification documents, profile photos |
 | Realtime (bids arriving, chat, live location) | Supabase Realtime (Postgres changes + broadcast channels) | Do not add a separate WebSocket server |
@@ -46,6 +47,7 @@ Do not introduce an alternative to any of these without discussing it with the u
 - **Server-side validation always.** Every write path (server action or route handler) validates input with Zod, even if the client also validates. Never trust client input for price, commission, or status transitions.
 - **Money is server-authoritative.** Prices, the 12% commission calculation, and price-update deltas are computed and enforced server-side, never trusted from the client.
 - **Price-change rule is enforced in the DB layer, not just the UI:** a job's price can only change through a `price_updates` record that carries a photo URL and moves through `pending → approved/rejected` — there is no direct `UPDATE jobs SET price = ...` path from client code.
+- **RTL: logical properties only.** The UI is Hebrew and the app renders `dir="rtl"`. Always use Tailwind's logical utilities — `ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`/`text-end`, `border-s`/`border-e` — and **never** the physical `ml-`/`mr-`, `pl-`/`pr-`, `left-`/`right-`, `text-left`/`text-right`. A physical utility looks correct in a Latin-language preview and silently breaks the layout in Hebrew.
 - **No secrets in code.** All API keys (Google Maps, Twilio, Supabase service role) go in environment variables, never committed. Maintain `.env.example` with every required key, kept in sync.
 - **Small, reviewable commits.** See Git Workflow below — do not batch an entire phase into one commit.
 
@@ -127,3 +129,13 @@ Add new rows here whenever a new domain concept appears — do not let this glos
 - [ ] Push notification approach for "pro is arriving" (browser push vs. none for MVP)
 
 *(Keep this list current — remove items once decided and folded into section 2, add new ones as they come up.)*
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
