@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { Database } from "./database.types";
 import { getSupabaseEnv } from "./env";
 
 /**
@@ -8,7 +9,7 @@ import { getSupabaseEnv } from "./env";
  * Always create a fresh client per request — never hoist it to a module-level
  * singleton, or one user's session leaks into another's request.
  *
- * Phase 1 adds the generated database types and wires this into the auth flow.
+ * Typed against the schema via `npm run db:types`.
  */
 export async function createClient() {
   const env = getSupabaseEnv();
@@ -21,7 +22,7 @@ export async function createClient() {
 
   const cookieStore = await cookies();
 
-  return createServerClient(env.url, env.anonKey, {
+  return createServerClient<Database>(env.url, env.anonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -33,7 +34,7 @@ export async function createClient() {
           }
         } catch {
           // Called from a Server Component, where cookies are read-only.
-          // Safe to ignore when middleware refreshes the session (Phase 1).
+          // Safe to ignore: proxy.ts refreshes the session on every request.
         }
       },
     },

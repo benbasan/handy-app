@@ -254,18 +254,35 @@ otp_expiry = 3600
 # content_path = "./supabase/templates/password_changed_notification.html"
 
 [auth.sms]
-# Allow/disallow new user signups via SMS to your project.
-enable_signup = false
+# Phone + OTP is the ONLY way into this product (product-spec.md section 2),
+# so SMS signup has to be on. Leaving this false blocks every sign-up.
+#
+# Not sufficient on its own: the CLI computes
+#   GOTRUE_EXTERNAL_PHONE_ENABLED = enable_signup AND (some provider enabled)
+# so phone auth stays off unless one of the [auth.sms.<provider>] blocks below
+# has enabled = true — even when every real send is short-circuited by
+# [auth.sms.test_otp]. That is why the Twilio block is enabled with credentials
+# that are empty locally. See README, "Signing in locally".
+enable_signup = true
 # If enabled, users need to confirm their phone number before signing in.
 enable_confirmations = false
 # Template for sending OTP to users
-template = "Your code is {{ .Code }}"
+template = "קוד האימות שלך ל-Handy: {{ .Code }}"
 # Controls the minimum amount of time that must pass before sending another sms otp.
-max_frequency = "5s"
+# 60s rather than the 5s default: OTP resend is the cheapest way to run up an
+# SMS bill on someone else's account.
+max_frequency = "60s"
 
-# Use pre-defined map of phone number to OTP for testing.
-# [auth.sms.test_otp]
-# 4152127777 = "123456"
+# Fixed OTP codes for local development, so the whole phone login flow is
+# testable with no SMS provider attached. These numbers are the demo users in
+# supabase/seed.sql — keep the two lists in step. Local only: this block has no
+# effect on the hosted project.
+[auth.sms.test_otp]
+972500000001 = "123456" # דנה לוי — customer
+972500000002 = "123456" # יוסי כהן — customer
+972500000003 = "123456" # דוד מזרחי — pro, verified
+972500000004 = "123456" # אבי פרץ — pro, pending
+972500000005 = "123456" # מנהלת Handy — admin
 
 # Configure logged in session timeouts.
 # [auth.sessions]
@@ -285,10 +302,26 @@ max_frequency = "5s"
 # uri = "pg-functions://<database>/<schema>/<hook_name>"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
+#
+# Enabled, but with credentials that come from the environment and are empty in
+# local development. This looks odd and is deliberate: the CLI refuses to turn
+# phone auth on at all unless some provider is enabled (see the note under
+# [auth.sms]), so this block is what makes local sign-in possible even though
+# nothing here ever sends a message — [auth.sms.test_otp] intercepts the demo
+# numbers before the provider is reached.
+#
+# Set the three SUPABASE_AUTH_SMS_TWILIO_* variables and real SMS starts
+# working for every other number, locally included. See "Going live with
+# Twilio" in README.md.
 [auth.sms.twilio]
-enabled = false
-account_sid = ""
-message_service_sid = ""
+enabled = true
+# Placeholders, and never used locally: [auth.sms.test_otp] answers the demo
+# numbers before Twilio is reached. They cannot be blank or left as env(...) —
+# the CLI rejects an enabled provider with an empty account_sid, and it only
+# expands env(...) for secret fields. Neither of these two IS a secret, so when
+# the Twilio account exists they get replaced here, in the repo, for real.
+account_sid = "AC-placeholder-no-twilio-account-yet"
+message_service_sid = "MG-placeholder-no-twilio-account-yet"
 # DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:
 auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 

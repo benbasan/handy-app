@@ -31,3 +31,36 @@ jobs:
       # without secrets. See lib/supabase/env.ts.
       - name: Build
         run: npm run build
+
+  # Separate job: it needs Docker and takes minutes, while `verify` takes
+  # seconds. Keeping them apart means a lint error fails fast.
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Applies every migration to an empty database and then supabase/seed.sql,
+      # so a migration that only works against one developer's existing data
+      # fails here.
+      - name: Start Supabase
+        run: npx supabase start
+
+      # The real gate. RLS is the only thing standing between one customer's
+      # data and another's, so it is tested rather than assumed.
+      - name: RLS policy tests
+        run: npm run db:test
+
+      # A schema change with stale generated types is a broken build waiting to
+      # happen in the next phase.
+      - name: Generated types are up to date
+        run: |
+          npm run db:types
+          git diff --exit-code -- lib/supabase/database.types.ts \
+            || { echo "::error::lib/supabase/database.types.ts is stale — run 'npm run db:types' and commit the result"; exit 1; }
