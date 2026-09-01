@@ -1,0 +1,4 @@
+-- Local development seed data, applied by `supabase db reset`.
+--
+-- Empty in Phase 0: there are no tables yet. Phase 1 fills this with the
+-- service categories and the demo users listed in docs/roadmap.md.
