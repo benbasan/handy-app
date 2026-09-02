@@ -65,6 +65,7 @@ REPAIR_ATTEMPTS="${REPAIR_ATTEMPTS:-2}"
 PUSH="${PUSH:-1}"
 DRY_RUN="${DRY_RUN:-0}"
 CLAUDE_BIN="${CLAUDE_BIN:-}"
+CLAUDE="" # resolved by preflight (or lazily by run_agent)
 ALLOW_NO_MAPS_KEY="${ALLOW_NO_MAPS_KEY:-0}"
 LIMIT_RESUMES="${LIMIT_RESUMES:-8}"
 LIMIT_POLL="${LIMIT_POLL:-900}"
@@ -339,6 +340,7 @@ wait_for_limit_reset() {
 # Returns: the CLI's exit code, or 124 on a genuine hang.
 run_agent() {
   local prompt="$1" jsonl="$2" err="$3" resume="${4:-}"
+  [ -n "$CLAUDE" ] || CLAUDE="$(find_claude)"
   : >"$jsonl"
   : >"$err"
 
@@ -565,6 +567,10 @@ quality_gate() {
 }
 
 # --- main -------------------------------------------------------------------
+
+# Lets the helpers above be sourced and tested on their own:
+#   RUNNER_LIB_ONLY=1 . ./run-all-phases.sh
+[ "${RUNNER_LIB_ONLY:-0}" = "1" ] && return 0 2>/dev/null
 
 preflight
 if [ "$PREFLIGHT_ONLY" = "1" ]; then
