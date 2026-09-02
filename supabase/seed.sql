@@ -143,3 +143,55 @@ insert into public.jobs (
     5,
     'open'
   );
+
+-- ---------------------------------------------------------------------------
+-- Phase 3 — the pro side
+--
+-- Three pro states, so every screen this phase adds has something real to
+-- render: one verified and working, one submitted and waiting in the admin
+-- queue, and (through the sign-up flow itself) a fresh 'draft'.
+-- ---------------------------------------------------------------------------
+
+update public.pro_profiles
+   set service_address_text = 'רחוב ברודצקי 18, תל אביב',
+       work_days = array[0, 1, 2, 3, 4]::smallint[],
+       work_start_time = '07:00',
+       work_end_time = '19:00',
+       onboarding_step = 5,
+       submitted_at = now() - interval '30 days',
+       payment_methods = array['cash', 'bit', 'transfer'],
+       payout_bank_name = 'בנק לאומי',
+       payout_bank_branch = '800',
+       payout_account_last4 = '4417'
+ where user_id = 'a0000000-0000-4000-8000-000000000003';
+
+-- The pending pro has submitted and is waiting on the admin queue, which is
+-- what /admin/pros exists to clear.
+update public.pro_profiles
+   set verification_status = 'pending',
+       service_address_text = 'רחוב אלנבי 12, תל אביב',
+       work_days = array[0, 1, 2, 3, 4, 5]::smallint[],
+       onboarding_step = 5,
+       submitted_at = now() - interval '9 hours',
+       payment_methods = array['cash', 'paybox'],
+       payout_bank_name = 'בנק הפועלים',
+       payout_bank_branch = '612',
+       payout_account_last4 = '9930'
+ where user_id = 'a0000000-0000-4000-8000-000000000004';
+
+insert into public.pro_categories (pro_id, category_id) values
+  -- אינסטלציה + איטום for the verified pro: job A (plumbing) reaches his feed,
+  -- job B (electrical) does not, which is the category filter doing its job.
+  ('a0000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000001'),
+  ('a0000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-00000000000a'),
+  ('a0000000-0000-4000-8000-000000000004', 'c0000000-0000-4000-8000-000000000002');
+
+-- Object paths inside the private verification-docs bucket, never public URLs
+-- — the same rule job media follows.
+insert into public.verification_documents (pro_id, doc_type, file_url, status, reviewed_at) values
+  ('a0000000-0000-4000-8000-000000000003', 'id_card',
+   'a0000000-0000-4000-8000-000000000003/id-card.jpg', 'approved', now() - interval '29 days'),
+  ('a0000000-0000-4000-8000-000000000003', 'license',
+   'a0000000-0000-4000-8000-000000000003/license.pdf', 'approved', now() - interval '29 days'),
+  ('a0000000-0000-4000-8000-000000000004', 'id_card',
+   'a0000000-0000-4000-8000-000000000004/id-card.jpg', 'pending', null);
