@@ -201,7 +201,7 @@ erDiagram
 | **`reviews`: `unique (job_id)`** | ה-ERD מגדיר `JOBS ||--o| REVIEWS` — נאכף בפועל. |
 | **`price_updates.photo_url`: `not null` + `check` על מחרוזת לא ריקה** | חוק השקיפות הוא אילוץ במסד הנתונים, לא שדה חובה בטופס שאפשר לעקוף. |
 | **סטטוסים כ-`text` + `check`, לא `enum` של Postgres** | תואם לטיוטה, ומאפשר להוסיף סטטוס בשלב עתידי בלי `ALTER TYPE`. |
-| **פונקציות עזר ל-RLS** (`auth_role`, `is_admin`, `is_verified_pro`, `is_job_owner`, `is_assigned_pro`, `is_bidding_pro`, `pro_serves_point`) | כולן `security definer` עם `search_path` ריק. בלי `security definer`, מדיניות על `jobs` שקוראת `profiles` מפעילה את המדיניות של `profiles` וגורמת לרקורסיה. |
+| **פונקציות עזר ל-RLS** (`auth_role`, `is_admin`, `is_verified_pro`, `is_job_owner`, `is_assigned_pro`, `is_bidding_pro`, `pro_serves_point` — הוחלפה ב-Phase 3 ב-`pro_serves_job`) | כולן `security definer` עם `search_path` ריק. בלי `security definer`, מדיניות על `jobs` שקוראת `profiles` מפעילה את המדיניות של `profiles` וגורמת לרקורסיה. |
 | **הרשאות ברמת עמודה (`grant update (col) ...`), לא רק RLS** | RLS בוחרת **שורות** ולא עמודות. מדיניות "מותר לך לעדכן את השורה שלך" הייתה מאפשרת ללקוח לשנות `role` שלו ל-`admin`, ולבעל מקצוע לשנות `verification_status` ו-`rating_avg` של עצמו. ה-grant הצר הוא מה שחוסם את זה בפועל. |
 | **טריגר `handle_new_user` עם whitelist על ה-role** | `raw_user_meta_data` הוא קלט מהדפדפן — מה שנשלח ב-`options.data` מגיע כמו שהוא. רק `customer`/`pro` מכובדים; `admin` ניתן רק ב-SQL ישיר. |
 | **`notifications`** — לא נוצרה | כפי שהטיוטה קובעת: תתווסף בשלב שבו בונים התראות. |
@@ -213,7 +213,7 @@ erDiagram
 
 | שינוי | למה |
 |---|---|
-| **`jobs.search_radius_km`** (`default 5`, `check 1..50`) | `product-spec.md` 3.2 נותן ללקוח לבחור רדיוס חיפוש בשלב הכתובת, וחוק עסקי 7 קובע ברירת מחדל של 3–5 ק״מ. זו ההעדפה של הלקוח בלבד; השער בפועל על הפיד נשאר `pro_serves_point` — הרדיוס של בעל המקצוע. איך השניים מצטלבים יוכרע ב-Phase 3. |
+| **`jobs.search_radius_km`** (`default 5`, `check 1..50`) | `product-spec.md` 3.2 נותן ללקוח לבחור רדיוס חיפוש בשלב הכתובת, וחוק עסקי 7 קובע ברירת מחדל של 3–5 ק״מ. זו ההעדפה של הלקוח בלבד; השער בפועל על הפיד נשאר `pro_serves_point` — הרדיוס של בעל המקצוע. איך השניים מצטלבים הוכרע ב-Phase 3: `least()` של השניים, ראו למטה. |
 | **`jobs.preferred_time` קיבל `check`** (`asap`/`today`/`tomorrow`/`this_week`/`flexible`) | כטקסט חופשי, ה-UI לא יכול לרנדר את הערך בעברית — הוא רק מהדהד את מה שנשמר. הטופס מציע בחירה סגורה, ולכן העמודה מחזיקה slug באנגלית והתוויות חיות ב-`lib/validation/jobs.ts`. |
 | **`jobs.latitude` / `jobs.longitude`** — עמודות `generated always as ... stored` | PostgREST מחזיר `geography` כ-hex EWKB. בלי הנגזרות האלה כל מסך שרוצה להראות ללקוח איפה הכתובת שלו נחתה היה צריך לפענח EWKB ב-JS. שתי הפונקציות immutable, ו-`location` נשאר מקור האמת היחיד. |
 | **bucket `job-media` (פרטי) + 4 מדיניות על `storage.objects`** | תמונות/וידאו/הקלטה של קריאה. פריסה: `<customer_id>/<upload_group>/<filename>` — הקבצים עולים בזמן שהקריאה עוד ממולאת, לפני שיש `job_id`. ההעלאה נעולה לתיקייה של המעלה ולתפקיד `customer`; אין מדיניות `update` בכלל (קובץ מוחלף בהעלאה חדשה, לא משתנה במקום). |
@@ -222,6 +222,37 @@ erDiagram
 **נתיבי מדיה נשמרים כ-object paths, לא כ-URL-ים.** ה-bucket פרטי, וכל צפייה עוברת signed URL שנחתם בשרת תחת ה-RLS של הקורא — Storage לא חותם נתיב שהקורא לא היה יכול לקרוא ממילא.
 
 **מדיה עולה ישירות מהדפדפן ל-Storage**, לא דרך Server Action: סרטון של 30 שניות הוא עשרות מגה-בייט, הרבה מעבר למגבלת הגוף של Server Action. הטופס שולח לשרת נתיבים, וה-Zod schema מוודא שכל נתיב יושב בתיקייה של המשתמש שמפרסם — אותו דבר שמדיניות ה-`insert` של ה-bucket אוכפת, פעמיים.
+
+### מה נוסף ב-Phase 3 (`supabase/migrations/20260903120000_pro_onboarding.sql`)
+
+| שינוי | למה |
+|---|---|
+| **`pro_profiles`: `work_days`, `work_start_time`, `work_end_time`, `service_address_text`, `onboarding_step`, `submitted_at`, `payment_methods`, `payout_bank_name`, `payout_bank_branch`, `payout_account_last4`** | מה שחמשת שלבי ה-Onboarding אוספים (`product-spec.md` 4.2) ומה שמסך הזמינות עורך (4.9). `service_address_text` הוא הכתובת שהוקלדה; `service_point` הוא הגיאוקוד שלה — רדיוס בלי מרכז אינו שאילתת PostGIS. |
+| **`verification_status` קיבל מצב `draft`, והוא ברירת המחדל** | ב-Phase 1 בעל מקצוע חדש נולד `pending`, ולכן "עוד לא מילא כלום" ו"ממתין לצוות Handy" היו אותו ערך. הגדרת הסיום של Phase 3 היא בדיוק שבעל מקצוע **מגיע** ל-`pending` בסוף חמשת השלבים. |
+| **`pro_categories`** (טבלה חדשה) | קשת ה-`specializes_in` שב-ERD. הפיד משתמש בה כמסנן ולא כגבול אבטחה: קריאה בתוך הרדיוס אינה סוד מבעל המקצוע רק בגלל שהיא בתחום אחר, ולכן השער נשאר רדיוס+מאומת והצמצום לפי תחום חי בשאילתת הפיד. |
+| **`job_dismissals`** (טבלה חדשה) | כפתור "לא מתאים לי" בכל כרטיס בפיד. טבלה ולא הסתרה בצד לקוח, כדי שהסתרה בטלפון תישמר גם במחשב. אינה מסתירה דבר מאיש אחר ואינה מעניקה הרשאה. |
+| **`submit_pro_for_approval()` ו-`set_pro_verification()`** — `security definer` | שני המעברים החוקיים של `verification_status`. RLS בוחרת שורות ולא עמודות, ולכן grant רחב מספיק לאדמין היה מאפשר גם לבעל מקצוע לאמת את עצמו. אין ולו grant אחד על העמודה הזו לשום client role; הפונקציות בודקות את הקורא בעצמן. `submit_pro_for_approval` גם בודקת שלמות (תחום, כתובת בסיס, ת.ז) — שאלה שטופס אינו יכול להיות מהימן לענות עליה. |
+| **`pro_serves_job(point, search_radius_km)` מחליפה את `pro_serves_point(point)`** | ההכרעה ש-Phase 2 השאירה פתוחה. ראו למטה. |
+| **`open_jobs_for_pro(p_max_km)`** — `security invoker` | שאילתת הפיד: `ST_DWithin` מאונדקס מול ה-`service_point` של בעל המקצוע, עם `ST_Distance` למרחק שמוצג בכרטיס. רצה כקורא, ולכן המדיניות על `jobs` היא שבוחרת את השורות והפונקציה רק מצמצמת. |
+| **`job_bid_count(uuid)`** — `security definer` | העיצוב מציג "כמה הצעות כבר הוגשו" בכל כרטיס, אבל מדיניות ה-`select` על `bids` מראה לבעל מקצוע רק את השורות שלו. פונקציה שמחזירה מספר בלבד — בלי מחירים ובלי זהויות — במקום להרחיב את המדיניות. |
+| **bucket `verification-docs` (פרטי) + 3 מדיניות** | ת.ז, רישיון, ביטוח ותמונת פרופיל. בניגוד ל-`job-media` אין כאן שום נתיב "מישהו אחר רואה דרך שורה קשורה": `product-spec.md` 4.2 מפורש שהמסמכים לא מוצגים ללקוחות, שרואים רק את התג הנגזר. בדיוק שני קוראים — בעל המקצוע שהעלה, ואדמין. אין `update` ואין `delete`: מסמך מוחלף בהעלאה חדשה, כך שדחייה לא נמחקת בשקט. |
+
+**שני הרדיוסים חייבים להסכים.** `jobs.search_radius_km` (עד כמה הלקוח ביקש לשדר) ו-`pro_profiles.radius_km` (עד כמה בעל המקצוע מוכן לנסוע) נפגשים ב-`least()`: קריאה נראית רק במרחק `least(radius_km, search_radius_km)`. האכיפה היא **במדיניות ה-RLS** ולא בשאילתה, כדי שהיא תחול על כל דבר שיקרא אי פעם את הטבלה — כולל `can_read_job_media`, שעודכן איתה. `supabase/tests/rls_test.sql` מוכיח את זה עם זוג קריאות זהות באותה נקודה בדיוק, שנבדלות רק ב-`search_radius_km`.
+
+**רק 4 ספרות של חשבון הבנק נשמרות.** `payout_account_last4` מספיק כדי שבעל המקצוע יזהה את החשבון על המסך. איסוף מספר החשבון המלא נוגע בתנועת כסף אמיתית, ולפי `CLAUDE.md` סעיף 8 זו החלטה שמתקבלת עם המשתמש — בשלב התשלומים, לא כאן.
+
+### שינוי נתיבים ב-Phase 3: `/pro` הפך לעמוד נחיתה ציבורי
+
+עמוד הנחיתה לבעלי מקצוע (`design/screens/pro-1.1-landing.png`) צולם ב-`handy.co.il/pro`, ומבקר אנונימי חייב להגיע אליו. route group לא מוסיף segment, ולכן `/pro` לא יכול להיות גם עמוד שיווקי פתוח וגם בית מוגן. ההכרעה: `/pro` ציבורי, והבית של בעל המקצוע ירד ל-`/pro/dashboard` — גם זה ה-URL שבעיצוב עצמו.
+
+מכאן ש-`PROTECTED_AREAS` ב-`lib/routes.ts` מונה את נתיבי בעל המקצוע אחד-אחד (`/pro/dashboard`, `/pro/join`, `/pro/onboarding`, `/pro/jobs`, `/pro/settings`) במקום לשמור על התחילית `/pro` כולה.
+
+| תפקיד | כניסה | בית | נתיבים נוספים |
+|---|---|---|---|
+| ציבורי | — | `/` · `/pro` | |
+| `customer` | `/login` | `/account` | `/new-request`, `/new-request/published/[jobId]` |
+| `pro` | `/pro/login` | `/pro/dashboard` | `/pro/join`, `/pro/onboarding`, `/pro/jobs`, `/pro/settings` |
+| `admin` | `/admin/login` | `/admin` | `/admin/pros` |
 
 ### מבנה נתיבים ותפקידים (הוחלט ב-Phase 1)
 
@@ -253,7 +284,8 @@ RLS חובה בכל טבלה (ראו גם `CLAUDE.md` סעיף 3). כללי אצ
 
 - **`jobs`**: לקוח רואה/עורך רק קריאות שהוא יצר. בעל מקצוע רואה קריאות בסטטוס `open`/`bidding` שבתחום/רדיוס שלו, ורואה קריאות שהוא זכה בהן. אדמין רואה הכל.
 - **`bids`**: בעל מקצוע רואה/עורך רק את ההצעות שלו. לקוח רואה את כל ההצעות על הקריאות שלו (אבל לא יכול לערוך). אדמין רואה הכל.
-- **`pro_profiles` / `verification_documents`**: בעל מקצוע רואה/עורך רק את הפרופיל שלו; המסמכים לא נגישים ללקוחות בשום מקרה (רק שדה `verification_status` נגזר, לא הקובץ עצמו). אדמין רואה הכל.
+- **`pro_profiles` / `verification_documents`**: בעל מקצוע רואה/עורך רק את הפרופיל שלו; המסמכים לא נגישים ללקוחות בשום מקרה (רק שדה `verification_status` נגזר, לא הקובץ עצמו). אדמין רואה הכל. **`verification_status` אינו ניתן לכתיבה לאף client role** — שני המעברים החוקיים שלו הם `submit_pro_for_approval()` ו-`set_pro_verification()` (Phase 3).
+- **`pro_categories` / `job_dismissals`**: בעל מקצוע רואה ועורך רק את השורות שלו. אדמין רואה הכל. ללקוח אין מדיניות באף אחת מהן.
 - **`commission_charges`**: בעל מקצוע רואה רק את שלו. אדמין רואה הכל. לקוח לא רואה בכלל (זה לא עניינו).
 
 **איך זה נבדק (מ-Phase 1 והלאה):** `supabase/tests/rls_test.sql` — חבילת pgTAP שמורצת ב-`npm run db:test` וב-CI. היא מתחזה למשתמשים בדיוק כמו PostgREST (`request.jwt.claims` + מעבר ל-role `authenticated`, כי ה-role של הסשן הוא `postgres` שנושא `BYPASSRLS` והיה עובר דרך כל מדיניות), ומוכיחה בפועל את הטענות שבסעיף הזה. שתי בדיקות מבניות שומרות על העתיד: **כל** טבלה ב-`public` עם RLS מופעל, ו**כל** טבלה עם לפחות מדיניות אחת — טבלה עם RLS ובלי מדיניות היא חור שקט שנראה מאובטח ומחזיר אפס שורות.

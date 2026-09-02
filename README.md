@@ -40,13 +40,17 @@ numbers to a fixed code under `[auth.sms.test_otp]`.
 
 The code for every demo user is **`123456`**.
 
-| Phone         | Who                    | Role       | Lands on |
-| ------------- | ---------------------- | ---------- | -------- |
-| `050-0000001` | דנה לוי                | `customer` | /account |
-| `050-0000002` | יוסי כהן               | `customer` | /account |
-| `050-0000003` | דוד מזרחי (מאומת)      | `pro`      | /pro     |
-| `050-0000004` | אבי פרץ (ממתין לאימות) | `pro`      | /pro     |
-| `050-0000005` | מנהלת Handy            | `admin`    | /admin   |
+| Phone         | Who                    | Role       | Lands on       |
+| ------------- | ---------------------- | ---------- | -------------- |
+| `050-0000001` | דנה לוי                | `customer` | /account       |
+| `050-0000002` | יוסי כהן               | `customer` | /account       |
+| `050-0000003` | דוד מזרחי (מאומת)      | `pro`      | /pro/dashboard |
+| `050-0000004` | אבי פרץ (ממתין לאישור) | `pro`      | /pro/dashboard |
+| `050-0000005` | מנהלת Handy            | `admin`    | /admin         |
+
+`/pro` itself is the **public** pro landing page, which is why a signed-in pro
+lands one level down. The approvals queue an admin needs in order to move
+`050-0000004` from ממתין לאישור to מאומת is at `/admin/pros`.
 
 Any other number can sign up for real, but will not receive a code until Twilio
 is configured. New sign-ups become `customer` or `pro` depending on which login
