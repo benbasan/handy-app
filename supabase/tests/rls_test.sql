@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(33);
+select plan(44);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -55,6 +55,14 @@ values
 insert into public.verification_documents (pro_id, doc_type, file_url) values
   (:pro_verified, 'id_card', 'verification-docs/pro3-id.jpg'),
   (:pro_pending, 'id_card', 'verification-docs/pro4-id.jpg');
+
+-- Phase 2: the storage rows behind the two seeded jobs' photo_urls, plus one
+-- file customer A uploaded and has not attached to any job yet — the draft
+-- case, which only the folder-prefix policy can cover.
+insert into storage.objects (bucket_id, name, owner, metadata) values
+  ('job-media', 'a0000000-0000-4000-8000-000000000001/seed-job-a/leak.jpg', :customer_a, '{}'),
+  ('job-media', 'a0000000-0000-4000-8000-000000000002/seed-job-b/socket.jpg', :customer_b, '{}'),
+  ('job-media', 'a0000000-0000-4000-8000-000000000001/draft/unattached.jpg', :customer_a, '{}');
 
 -- ===========================================================================
 -- 1. Job isolation between customers — the headline requirement
@@ -333,6 +341,103 @@ select throws_ok(
 reset role;
 
 -- ===========================================================================
+-- 7b. Job media in Storage (Phase 2)
+--
+-- The bucket is private, so every read is a signed URL the API only mints for
+-- a caller whose SELECT policy lets them see the row. These are those policies.
+-- ===========================================================================
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select count(*) from storage.objects where bucket_id = 'job-media'),
+  2::bigint,
+  'customer A sees their own two job-media files and nothing else'
+);
+
+select is(
+  (select count(*) from storage.objects
+    where name = 'a0000000-0000-4000-8000-000000000002/seed-job-b/socket.jpg'),
+  0::bigint,
+  'customer A cannot read the photo attached to customer B''s job'
+);
+
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name, owner, metadata)
+     values ('job-media',
+             'a0000000-0000-4000-8000-000000000002/smuggled/x.jpg',
+             'a0000000-0000-4000-8000-000000000001', '{}') $$,
+  '42501',
+  null,
+  'a customer cannot upload into another customer''s job-media folder'
+);
+
+select lives_ok(
+  $$ insert into storage.objects (bucket_id, name, owner, metadata)
+     values ('job-media',
+             'a0000000-0000-4000-8000-000000000001/draft/second.jpg',
+             'a0000000-0000-4000-8000-000000000001', '{}') $$,
+  'a customer can upload into their own folder'
+);
+
+-- Left in place rather than cleaned up: storage.objects carries a trigger that
+-- refuses direct DELETE, and the whole file rolls back anyway.
+reset role;
+
+-- A verified pro in radius sees the open job, and therefore its photo — but
+-- only the photo the job actually references.
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select count(*) from storage.objects
+    where name = 'a0000000-0000-4000-8000-000000000001/seed-job-a/leak.jpg'),
+  1::bigint,
+  'a verified pro in radius reads the photo of a job they can see'
+);
+
+select is(
+  (select count(*) from storage.objects
+    where name = 'a0000000-0000-4000-8000-000000000001/draft/unattached.jpg'),
+  0::bigint,
+  'the same pro cannot read a file the customer has not attached to any job'
+);
+
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name, owner, metadata)
+     values ('job-media',
+             'a0000000-0000-4000-8000-000000000003/mine/x.jpg',
+             'a0000000-0000-4000-8000-000000000003', '{}') $$,
+  '42501',
+  null,
+  'a pro cannot upload to job-media at all — that bucket belongs to customers'
+);
+
+reset role;
+
+select pg_temp.act_as(:pro_pending);
+set local role authenticated;
+
+select is(
+  (select count(*) from storage.objects where bucket_id = 'job-media'),
+  0::bigint,
+  'an unverified pro sees no job media, exactly as they see no jobs'
+);
+
+reset role;
+
+set local role anon;
+
+select is(
+  (select count(*) from storage.objects where bucket_id = 'job-media'),
+  0::bigint,
+  'an anonymous visitor sees no job media — the bucket is private'
+);
+
+reset role;
+
+-- ===========================================================================
 -- 8. Structural guarantees
 -- ===========================================================================
 
@@ -363,6 +468,19 @@ select hasnt_column(
 select col_not_null(
   'public', 'price_updates', 'photo_url',
   'a price update cannot exist without a photo of the fault'
+);
+
+select col_not_null(
+  'public', 'jobs', 'search_radius_km',
+  'every job carries the radius the customer asked to broadcast it within'
+);
+
+select throws_ok(
+  $$ update public.jobs set preferred_time = 'whenever'
+      where id = 'd0000000-0000-4000-8000-000000000001' $$,
+  '23514',
+  null,
+  'preferred_time is a fixed vocabulary, not free text the UI has to echo blindly'
 );
 
 -- ===========================================================================
