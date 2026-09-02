@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
 import { BUTTON_BRAND, BUTTON_QUIET, Card } from "@/components/ui/primitives";
 import { getBrowserMapsKey } from "@/lib/maps/config";
+import { CUSTOMER_ROUTES } from "@/lib/routes";
 import { getJob } from "@/lib/supabase/jobs";
 import {
   PREFERRED_TIME_LABEL,
@@ -14,9 +15,8 @@ export const metadata = { title: "הקריאה פורסמה — Handy" };
 
 /**
  * "הקריאה פורסמה" — the confirmation the roadmap calls for at the end of
- * Phase 2. Static in the sense that matters: it reports what was saved, and
- * does not yet show bids. Bids arrive in Phase 4 and this screen is where they
- * will land.
+ * Phase 2. It reports what was actually saved and then hands the customer on
+ * to the offers screen, which is where the bids land.
  *
  * The job is fetched back out of the database rather than passed through from
  * the action, so what the customer sees is what was actually stored — the
@@ -81,7 +81,9 @@ export default async function JobPublishedPage({
               "—"
             )}
           </Row>
-          <Row label="סטטוס">ממתין להצעות</Row>
+          <Row label="סטטוס">
+            {job.status === "bidding" ? "מתקבלות הצעות" : "ממתין להצעות"}
+          </Row>
         </dl>
 
         <JobMediaGallery
@@ -103,10 +105,13 @@ export default async function JobPublishedPage({
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Link href="/account" className={BUTTON_BRAND}>
+        <Link href={CUSTOMER_ROUTES.offers(job.id)} className={BUTTON_BRAND}>
+          מעקב אחרי ההצעות
+        </Link>
+        <Link href={CUSTOMER_ROUTES.account} className={BUTTON_QUIET}>
           לאזור האישי
         </Link>
-        <Link href="/new-request" className={BUTTON_QUIET}>
+        <Link href={CUSTOMER_ROUTES.newRequest} className={BUTTON_QUIET}>
           פרסום קריאה נוספת
         </Link>
       </div>

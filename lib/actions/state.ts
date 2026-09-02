@@ -26,3 +26,28 @@ export type AdminDecisionState = {
 };
 
 export const EMPTY_ADMIN_DECISION_STATE: AdminDecisionState = {};
+
+export type BidFormState = {
+  error?: string;
+  /** Keyed by the schema's field name, so a form can sit the message under the right control. */
+  fieldErrors?: Record<string, string>;
+  /** Set by "עדכן הצעה", which stays on the list instead of redirecting. */
+  saved?: boolean;
+};
+
+export const EMPTY_BID_FORM_STATE: BidFormState = {};
+
+export type SelectBidState = {
+  error?: string;
+  /** The offer that just won, so the list can confirm which one. */
+  selectedBidId?: string;
+};
+
+export const EMPTY_SELECT_BID_STATE: SelectBidState = {};
+
+export type SendMessageState = {
+  error?: string;
+  sent?: boolean;
+};
+
+export const EMPTY_SEND_MESSAGE_STATE: SendMessageState = {};

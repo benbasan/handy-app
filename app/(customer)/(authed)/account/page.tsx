@@ -7,6 +7,7 @@ import {
   Card,
 } from "@/components/ui/primitives";
 import { categoryIcon } from "@/lib/categories";
+import { CUSTOMER_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { listMyJobs, type JobSummary } from "@/lib/supabase/jobs";
 import { requireRole } from "@/lib/supabase/session";
@@ -145,11 +146,20 @@ function JobRow({ job }: { job: JobSummary }) {
 
       <Badge tone={status.tone}>{status.text}</Badge>
 
+      {/* A published call's home is its offers screen — that is where the
+          bids arrive and where one gets chosen. The publish confirmation is
+          only interesting on the way out of the form. */}
       <Link
-        href={`/new-request/published/${job.id}`}
+        href={
+          job.status === "draft"
+            ? CUSTOMER_ROUTES.published(job.id)
+            : CUSTOMER_ROUTES.offers(job.id)
+        }
         className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
       >
-        פתח
+        {job.status === "open" || job.status === "bidding"
+          ? "צפייה בהצעות"
+          : "פתח"}
       </Link>
     </li>
   );
