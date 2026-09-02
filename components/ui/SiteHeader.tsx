@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signOut } from "@/lib/actions/auth";
 import { BUTTON_CTA } from "@/components/ui/primitives";
 import { Logo } from "@/components/ui/Logo";
+import { PRO_ROUTES } from "@/lib/routes";
 import type { CurrentUser } from "@/lib/supabase/session";
 
 /**
@@ -26,7 +27,7 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
               הקריאות שלי
             </Link>
           )}
-          <Link href="/pro/login" className="hover:text-brand">
+          <Link href={PRO_ROUTES.landing} className="hover:text-brand">
             לבעלי מקצוע
           </Link>
         </nav>

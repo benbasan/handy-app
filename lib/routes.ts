@@ -14,7 +14,11 @@ import type { SignupRole, UserRole } from "@/lib/validation/auth";
  */
 export const ROLE_HOME: Record<UserRole, string> = {
   customer: "/account",
-  pro: "/pro",
+  // Not `/pro`: that is the public pro landing page (design/screens/
+  // pro-1.1-landing.png, captured at handy.co.il/pro), which anonymous
+  // visitors have to be able to reach. The signed-in home is one level down,
+  // exactly where the design's own dashboard capture puts it.
+  pro: "/pro/dashboard",
   admin: "/admin",
 };
 
@@ -23,6 +27,21 @@ export const ROLE_LOGIN: Record<UserRole, string> = {
   pro: "/pro/login",
   admin: "/admin/login",
 };
+
+/** Every signed-in pro screen, in the order the pro header lists them. */
+export const PRO_ROUTES = {
+  landing: "/pro",
+  dashboard: "/pro/dashboard",
+  join: "/pro/join",
+  onboarding: "/pro/onboarding",
+  jobs: "/pro/jobs",
+  settings: "/pro/settings",
+} as const;
+
+export const ADMIN_ROUTES = {
+  home: "/admin",
+  pros: "/admin/pros",
+} as const;
 
 export const SIGNUP_ROLE_LABEL: Record<SignupRole, string> = {
   customer: "לקוח",
@@ -40,7 +59,13 @@ const PROTECTED_AREAS: ReadonlyArray<{ prefix: string; login: string }> = [
   // Posting a job sits outside /account but is just as signed-in: a customer
   // registers on the way to their first job (product-spec.md section 2).
   { prefix: "/new-request", login: ROLE_LOGIN.customer },
-  { prefix: ROLE_HOME.pro, login: ROLE_LOGIN.pro },
+  // Listed one by one rather than as the `/pro` prefix, because `/pro` itself
+  // is the public landing page and must stay reachable while signed out.
+  { prefix: PRO_ROUTES.dashboard, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.join, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.onboarding, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.jobs, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.settings, login: ROLE_LOGIN.pro },
   { prefix: ROLE_HOME.admin, login: ROLE_LOGIN.admin },
 ];
 

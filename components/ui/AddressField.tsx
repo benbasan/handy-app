@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { INPUT_CLASS } from "@/components/ui/primitives";
 
 /**
- * The address step of the posting form (product-spec.md 3.2).
+ * The one address control in the product: the customer's job address
+ * (product-spec.md 3.2) and the pro's base address, the centre their
+ * `radius_km` is measured from (4.2). Both need the same behaviour, and both
+ * feed the same server-side `geocodeAddress`.
  *
  * With a Maps key it is Google Places Autocomplete, and the chosen place's
  * coordinates ride along with the form so the server does not have to geocode
@@ -83,11 +86,19 @@ export function AddressField({
   value,
   onChange,
   error,
+  label = "כתובת מלאה",
+  placeholder = "רח׳ ברודצקי 18, תל אביב",
+  hint,
 }: {
   mapsKey: string | null;
   value: AddressValue;
   onChange: (next: AddressValue) => void;
   error?: string;
+  label?: string;
+  /** Placeholder only — never a default value, or an untouched field would submit it. */
+  placeholder?: string;
+  /** Replaces the "how to fill this in" line under the input, when the screen needs its own. */
+  hint?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -145,7 +156,7 @@ export function AddressField({
         htmlFor="addressText"
         className="mb-1 block text-sm font-medium text-ink"
       >
-        כתובת מלאה
+        {label}
       </label>
 
       <input
@@ -154,7 +165,7 @@ export function AddressField({
         name="addressText"
         type="text"
         autoComplete="street-address"
-        placeholder="רח׳ ברודצקי 18, תל אביב"
+        placeholder={placeholder}
         required
         maxLength={200}
         value={value.text}
@@ -169,9 +180,10 @@ export function AddressField({
       <input type="hidden" name="lng" value={value.lng ?? ""} />
 
       <p className="mt-2 text-xs text-muted">
-        {autocompleteReady
-          ? "בחרו כתובת מההשלמה האוטומטית לדיוק מרבי."
-          : "הזינו רחוב, מספר ועיר. נאתר את המיקום לפי מה שהזנתם."}
+        {hint ??
+          (autocompleteReady
+            ? "בחרו כתובת מההשלמה האוטומטית לדיוק מרבי."
+            : "הזינו רחוב, מספר ועיר. נאתר את המיקום לפי מה שהזנתם.")}
       </p>
 
       {error && (

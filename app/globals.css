@@ -23,16 +23,20 @@
   --color-brand-strong: #1a3798;
   --color-brand-soft: #e4edf8;
 
-  /* Pro-facing accent — unused until Phase 3, kept here so the two sides of
-     the product cannot drift into two different blues. */
+  /* Pro-facing accent. Every "Handy Pro" chrome, day chip and primary button
+     on the pro side is this indigo. */
   --color-pro: #4f46e5;
+  --color-pro-strong: #4338ca;
+  --color-pro-soft: #eef0fe;
 
   /* Primary action. Every "פרסם קריאה" button in the design is this green. */
   --color-cta: #10b981;
   --color-cta-strong: #059669;
 
-  /* Reserved for the field price-update flow (Phase 5). */
+  /* The field price-update flow (Phase 5), and — as the design uses it on the
+     feed — the "just arrived" ribbon on a brand-new job. */
   --color-alert: #f97316;
+  --color-alert-soft: #fff1e6;
 
   --color-background: var(--color-canvas);
   --color-foreground: var(--color-ink);

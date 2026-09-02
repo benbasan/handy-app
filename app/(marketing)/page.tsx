@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/ui/AppShell";
 import { BUTTON_CTA, BUTTON_QUIET } from "@/components/ui/primitives";
 import { categoryIcon } from "@/lib/categories";
+import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
 import { getCurrentUser } from "@/lib/supabase/session";
 
@@ -58,7 +59,7 @@ export default async function LandingPage() {
             <Link href="/new-request" className={BUTTON_CTA}>
               פרסם קריאה — חינם
             </Link>
-            <Link href="/pro/login" className={BUTTON_QUIET}>
+            <Link href={PRO_ROUTES.landing} className={BUTTON_QUIET}>
               אני בעל מקצוע
             </Link>
           </div>

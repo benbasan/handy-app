@@ -20,6 +20,9 @@ export const BUTTON_CTA = `${BUTTON_BASE} bg-cta text-white hover:bg-cta-strong`
 
 export const BUTTON_BRAND = `${BUTTON_BASE} bg-brand text-white hover:bg-brand-strong`;
 
+/** The pro side's primary weight — indigo, as in every design/screens/pro-*.png. */
+export const BUTTON_PRO = `${BUTTON_BASE} bg-pro text-white hover:bg-pro-strong`;
+
 export const BUTTON_QUIET = `${BUTTON_BASE} border border-line bg-surface text-ink hover:bg-canvas`;
 
 export const INPUT_CLASS =
@@ -37,17 +40,20 @@ export function Card({
 
 /**
  * A numbered card, which is how the posting form carries the spec's step
- * sequence on a single page — see components/customer/PostJobForm.tsx.
+ * sequence on a single page — see components/customer/PostJobForm.tsx. The
+ * pro's join screen reuses it with `tone="pro"` for the same job in indigo.
  */
 export function SectionCard({
   step,
   title,
   hint,
+  tone = "brand",
   children,
 }: {
   step?: number;
   title: string;
   hint?: string;
+  tone?: "brand" | "pro";
   children: ReactNode;
 }) {
   return (
@@ -56,7 +62,11 @@ export function SectionCard({
         {step !== undefined && (
           <span
             aria-hidden
-            className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-bold text-brand"
+            className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+              tone === "pro"
+                ? "bg-pro-soft text-pro"
+                : "bg-brand-soft text-brand"
+            }`}
           >
             {step}
           </span>
@@ -76,6 +86,7 @@ const BADGE_TONES = {
   done: "bg-cta/15 text-cta-strong",
   waiting: "bg-alert/15 text-alert",
   neutral: "bg-canvas text-muted",
+  pro: "bg-pro-soft text-pro",
 } as const;
 
 export function Badge({
