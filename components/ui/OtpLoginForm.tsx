@@ -7,6 +7,7 @@ import {
   type RequestOtpState,
   type VerifyOtpState,
 } from "@/lib/actions/auth";
+import { BUTTON_CTA, INPUT_CLASS } from "@/components/ui/primitives";
 import { formatIsraeliMobile, type SignupRole } from "@/lib/validation/auth";
 
 type Props = {
@@ -58,15 +59,15 @@ function OtpLoginFormAttempt({
   const sentTo = requestState.sentTo;
 
   return (
-    <div className="w-full max-w-sm">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <p className="mt-1 text-sm text-neutral-600">{subtitle}</p>
+    <div className="w-full">
+      <h1 className="text-3xl font-bold text-ink">{title}</h1>
+      <p className="mt-2 text-sm text-muted">{subtitle}</p>
 
       {sentTo ? (
         <form action={verifyAction} className="mt-6 space-y-4">
           <input type="hidden" name="phone" value={sentTo} />
 
-          <p className="text-sm text-neutral-700">
+          <p className="text-sm text-muted">
             שלחנו קוד בת 6 ספרות אל{" "}
             <span dir="ltr" className="font-semibold">
               {formatIsraeliMobile(sentTo)}
@@ -95,7 +96,7 @@ function OtpLoginFormAttempt({
           <button
             type="submit"
             disabled={verifyPending}
-            className={BUTTON_CLASS}
+            className={`${BUTTON_CTA} w-full`}
           >
             {verifyPending ? "מאמת…" : "אישור והתחברות"}
           </button>
@@ -103,7 +104,7 @@ function OtpLoginFormAttempt({
           <button
             type="button"
             onClick={onRestart}
-            className="w-full text-sm text-neutral-600 underline underline-offset-2"
+            className="w-full text-sm text-muted underline underline-offset-2"
           >
             שינוי מספר טלפון
           </button>
@@ -148,7 +149,7 @@ function OtpLoginFormAttempt({
           <button
             type="submit"
             disabled={requestPending}
-            className={BUTTON_CLASS}
+            className={`${BUTTON_CTA} w-full`}
           >
             {requestPending ? "שולח קוד…" : "שליחת קוד ב-SMS"}
           </button>
@@ -157,12 +158,6 @@ function OtpLoginFormAttempt({
     </div>
   );
 }
-
-const INPUT_CLASS =
-  "block w-full rounded-lg border border-neutral-300 px-3 py-2 text-base outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900";
-
-const BUTTON_CLASS =
-  "w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-base font-semibold text-white disabled:opacity-60";
 
 function Field({
   label,
@@ -177,7 +172,7 @@ function Field({
     <div>
       <label
         htmlFor={htmlFor}
-        className="mb-1 block text-sm font-medium text-neutral-800"
+        className="mb-1 block text-sm font-medium text-ink"
       >
         {label}
       </label>
@@ -188,7 +183,7 @@ function Field({
 
 function ErrorText({ children }: { children: React.ReactNode }) {
   return (
-    <p role="alert" className="text-sm text-red-700">
+    <p role="alert" className="text-sm font-medium text-red-700">
       {children}
     </p>
   );

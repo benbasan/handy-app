@@ -7,7 +7,7 @@ export default async function AdminLoginPage() {
   await redirectIfSignedIn();
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center p-6">
+    <main className="mx-auto flex min-h-svh w-full max-w-sm flex-col justify-center p-6">
       {/*
         role="customer" is not a typo. Admin is not self-assignable — the
         database whitelist in handle_new_user only honours customer and pro, so

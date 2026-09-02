@@ -23,19 +23,19 @@ export function CurrentUserCard({
   verificationStatus?: string | null;
 }) {
   return (
-    <div className="w-full max-w-md rounded-xl border border-neutral-200 p-5">
-      <h2 className="text-lg font-bold">מי אני</h2>
-      <p className="mt-1 text-sm text-neutral-600">
+    <div className="w-full rounded-2xl border border-line bg-surface p-5">
+      <h2 className="text-lg font-bold text-ink">מי אני</h2>
+      <p className="mt-1 text-sm text-muted">
         הנתונים נקראים מטבלת <code>profiles</code> תחת RLS — כל משתמש רואה רק את
         השורה שלו.
       </p>
 
       <dl className="mt-4 space-y-3 text-sm">
         <Row label="תפקיד">
-          <span className="rounded-full bg-neutral-900 px-2.5 py-0.5 text-xs font-semibold text-white">
+          <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-semibold text-white">
             {USER_ROLE_LABEL[user.role]}
           </span>
-          <code className="ms-2 text-xs text-neutral-500">{user.role}</code>
+          <code className="ms-2 text-xs text-muted">{user.role}</code>
         </Row>
 
         <Row label="שם">{user.fullName ?? "— לא הוזן —"}</Row>
@@ -58,7 +58,7 @@ export function CurrentUserCard({
         </Row>
 
         <Row label="מזהה משתמש">
-          <code dir="ltr" className="text-xs break-all text-neutral-500">
+          <code dir="ltr" className="text-xs break-all text-muted">
             {user.id}
           </code>
         </Row>
@@ -67,7 +67,7 @@ export function CurrentUserCard({
       <form action={signOut} className="mt-5">
         <button
           type="submit"
-          className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium"
+          className="rounded-xl border border-line px-4 py-2 text-sm font-medium text-ink"
         >
           התנתקות
         </button>
@@ -85,8 +85,8 @@ function Row({
 }) {
   return (
     <div className="flex flex-wrap items-baseline gap-x-2">
-      <dt className="w-32 shrink-0 text-neutral-500">{label}</dt>
-      <dd className="text-neutral-900">{children}</dd>
+      <dt className="w-32 shrink-0 text-muted">{label}</dt>
+      <dd className="text-ink">{children}</dd>
     </div>
   );
 }
