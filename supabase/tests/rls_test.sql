@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(67);
+select plan(104);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -161,10 +161,20 @@ update public.pro_profiles
 select pg_temp.act_as(:pro_verified);
 set local role authenticated;
 
+-- Counted against job B specifically. Since Phase 4 this pro also holds a bid
+-- on job A, and a pro keeps reading a job they bid on however far they move —
+-- otherwise "ההצעות שלי" would list offers against blank rows. Job B is the
+-- one they never bid on, so it is the one the radius predicate alone decides.
 select is(
-  (select count(*) from public.jobs),
+  (select count(*) from public.jobs where id = :job_b),
   0::bigint,
-  'the same verified pro, relocated out of radius, sees nothing — the ST_DWithin predicate is real'
+  'the same verified pro, relocated out of radius, loses a job they never bid on — the ST_DWithin predicate is real'
+);
+
+select is(
+  (select count(*) from public.jobs where id = :job_a),
+  1::bigint,
+  'but keeps reading the job they did bid on, wherever they are'
 );
 
 reset role;
@@ -180,7 +190,7 @@ select pg_temp.act_as(:pro_verified);
 set local role authenticated;
 
 select is(
-  (select count(*) from public.jobs),
+  (select count(*) from public.jobs where id = :job_b),
   0::bigint,
   'a pro who has switched off accepting_jobs sees no feed'
 );
@@ -726,6 +736,337 @@ select is(
     where pro_id = 'a0000000-0000-4000-8000-000000000004' and status = 'pending'),
   0::bigint,
   'approving the pro clears their documents out of the unreviewed queue'
+);
+
+reset role;
+
+-- ===========================================================================
+-- 11. Phase 4 — bidding, choosing, and the chat thread
+--
+-- The bit that carries money. A bid decides the price of a job, so every way
+-- of writing one is narrowed to what its author is actually entitled to say,
+-- and the one transition that fixes the price — choosing a bid — is a checked
+-- function rather than a column a client can write.
+-- ===========================================================================
+
+reset role;
+
+\set pro_second '''a0000000-0000-4000-8000-000000000006'''
+\set bid_one '''b0000000-0000-4000-8000-000000000001'''
+\set bid_two '''b0000000-0000-4000-8000-000000000002'''
+\set bid_three '''b0000000-0000-4000-8000-000000000003'''
+\set bid_four '''b0000000-0000-4000-8000-000000000004'''
+\set job_far_wide '''d0000000-0000-4000-8000-0000000000f2'''
+
+-- The seeded bids carry a wall-clock deadline, so a suite run more than half
+-- an hour after `db reset` would silently be testing lapsed rows. Pin them.
+-- The guard trigger refuses to touch a settled bid on purpose, which is the
+-- behaviour under test further down, so it steps aside for the fixture rather
+-- than being worked around.
+alter table public.bids disable trigger bids_guard_update;
+update public.bids
+   set status = 'pending', expires_at = now() + interval '40 minutes'
+ where id in (:bid_one, :bid_two, :bid_three);
+alter table public.bids enable trigger bids_guard_update;
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.bids),
+  3::bigint,
+  'the customer reads every bid on their own job'
+);
+
+select is(
+  (select count(*) from public.bids where job_id = :job_b),
+  0::bigint,
+  'and not one bid from another customer''s job'
+);
+
+select is(
+  (select count(*) from public.bids_for_job(:job_a)),
+  3::bigint,
+  'bids_for_job hands the compare screen the three offers with each pro''s name and rating'
+);
+
+select throws_ok(
+  $$ select * from public.bids_for_job('d0000000-0000-4000-8000-000000000002') $$,
+  '42501',
+  null,
+  'and refuses a job the caller does not own, definer function or not'
+);
+
+select cmp_ok(
+  public.pros_in_range(:job_a),
+  '>=', 3,
+  'the banner''s "N בעלי מקצוע ברדיוס X ק״מ" is a real PostGIS count, not a decoration'
+);
+
+-- The money path. jobs.selected_bid_id decides the agreed price, so it is not
+-- something the browser gets to write.
+select throws_ok(
+  $$ update public.jobs
+        set selected_bid_id = 'b0000000-0000-4000-8000-000000000001'
+      where id = 'd0000000-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'a customer cannot write selected_bid_id directly — choosing a bid fixes the price'
+);
+
+select throws_ok(
+  $$ update public.jobs set status = 'assigned'
+      where id = 'd0000000-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'nor move the job status by hand'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.bids where pro_id <> :pro_verified),
+  0::bigint,
+  'a pro sees only their own bids — never what a competitor quoted'
+);
+
+select throws_ok(
+  $$ update public.bids set status = 'selected'
+      where id = 'b0000000-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'a pro cannot select their own bid — status has no column grant at all'
+);
+
+select throws_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes, expires_at)
+     values ('d0000000-0000-4000-8000-0000000000f2',
+             'a0000000-0000-4000-8000-000000000003', 250, 30,
+             now() + interval '1 year') $$,
+  '42501',
+  null,
+  'nor mint a bid that never lapses — expires_at is not in the INSERT grant'
+);
+
+select throws_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+     values ('d0000000-0000-4000-8000-0000000000f1',
+             'a0000000-0000-4000-8000-000000000003', 250, 30) $$,
+  '42501',
+  null,
+  'and cannot bid on a job the customer asked to broadcast no further than 3 km'
+);
+
+select lives_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+     values ('d0000000-0000-4000-8000-0000000000f2',
+             'a0000000-0000-4000-8000-000000000003', 250, 30) $$,
+  'the identical job, broadcast to 10 km, does take their bid'
+);
+
+select is(
+  (select status from public.jobs where id = :job_far_wide),
+  'bidding',
+  'the first bid moves the job from open to bidding, by trigger — the pro holds no update on jobs'
+);
+
+select is(
+  (select count(*) from public.my_bids()),
+  2::bigint,
+  'ההצעות שלי lists exactly the caller''s own bids'
+);
+
+select lives_ok(
+  $$ update public.bids set price = 390
+      where id = 'b0000000-0000-4000-8000-000000000001' $$,
+  'a pro can reprice a bid that is still live'
+);
+
+select cmp_ok(
+  (select expires_at from public.bids where id = :bid_one),
+  '>', now() + interval '44 minutes',
+  'and repricing restarts the 45 minutes, because that is a new offer'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ update public.bids set price = 400
+      where id = 'b0000000-0000-4000-8000-000000000004' $$,
+  '22023',
+  null,
+  'a bid that has already lapsed is not editable — that would rewrite history'
+);
+
+-- The reason messages.pro_id exists: this pro bid on job A too.
+select is(
+  (select count(*) from public.messages),
+  0::bigint,
+  'a pro who bid on the job still cannot read another pro''s conversation with the customer'
+);
+
+select throws_ok(
+  $$ insert into public.messages (job_id, pro_id, sender_id, body)
+     values ('d0000000-0000-4000-8000-000000000001',
+             'a0000000-0000-4000-8000-000000000003',
+             'a0000000-0000-4000-8000-000000000006', 'מי כתב את זה?') $$,
+  '42501',
+  null,
+  'nor write into it'
+);
+
+select lives_ok(
+  $$ insert into public.messages (job_id, pro_id, sender_id, body)
+     values ('d0000000-0000-4000-8000-000000000001',
+             'a0000000-0000-4000-8000-000000000006',
+             'a0000000-0000-4000-8000-000000000006', 'שלום, אפשר גם הערב.') $$,
+  'but does have their own thread with the customer on the same job'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.messages),
+  2::bigint,
+  'and the first pro''s view of the same job is still only their own two messages'
+);
+
+select throws_ok(
+  $$ select * from public.thread_messages(
+       'd0000000-0000-4000-8000-000000000001',
+       'a0000000-0000-4000-8000-000000000006') $$,
+  '42501',
+  null,
+  'the thread reader refuses a thread the caller is not a side of'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.messages),
+  3::bigint,
+  'the customer reads every thread on their own job — both pros, kept apart from each other'
+);
+
+select throws_ok(
+  $$ insert into public.messages (job_id, pro_id, sender_id, body)
+     values ('d0000000-0000-4000-8000-000000000001',
+             'a0000000-0000-4000-8000-000000000004',
+             'a0000000-0000-4000-8000-000000000001', 'הלו?') $$,
+  '42501',
+  null,
+  'a customer cannot open a thread with a pro who never made them an offer'
+);
+
+select lives_ok(
+  $$ insert into public.messages (job_id, pro_id, sender_id, body)
+     values ('d0000000-0000-4000-8000-000000000001',
+             'a0000000-0000-4000-8000-000000000003',
+             'a0000000-0000-4000-8000-000000000001', 'מעולה, נתראה.') $$,
+  'and can answer a pro who did'
+);
+
+with attempted as (
+  update public.messages set read_at = now()
+   where sender_id = :customer_a returning 1
+)
+select is((select count(*) from attempted), 0::bigint,
+  'marking your own message as read changes nothing — read_at belongs to the recipient');
+
+-- ---------------------------------------------------------------------------
+-- Expiry, then the choice itself
+-- ---------------------------------------------------------------------------
+
+reset role;
+
+-- One bid pushed past its deadline, with no sweep run afterwards. Everything
+-- below has to be true of it anyway.
+update public.bids set expires_at = now() - interval '1 minute' where id = :bid_three;
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.select_bid('b0000000-0000-4000-8000-000000000003') $$,
+  '22023',
+  null,
+  'a lapsed bid cannot be chosen even while its row still says pending — select_bid re-reads the clock'
+);
+
+select cmp_ok(
+  public.expire_stale_bids(),
+  '>=', 1,
+  'and the sweep does settle it, for the screens that read the column'
+);
+
+select is(
+  (select status from public.bids_for_job(:job_a) where id = :bid_three),
+  'expired',
+  'after which the compare screen reports it as expired'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.select_bid('b0000000-0000-4000-8000-000000000001') $$,
+  '42501',
+  null,
+  'only the customer who posted the job may choose a bid on it'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  public.select_bid(:bid_one),
+  :bid_one::uuid,
+  'the customer chooses a bid'
+);
+
+select is(
+  (select status from public.jobs where id = :job_a),
+  'assigned',
+  'which moves the job to assigned'
+);
+
+select is(
+  (select selected_bid_id from public.jobs where id = :job_a),
+  :bid_one::uuid,
+  'and records which offer fixed the price'
+);
+
+select is(
+  (select count(*) from public.bids where job_id = :job_a and status = 'rejected'),
+  1::bigint,
+  'choosing one bid locks every rival that was still pending, in the same statement'
+);
+
+select throws_ok(
+  $$ select public.select_bid('b0000000-0000-4000-8000-000000000002') $$,
+  '22023',
+  null,
+  'and a second choice on the same job is refused'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select is(
+  (select winning_price from public.my_bids() where id = :bid_two),
+  390::numeric,
+  'a pro who lost is told the price that won, and never who offered it'
 );
 
 reset role;

@@ -283,6 +283,8 @@ max_frequency = "60s"
 972500000003 = "123456" # דוד מזרחי — pro, verified
 972500000004 = "123456" # אבי פרץ — pro, pending
 972500000005 = "123456" # מנהלת Handy — admin
+972500000006 = "123456" # מוסא חדד — pro, verified (Phase 4 bids)
+972500000007 = "123456" # אלכס פרידמן — pro, verified (Phase 4 bids)
 
 # Configure logged in session timeouts.
 # [auth.sessions]

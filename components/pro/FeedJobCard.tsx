@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { Badge, BUTTON_CTA, BUTTON_QUIET } from "@/components/ui/primitives";
 import { categoryIcon } from "@/lib/categories";
 import { dismissJob } from "@/lib/actions/pros";
+import { PRO_ROUTES } from "@/lib/routes";
 import type { FeedJob } from "@/lib/supabase/pros";
 import {
   PREFERRED_TIME_LABEL,
@@ -11,11 +13,10 @@ import {
 /**
  * One card in the pro's feed — design/screens/pro-2.2-job-feed.png.
  *
- * The design's primary action is "הגש הצעת מחיר", which is the Phase 4 screen.
- * It is rendered disabled and says so, rather than linking to a route that
- * does not exist yet: a dead link is worse than an honest "not yet". The card
- * around it — distance, area, how many bids are already in, the orange ribbon
- * on something that just arrived — is all real data from `open_jobs_for_pro`.
+ * The design's primary action is "הגש הצעת מחיר", and since Phase 4 it leads
+ * to the real bid screen. The card around it — distance, area, how many bids
+ * are already in, the orange ribbon on something that just arrived — is all
+ * real data from `open_jobs_for_pro`.
  */
 
 export function FeedJobCard({
@@ -90,19 +91,19 @@ export function FeedJobCard({
             ממך · {job.addressText} ·{" "}
             {job.bidsCount === 0
               ? "עדיין אין הצעות"
-              : `${job.bidsCount} הצעות עד כה`}
+              : job.bidsCount === 1
+                ? "הצעה אחת עד כה"
+                : `${job.bidsCount} הצעות עד כה`}
           </p>
         </div>
 
         <div className="flex w-full shrink-0 flex-col gap-2 sm:w-52">
-          <button
-            type="button"
-            disabled
-            title="מסך הגשת ההצעה נבנה בשלב הבא"
+          <Link
+            href={PRO_ROUTES.quote(job.id)}
             className={`${BUTTON_CTA} w-full`}
           >
             הגש הצעת מחיר
-          </button>
+          </Link>
 
           <form action={dismissJob}>
             <input type="hidden" name="jobId" value={job.id} />

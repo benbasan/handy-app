@@ -12,16 +12,20 @@ import type { ProProfile } from "@/lib/supabase/pros";
  * the Handy Pro wordmark on the leading edge, navigation beside it, and the
  * availability switch plus the feed button on the trailing edge.
  *
- * The design's nav also lists העבודות שלי / ארנק / הודעות. Those screens are
- * Phase 5 and Phase 6, and CLAUDE.md's one-phase-at-a-time rule says not to
- * build them early — a link to a 404 is worse than no link, so they are left
- * out rather than stubbed.
+ * The design's nav also lists העבודות שלי / ארנק. Those screens are Phase 5
+ * and Phase 6, and CLAUDE.md's one-phase-at-a-time rule says not to build them
+ * early — a link to a 404 is worse than no link, so they are left out rather
+ * than stubbed. הצעות and הודעות joined the row in Phase 4, when the screens
+ * behind them became real.
  */
 export function ProShell({
   profile,
+  unreadMessages = 0,
   children,
 }: {
   profile: ProProfile | null;
+  /** Total across every thread — the orange badge in design/screens/pro-5.3. */
+  unreadMessages?: number;
   children: ReactNode;
 }) {
   return (
@@ -36,6 +40,20 @@ export function ProShell({
             </Link>
             <Link href={PRO_ROUTES.jobs} className="hover:text-pro">
               קריאות
+            </Link>
+            <Link href={PRO_ROUTES.offers} className="hover:text-pro">
+              ההצעות שלי
+            </Link>
+            <Link
+              href={PRO_ROUTES.messages}
+              className="inline-flex items-center gap-1.5 hover:text-pro"
+            >
+              הודעות
+              {unreadMessages > 0 && (
+                <span className="inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
+                  {unreadMessages}
+                </span>
+              )}
             </Link>
             <Link href={PRO_ROUTES.settings} className="hover:text-pro">
               זמינות והגדרות

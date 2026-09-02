@@ -241,6 +241,26 @@ erDiagram
 
 **רק 4 ספרות של חשבון הבנק נשמרות.** `payout_account_last4` מספיק כדי שבעל המקצוע יזהה את החשבון על המסך. איסוף מספר החשבון המלא נוגע בתנועת כסף אמיתית, ולפי `CLAUDE.md` סעיף 8 זו החלטה שמתקבלת עם המשתמש — בשלב התשלומים, לא כאן.
 
+### מה נוסף ב-Phase 4 (`supabase/migrations/20260904120000_realtime_bidding.sql`)
+
+| שינוי | למה |
+|---|---|
+| **`bids`: INSERT מצומצם לעמודות** (`job_id, pro_id, price, eta_minutes, note`), ו-`status` איבד את ה-UPDATE grant | ב-Phase 1 ה-grant היה על השורה כולה, כלומר בעל מקצוע יכול היה לקבוע לעצמו `expires_at` בעוד שנה (הצעה שלא פגה לעולם) ולסמן את ההצעה שלו כ-`selected`. שתי העמודות האלה נשארות לברירות המחדל ולפונקציות. |
+| **`bids_guard_update` (טריגר)** | הצעה שכבר הוכרעה או שפג תוקפה אינה ניתנת לעריכה — תמחור מחדש של הצעה שהלקוח כבר פעל לפיה הוא שכתוב היסטוריה. שינוי מחיר/זמן/הערה בהצעה חיה מאפס את 45 הדקות, כי חוק עסקי 6 מודד תוקף מרגע ההצעה וזו הצעה חדשה. |
+| **`can_bid_on_job(job_id)`** ובמדיניות ה-INSERT | מדיניות Phase 1 שאלה רק "אתה בעל מקצוע מאומת שכותב את ה-`pro_id` של עצמך", מה שהתיר הצעה על **כל** `job_id` — גם מחוץ לרדיוס וגם על קריאה שכבר שובצה. עכשיו ההגשה מגיעה בדיוק עד לאן שהפיד מגיע. |
+| **`select_bid(bid_id)`** — `security definer`, ו-`jobs` איבד `update (status, selected_bid_id)` | זהו מסלול כסף: המחיר המוסכם של קריאה הוא מחיר ההצעה שנבחרה, ולכן קליינט שיכול לכתוב `selected_bid_id` יכול לבחור הצעה שפג תוקפה, הצעה על קריאה של מישהו אחר, או לבחור מחדש בדיעבד. הפונקציה בודקת בעלות, שהקריאה עדיין פתוחה ושההצעה לא פגה — ואז נועלת את כל ההצעות היריבות ומשבצת את הקריאה, הכל בהצהרה אחת. |
+| **`expire_stale_bids()` + `pg_cron` כל דקה** | חוק עסקי 6. ה-sweep הוא ניקיון בלבד: `select_bid()` קוראת את השעון בעצמה, ופונקציות הקריאה מדווחות הצעה שפגה כ-`expired` בין אם ה-sweep רץ ובין אם לא. ה-`do` block עוטף את ה-cron בטיפול חריגה, כי הנכונות אינה תלויה בו — ובנוסף מסכי הקריאה קוראים ל-sweep בעצמם. |
+| **`messages.pro_id` (+`read_at`)** | שיחה היא (קריאה, בעל מקצוע), לא (קריאה). המדיניות של Phase 1 התירה לכל בעל מקצוע שהגיש הצעה לקרוא את ההודעות של הקריאה — כלומר בקריאה עם שלוש הצעות, כל אחד מהם קרא את שתי השיחות האחרות. `read_at` נותן למחווני "לא נקרא" שבעיצוב נתונים אמיתיים, וניתן לכתיבה רק על ידי הצד שלא שלח. |
+| **`bids_for_job`, `my_bids`, `my_bid_stats`, `pros_in_range`, `similar_bid_range`, `my_message_threads`, `thread_messages`** — `security definer` | מסך השוואת ההצעות צריך שם, דירוג ומספר עבודות ליד כל מחיר, ול-`profiles`/`pro_profiles` אין (ובכוונה) מדיניות קריאה ללקוחות. התשובה הנכונה ל"המסך צריך ארבע עמודות" היא פונקציה שמחזירה בדיוק את הארבע, לא מדיניות שפותחת את הטבלאות. אותו שיקול בדיוק כמו `job_bid_count` ב-Phase 3. |
+| **`jobs`: מדיניות "bidding pro reads a job they bid on"** | ברגע ששיבצו קריאה היא יוצאת מהמדיניות של "פתוחה ברדיוס", ואז "ההצעות שלי" היה מציג הצעות מול שורות ריקות. |
+| **פרסום `bids`, `messages`, `jobs` ל-`supabase_realtime`** | סעיף 5 של המסמך הזה. Realtime מחיל את ה-RLS של כל מנוי לפני שהוא מוסר שורה, ולכן הפרסום אינו מרחיב דבר. |
+
+**`my_bids().winning_price` — מה נחשף למי שלא נבחר.** העיצוב (`pro-2.4-my-bids.png`) מציג "הלקוח בחר אחר (280 ₪)". המדיניות על `bids` מראה לבעל מקצוע רק את השורות שלו, ולכן המספר מגיע מהפונקציה — **המחיר בלבד, אף פעם לא הזהות שמאחוריו**. זו אותה עסקה ש-`job_bid_count` עושה כשהיא מספרת לבעל מקצוע שיש תחרות בלי לנקוב בשמה.
+
+**Realtime בדפדפן חייב לקבל את הטוקן לפני ה-join.** האפליקציה משחזרת סשן מ-cookie ולא מתחברת בצד לקוח, ולכן שום אירוע אימות לא דוחף את הטוקן ל-realtime client וה-`phx_join` מקדים את חיפוש הטוקן. סוקט לא מאומת אינו "רואה פחות שורות" — הוא **נדחה כליל** עם `invalid column for filter job_id`, כי ל-`anon` אין הרשאה על הטבלאות האלה ולכן הוא לא רואה את העמודה שמבקשים לסנן לפיה. `components/ui/RealtimeRefresh.tsx` קורא `setAuth()` ורק אז `subscribe()`.
+
+**מה ה-subscription מעביר לדף: כלום.** הוא רק אומר לראוטר שהתשובה של השרת התיישנה, והשרת מרנדר מחדש תחת ה-RLS של הקורא. מה שמגיע למסך הוא בדיוק מה שרענון היה מראה, ולכן payload שנמסר בטעות לא יכול היה להרחיב את מה שמוצג. הצעה היא כסף, והסמכות עליה היא מסד הנתונים — לא הודעה שישבה בטאב.
+
 ### שינוי נתיבים ב-Phase 3: `/pro` הפך לעמוד נחיתה ציבורי
 
 עמוד הנחיתה לבעלי מקצוע (`design/screens/pro-1.1-landing.png`) צולם ב-`handy.co.il/pro`, ומבקר אנונימי חייב להגיע אליו. route group לא מוסיף segment, ולכן `/pro` לא יכול להיות גם עמוד שיווקי פתוח וגם בית מוגן. ההכרעה: `/pro` ציבורי, והבית של בעל המקצוע ירד ל-`/pro/dashboard` — גם זה ה-URL שבעיצוב עצמו.
@@ -250,9 +270,11 @@ erDiagram
 | תפקיד | כניסה | בית | נתיבים נוספים |
 |---|---|---|---|
 | ציבורי | — | `/` · `/pro` | |
-| `customer` | `/login` | `/account` | `/new-request`, `/new-request/published/[jobId]` |
-| `pro` | `/pro/login` | `/pro/dashboard` | `/pro/join`, `/pro/onboarding`, `/pro/jobs`, `/pro/settings` |
+| `customer` | `/login` | `/account` | `/new-request`, `/new-request/published/[jobId]`, `/requests/[jobId]/offers`, `/requests/[jobId]/chat` |
+| `pro` | `/pro/login` | `/pro/dashboard` | `/pro/join`, `/pro/onboarding`, `/pro/jobs`, `/pro/jobs/[jobId]/quote`, `/pro/offers`, `/pro/messages`, `/pro/settings` |
 | `admin` | `/admin/login` | `/admin` | `/admin/pros` |
+
+`/requests/…` נוסף ב-Phase 4 ורשום ב-`PROTECTED_AREAS`: פרסום קריאה הוא דבר אחד, והחיים איתה אחר כך הם דבר אחר, והעיצוב מצלם את שני המסכים האלה ב-`handy.co.il/request/<ref>`.
 
 ### מבנה נתיבים ותפקידים (הוחלט ב-Phase 1)
 
@@ -273,7 +295,7 @@ Route groups ב-Next.js לא מוסיפים segment לנתיב, ולכן `(custo
 
 ### הערות מפתח למודל
 - **`geography` (PostGIS point)** ב-`jobs.location` וב-`pro_profiles.service_point` — מאפשר שאילתת `ST_DWithin` יעילה ("כל בעלי המקצוע ברדיוס X מנקודה") עם אינדקס GiST, במקום לסרוק את כל הטבלה ולחשב מרחק ב-JS.
-- **`bids.status`** כולל `pending / selected / rejected / expired` — פג תוקף מנוהל ע"י Edge Function מתוזמנת (cron) שרצה כל כמה דקות ומעדכנת הצעות שעברו 45 דקות.
+- **`bids.status`** כולל `pending / selected / rejected / expired`. הוכרע ב-Phase 4: פג התוקף מנוהל ע"י `expire_stale_bids()` שמתוזמנת ב-**pg_cron** כל דקה (ולא Edge Function — cron במסד הנתונים לא דורש יעד דיפלוי), ובנוסף נקראת מהמסכים שמציגים סטטוסים. הנכונות אינה תלויה בה: `select_bid()` קוראת את השעון בעצמה וכל פונקציות הקריאה מדווחות הצעה שפגה כ-`expired`.
 - **`price_updates`** הוא הטבלה שאוכפת את חוק השקיפות: אין עמודת `price` ניתנת לעדכון ישיר בטבלת `jobs` — המחיר בפועל של קריאה הוא נגזרת (מחיר ההצעה שנבחרה + כל `price_updates` שאושרו).
 - **`commission_charges`** נוצרת אוטומטית (טריגר DB או Server Action) עם סיום העבודה, ומחשבת 12% מהסכום הכולל.
 - טבלת `notifications` תתווסף בשלב שבו בונים התראות בפועל (לא קריטית ל-Phase 1).
@@ -298,11 +320,11 @@ Supabase Realtime על גבי Postgres Changes + Broadcast:
 
 | תרחיש | מנגנון |
 |---|---|
-| הצעות חדשות מגיעות למסך הלקוח | Postgres Changes subscription על `bids` מסונן ל-`job_id` |
+| הצעות חדשות מגיעות למסך הלקוח | Postgres Changes subscription על `bids` מסונן ל-`job_id` — **נבנה ב-Phase 4**, `components/ui/RealtimeRefresh.tsx` |
 | בעל מקצוע רואה קריאה חדשה בפיד | Postgres Changes על `jobs` (סטטוס `open`) + סינון בצד קליינט לפי רדיוס (או שאילתת PostGIS periodical) |
 | מיקום חי של בעל מקצוע בדרך ("דוד בדרך אליך") | Broadcast channel `job:<id>:location`, בעל המקצוע משדר lat/lng כל כמה שניות בזמן שהסטטוס `assigned`/`in_progress` |
 | התראה על עדכון מחיר | Postgres Changes על `price_updates` |
-| צ'אט | Postgres Changes על `messages` מסונן ל-`job_id` |
+| צ'אט | Postgres Changes על `messages` מסונן ל-`job_id` — **נבנה ב-Phase 4**. שיחה היא (קריאה, בעל מקצוע): `messages.pro_id` |
 
 ## 6. אינטגרציות חיצוניות
 

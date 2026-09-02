@@ -320,6 +320,8 @@ export type Database = {
           created_at: string
           id: string
           job_id: string
+          pro_id: string
+          read_at: string | null
           sender_id: string
         }
         Insert: {
@@ -327,6 +329,8 @@ export type Database = {
           created_at?: string
           id?: string
           job_id: string
+          pro_id: string
+          read_at?: string | null
           sender_id: string
         }
         Update: {
@@ -334,6 +338,8 @@ export type Database = {
           created_at?: string
           id?: string
           job_id?: string
+          pro_id?: string
+          read_at?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -343,6 +349,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_pro_id_fkey"
+            columns: ["pro_id"]
+            isOneToOne: false
+            referencedRelation: "pro_profiles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "messages_sender_id_fkey"
@@ -650,13 +663,79 @@ export type Database = {
     }
     Functions: {
       auth_role: { Args: never; Returns: string }
+      bids_for_job: {
+        Args: { p_job_id: string }
+        Returns: {
+          created_at: string
+          eta_minutes: number
+          expires_at: string
+          id: string
+          note: string
+          price: number
+          pro_id: string
+          pro_jobs_completed: number
+          pro_name: string
+          pro_rating: number
+          pro_verified: boolean
+          status: string
+          unread_count: number
+        }[]
+      }
+      can_bid_on_job: { Args: { p_job_id: string }; Returns: boolean }
       can_read_job_media: { Args: { p_object_name: string }; Returns: boolean }
+      expire_stale_bids: { Args: never; Returns: number }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_pro: { Args: { p_job_id: string }; Returns: boolean }
       is_bidding_pro: { Args: { p_job_id: string }; Returns: boolean }
       is_job_owner: { Args: { p_job_id: string }; Returns: boolean }
       is_verified_pro: { Args: never; Returns: boolean }
       job_bid_count: { Args: { p_job_id: string }; Returns: number }
+      my_bid_stats: {
+        Args: never
+        Returns: {
+          acceptance_pct: number
+          avg_response_minutes: number
+          pending: number
+          selected: number
+          total: number
+        }[]
+      }
+      my_bids: {
+        Args: never
+        Returns: {
+          category_name_he: string
+          category_slug: string
+          created_at: string
+          eta_minutes: number
+          expires_at: string
+          id: string
+          job_address_text: string
+          job_created_at: string
+          job_description: string
+          job_id: string
+          job_status: string
+          note: string
+          photo_urls: string[]
+          price: number
+          status: string
+          unread_count: number
+          winning_price: number
+        }[]
+      }
+      my_message_threads: {
+        Args: never
+        Returns: {
+          bid_status: string
+          counterpart_name: string
+          job_description: string
+          job_id: string
+          job_status: string
+          last_at: string
+          last_body: string
+          pro_id: string
+          unread_count: number
+        }[]
+      }
       open_jobs_for_pro: {
         Args: { p_max_km?: number }
         Returns: {
@@ -677,15 +756,40 @@ export type Database = {
           status: string
         }[]
       }
+      pro_has_bid: {
+        Args: { p_job_id: string; p_pro_id: string }
+        Returns: boolean
+      }
       pro_serves_job: {
         Args: { p_point: unknown; p_search_radius_km: number }
         Returns: boolean
       }
+      pros_in_range: { Args: { p_job_id: string }; Returns: number }
+      select_bid: { Args: { p_bid_id: string }; Returns: string }
       set_pro_verification: {
         Args: { p_pro_id: string; p_status: string }
         Returns: string
       }
+      similar_bid_range: {
+        Args: { p_job_id: string }
+        Returns: {
+          max_price: number
+          min_price: number
+          sample_count: number
+        }[]
+      }
       submit_pro_for_approval: { Args: never; Returns: string }
+      thread_messages: {
+        Args: { p_job_id: string; p_pro_id: string }
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          mine: boolean
+          read_at: string
+          sender_name: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

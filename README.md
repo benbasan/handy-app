@@ -47,10 +47,17 @@ The code for every demo user is **`123456`**.
 | `050-0000003` | דוד מזרחי (מאומת)      | `pro`      | /pro/dashboard |
 | `050-0000004` | אבי פרץ (ממתין לאישור) | `pro`      | /pro/dashboard |
 | `050-0000005` | מנהלת Handy            | `admin`    | /admin         |
+| `050-0000006` | מוסא חדד (מאומת)       | `pro`      | /pro/dashboard |
+| `050-0000007` | אלכס פרידמן (מאומת)    | `pro`      | /pro/dashboard |
 
 `/pro` itself is the **public** pro landing page, which is why a signed-in pro
 lands one level down. The approvals queue an admin needs in order to move
 `050-0000004` from ממתין לאישור to מאומת is at `/admin/pros`.
+
+The last two pros exist so דנה לוי's seeded job carries three competing offers
+on `/requests/<id>/offers` — the compare screen is unreadable with one. Their
+fourth offer, on יוסי כהן's job, is seeded already lapsed, which is what gives
+the "נדחו / פגו" tab on `/pro/offers` something real to show.
 
 Any other number can sign up for real, but will not receive a code until Twilio
 is configured. New sign-ups become `customer` or `pro` depending on which login

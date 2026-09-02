@@ -5,6 +5,8 @@ import { CurrentUserCard } from "@/components/ui/CurrentUserCard";
 import { BUTTON_QUIET, Card } from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
+import { listMyBids } from "@/lib/supabase/bids";
+import { listMyThreads, totalUnread } from "@/lib/supabase/messages";
 import { getMyProProfile, listFeedJobs } from "@/lib/supabase/pros";
 import { requireRole } from "@/lib/supabase/session";
 import {
@@ -19,13 +21,11 @@ export const metadata = { title: "דשבורד בעל מקצוע — Handy" };
  * design/screens/pro-2.1-dashboard.png, at the phase this project is actually
  * at.
  *
- * The design's card grid is mostly Phase 4 and Phase 6 material — today's
- * earnings, pending bids, the day's schedule — and CLAUDE.md's
- * one-phase-at-a-time rule says not to build those early. What is real now is
- * the part this phase delivers: where the pro stands with verification, how
- * many open jobs their radius and trades actually reach, and the settings
- * behind those two numbers. The rest of the grid arrives with the flows that
- * populate it.
+ * The design's "דורש טיפול" card — offers waiting on a customer, messages not
+ * yet read — became real in Phase 4 and is here. What is still missing is the
+ * earnings half (this week's takings, the day's schedule), which is Phase 6:
+ * CLAUDE.md's one-phase-at-a-time rule says not to build it early, and filling
+ * it with invented numbers would be worse than leaving the space.
  */
 export default async function ProDashboardPage({
   searchParams,
@@ -37,13 +37,21 @@ export default async function ProDashboardPage({
   // Failing to the sign-up screen is the only honest reading.
   if (!profile) redirect(PRO_ROUTES.join);
 
-  const [categories, feed, params] = await Promise.all([
+  const [categories, feed, bids, threads, params] = await Promise.all([
     listCategories(),
     // Cheap for an unverified pro: the RLS policy returns nothing before the
     // query does any work.
     listFeedJobs(null),
+    listMyBids(),
+    listMyThreads(),
     searchParams,
   ]);
+
+  // "דורש טיפול" — offers still waiting on a customer, and conversations with
+  // something unread in them. Both counts are the caller's own rows.
+  const pendingBids = bids.filter((bid) => bid.status === "pending");
+  const wonBids = bids.filter((bid) => bid.status === "selected");
+  const unread = totalUnread(threads);
 
   const justSubmitted = params.submitted === "1";
   const myTrades = categories
@@ -89,20 +97,52 @@ export default async function ProDashboardPage({
           }
         />
         <Stat
-          value={String(profile.categoryIds.length)}
-          label="תחומי התמחות"
-          hint={myTrades.length > 0 ? myTrades.join(", ") : "עוד לא נבחרו"}
+          value={String(pendingBids.length)}
+          label="הצעות ממתינות לתשובה"
+          hint={
+            wonBids.length > 0
+              ? `${wonBids.length} הצעות נבחרו עד כה`
+              : "כל הצעה תקפה 45 דקות"
+          }
         />
         <Stat
-          value={`${profile.radiusKm} ק״מ`}
-          label="רדיוס פעילות"
-          hint={profile.serviceAddressText ?? "עוד לא הוגדרה כתובת בסיס"}
+          value={String(unread)}
+          label="הודעות שלא נקראו"
+          hint={
+            threads.length === 0
+              ? "שיחה נפתחת עם ההצעה הראשונה"
+              : `${threads.length} שיחות פתוחות`
+          }
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <div className="space-y-6">
           <ProStatusCard profile={profile} />
+
+          <Card>
+            <h2 className="text-lg font-bold text-ink">דורש טיפול</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Link
+                href={PRO_ROUTES.offers}
+                className={`${BUTTON_QUIET} justify-between`}
+              >
+                <span>הצעות ממתינות</span>
+                <span className="ltr-nums font-bold">{pendingBids.length}</span>
+              </Link>
+              <Link
+                href={PRO_ROUTES.messages}
+                className={`${BUTTON_QUIET} justify-between`}
+              >
+                <span>הודעות שלא נקראו</span>
+                <span className="ltr-nums font-bold">{unread}</span>
+              </Link>
+            </div>
+            <p className="mt-3 text-sm text-muted">
+              {profile.categoryIds.length} תחומי התמחות ·{" "}
+              {myTrades.length > 0 ? myTrades.join(", ") : "עוד לא נבחרו"}
+            </p>
+          </Card>
 
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-3">

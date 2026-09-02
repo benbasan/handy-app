@@ -35,7 +35,24 @@ export const PRO_ROUTES = {
   join: "/pro/join",
   onboarding: "/pro/onboarding",
   jobs: "/pro/jobs",
+  offers: "/pro/offers",
+  messages: "/pro/messages",
   settings: "/pro/settings",
+  /** design/screens/pro-2.3-submit-bid.png is captured at /pro/jobs/<id>/quote. */
+  quote: (jobId: string) => `/pro/jobs/${jobId}/quote`,
+} as const;
+
+/**
+ * The customer's own job screens. `/requests/<id>/…` rather than under
+ * `/new-request`: posting a call is one thing and living with it afterwards is
+ * another, and the design captures both of these at handy.co.il/request/<ref>.
+ */
+export const CUSTOMER_ROUTES = {
+  account: "/account",
+  newRequest: "/new-request",
+  published: (jobId: string) => `/new-request/published/${jobId}`,
+  offers: (jobId: string) => `/requests/${jobId}/offers`,
+  chat: (jobId: string) => `/requests/${jobId}/chat`,
 } as const;
 
 export const ADMIN_ROUTES = {
@@ -59,12 +76,17 @@ const PROTECTED_AREAS: ReadonlyArray<{ prefix: string; login: string }> = [
   // Posting a job sits outside /account but is just as signed-in: a customer
   // registers on the way to their first job (product-spec.md section 2).
   { prefix: "/new-request", login: ROLE_LOGIN.customer },
+  // Comparing offers and chatting about a job — signed-in customer screens
+  // that sit outside /account for the same reason /new-request does.
+  { prefix: "/requests", login: ROLE_LOGIN.customer },
   // Listed one by one rather than as the `/pro` prefix, because `/pro` itself
   // is the public landing page and must stay reachable while signed out.
   { prefix: PRO_ROUTES.dashboard, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.join, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.onboarding, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.jobs, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.offers, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.messages, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.settings, login: ROLE_LOGIN.pro },
   { prefix: ROLE_HOME.admin, login: ROLE_LOGIN.admin },
 ];

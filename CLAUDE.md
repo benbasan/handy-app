@@ -30,7 +30,8 @@ Do not introduce an alternative to any of these without discussing it with the u
 | Styling | **Tailwind CSS v4** | v4 is CSS-first: there is **no `tailwind.config.ts`**. Design tokens from Claude Design go in the `@theme` block in `app/globals.css` |
 | Maps / geocoding / distance | Google Maps Platform (Maps JS API, Geocoding, Places, Distance Matrix) | Needed for: address autocomplete, radius search, live "pro en route" tracking. **Two keys**: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (browser, referrer-restricted) and `GOOGLE_MAPS_SERVER_API_KEY` (server, IP-restricted — a referrer-restricted key cannot geocode). With no key the app falls back to manual address entry + a local gazetteer, opt-in via `ALLOW_NO_MAPS_KEY` |
 | File/media uploads | Supabase Storage | Job photos/videos/voice notes, pro verification documents, profile photos |
-| Realtime (bids arriving, chat, live location) | Supabase Realtime (Postgres changes + broadcast channels) | Do not add a separate WebSocket server |
+| Realtime (bids arriving, chat, live location) | Supabase Realtime (Postgres changes + broadcast channels) | Do not add a separate WebSocket server. In the browser the socket must be handed the session token **before** it joins (`setAuth()` then `subscribe()`) — this app restores its session from a cookie, so no auth event pushes the token in on its own, and an unauthenticated socket is refused the subscription outright |
+| Scheduled database work (bid expiry) | **pg_cron**, installed by migration | Chosen in Phase 4 over a scheduled Edge Function: cron inside the database needs no deploy target and is available both locally and on Supabase Cloud. It is only ever housekeeping — nothing in the product may depend on a sweep having run |
 | PDF generation (receipts) | `@react-pdf/renderer` or a Supabase Edge Function calling a PDF service | Decide inside the phase that needs it, record the decision here |
 | Hosting | Vercel (frontend/Next.js) + Supabase Cloud (DB/backend) | |
 | Package manager | npm (unless the user says otherwise) | |
@@ -50,6 +51,9 @@ Do not introduce an alternative to any of these without discussing it with the u
 - **Money is server-authoritative.** Prices, the 12% commission calculation, and price-update deltas are computed and enforced server-side, never trusted from the client.
 - **A status a user must not set themselves is a `security definer` function, never a column grant.** `pro_profiles.verification_status` has no UPDATE grant for any client role: a pro submits through `submit_pro_for_approval()` (which re-checks completeness) and an admin decides through `set_pro_verification()` (which checks `is_admin()`). A grant wide enough for the admin would also have let a pro verify themselves.
 - **A job reaches a pro only inside BOTH radii** — `least(pro_profiles.radius_km, jobs.search_radius_km)` — and that is enforced in the RLS policy on `jobs`, not in the feed query, so it holds for anything that ever reads the table.
+- **A bid's 45-minute clock and its status are not the form's to set.** `bids` grants INSERT on five columns only (`job_id`, `pro_id`, `price`, `eta_minutes`, `note`) — `expires_at` and `status` are left to their defaults — and `status` has no UPDATE grant at all. The transitions are `select_bid()` and `expire_stale_bids()`. Expiry is re-checked on every read and inside `select_bid()`, so it holds whether or not the cron sweep has run.
+- **Choosing a bid is `select_bid()`, and no client may write `jobs.selected_bid_id`.** A job's agreed price *is* the selected bid's price, so writing that column is writing the price. The function checks the caller owns the job, that no bid has been chosen yet and that this one has not lapsed, then rejects every rival in the same statement.
+- **A chat thread is (job, pro), never (job).** On a job with three offers the customer holds three separate conversations, and no pro may read another's — `messages.pro_id` is what makes that true in the policy rather than in a query.
 - **Price-change rule is enforced in the DB layer, not just the UI:** a job's price can only change through a `price_updates` record that carries a photo URL and moves through `pending → approved/rejected` — there is no direct `UPDATE jobs SET price = ...` path from client code.
 - **RTL: logical properties only.** The UI is Hebrew and the app renders `dir="rtl"`. Always use Tailwind's logical utilities — `ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`/`text-end`, `border-s`/`border-e` — and **never** the physical `ml-`/`mr-`, `pl-`/`pr-`, `left-`/`right-`, `text-left`/`text-right`. A physical utility looks correct in a Latin-language preview and silently breaks the layout in Hebrew.
 - **No secrets in code.** All API keys (Google Maps, Twilio, Supabase service role) go in environment variables, never committed. Maintain `.env.example` with every required key, kept in sync.
@@ -82,6 +86,10 @@ The product is Hebrew-facing, but all code (tables, variables, routes, types) is
 | ימי ושעות עבודה | `work_days` / `work_start_time` / `work_end_time` | `work_days` is 0 = Sunday … 6 = Saturday |
 | שלב בהרשמה | `onboarding_step` | 0–5, highest step completed. `draft` → `pending` happens through `submit_pro_for_approval()` |
 | חשבון לגביית עמלה | `payout_bank_name` / `payout_bank_branch` / `payout_account_last4` | Last four digits only — see section 9 |
+| תוקף הצעה | `expires_at` | 45 minutes from when the offer was made. A column default plus a trigger, never a form field |
+| ההצעות שלי | `my_bids` | A pro's own offers. `winning_price` on a lost one is the price that won, never who offered it |
+| שיחה | `thread` | One conversation, keyed `(job_id, pro_id)`. Not a table — the key is on `messages` |
+| נקרא | `read_at` | On `messages`. Writable only by the side that did **not** send it |
 
 Add new rows here whenever a new domain concept appears — do not let this glossary drift out of date.
 
@@ -90,7 +98,8 @@ Add new rows here whenever a new domain concept appears — do not let this glos
 ```
 /proxy.ts               → session refresh + anonymous gate (Next 16's name for middleware.ts)
 /app                    → Next.js App Router routes
-  /(customer)            → customer-facing routes — AT THE ROOT: /login, /account, /new-request
+  /(customer)            → customer-facing routes — AT THE ROOT: /login, /account,
+                            /new-request, /requests/[jobId]/offers|chat
   /(pro)                 → pro-facing routes, prefixed. /pro is the PUBLIC
                             landing page and /pro/login the door; the signed-in
                             home is /pro/dashboard (see docs/architecture.md)
@@ -165,7 +174,7 @@ adding a column, decide explicitly whether a client may write it.
 - [ ] PDF library for receipts (decide in the payments/receipts phase)
 - [ ] Exact Twilio account setup / SMS sender ID for Israel
 - [ ] A real Google Maps Platform key. Everything that needs one — Places Autocomplete, the map on the published-job screen, server-side geocoding — is built behind a key check and degrades to manual address entry, so this blocks verification against Google, not development
-- [ ] Push notification approach for "pro is arriving" (browser push vs. none for MVP)
+- [ ] Push notification approach for "pro is arriving" (browser push vs. none for MVP). Phase 4 needed none: the customer's offers screen and both chats update through Supabase Realtime while the tab is open, which is a different thing from notifying someone who has closed it
 - [ ] **How a pro's full bank account number is stored**, if it is stored at all. Phase 3 collects bank, branch and the last four digits only (`payout_account_last4`) — enough for the pro to recognise the account on screen. Collecting the rest is real money movement, which section 8 says to decide with the user, in the payments phase
 - [ ] A public bucket for pro profile photos. Phase 3 files the profile photo in the private `verification-docs` bucket as `doc_type = 'profile_photo'`; the customer-facing public profile (Phase 8) is what will need a photo customers can actually load
 
