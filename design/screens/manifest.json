@@ -1,0 +1,218 @@
+[
+  {
+    "section": "customer",
+    "num": "1.1",
+    "label_he": "דף הבית ללקוחות",
+    "file": "customer-1.1-landing.png"
+  },
+  {
+    "section": "customer",
+    "num": "1.2",
+    "label_he": "התחברות וקוד SMS",
+    "file": "customer-1.2-login-otp.png"
+  },
+  {
+    "section": "customer",
+    "num": "2.1",
+    "label_he": "פרסום קריאה",
+    "file": "customer-2.1-post-job.png"
+  },
+  {
+    "section": "customer",
+    "num": "2.2",
+    "label_he": "השוואת הצעות",
+    "file": "customer-2.2-compare-bids.png"
+  },
+  {
+    "section": "customer",
+    "num": "3.1",
+    "label_he": "מעקב + צ׳אט",
+    "file": "customer-3.1-tracking-chat.png"
+  },
+  {
+    "section": "customer",
+    "num": "4.1",
+    "label_he": "סיכום, קבלה ודירוג",
+    "file": "customer-4.1-summary-receipt-rating.png"
+  },
+  {
+    "section": "customer",
+    "num": "5.1",
+    "label_he": "האזור האישי שלי",
+    "file": "customer-5.1-my-account.png"
+  },
+  {
+    "section": "customer",
+    "num": "5.2",
+    "label_he": "פרופיל בעל מקצוע",
+    "file": "customer-5.2-pro-public-profile.png"
+  },
+  {
+    "section": "customer",
+    "num": "5.3",
+    "label_he": "דף תחום שירות",
+    "file": "customer-5.3-category-page.png"
+  },
+  {
+    "section": "pro",
+    "num": "1.1",
+    "label_he": "דף הבית לבעלי מקצוע",
+    "file": "pro-1.1-landing.png"
+  },
+  {
+    "section": "pro",
+    "num": "1.2",
+    "label_he": "התחברות",
+    "file": "pro-1.2-login.png"
+  },
+  {
+    "section": "pro",
+    "num": "1.3",
+    "label_he": "הרשמה ואימות",
+    "file": "pro-1.3-signup-verification.png"
+  },
+  {
+    "section": "pro",
+    "num": "1.4",
+    "label_he": "Onboarding מודרך",
+    "file": "pro-1.4-onboarding.png"
+  },
+  {
+    "section": "pro",
+    "num": "2.1",
+    "label_he": "דשבורד בית",
+    "file": "pro-2.1-dashboard.png"
+  },
+  {
+    "section": "pro",
+    "num": "2.2",
+    "label_he": "פיד קריאות",
+    "file": "pro-2.2-job-feed.png"
+  },
+  {
+    "section": "pro",
+    "num": "2.3",
+    "label_he": "הגשת הצעה",
+    "file": "pro-2.3-submit-bid.png"
+  },
+  {
+    "section": "pro",
+    "num": "2.4",
+    "label_he": "ההצעות שלי",
+    "file": "pro-2.4-my-bids.png"
+  },
+  {
+    "section": "pro",
+    "num": "3.1",
+    "label_he": "ניהול עבודה + עדכון מחיר",
+    "file": "pro-3.1-manage-job-price-update.png"
+  },
+  {
+    "section": "pro",
+    "num": "3.2",
+    "label_he": "העבודות שלי",
+    "file": "pro-3.2-my-jobs.png"
+  },
+  {
+    "section": "pro",
+    "num": "4.1",
+    "label_he": "ארנק, הכנסות ועמלות",
+    "file": "pro-4.1-earnings-wallet.png"
+  },
+  {
+    "section": "pro",
+    "num": "5.1",
+    "label_he": "הפרופיל הציבורי שלי",
+    "file": "pro-5.1-public-profile-edit.png"
+  },
+  {
+    "section": "pro",
+    "num": "5.2",
+    "label_he": "זמינות, אזור ולוח זמנים",
+    "file": "pro-5.2-availability-settings.png"
+  },
+  {
+    "section": "pro",
+    "num": "5.3",
+    "label_he": "הודעות",
+    "file": "pro-5.3-messages.png"
+  },
+  {
+    "section": "pro",
+    "num": "5.4",
+    "label_he": "התראות",
+    "file": "pro-5.4-notifications.png"
+  },
+  {
+    "section": "pro",
+    "num": "5.5",
+    "label_he": "מרכז עזרה",
+    "file": "pro-5.5-help-center.png"
+  },
+  {
+    "section": "content",
+    "num": "6.1",
+    "label_he": "איך זה עובד / אודות",
+    "file": "content-6.1-about-how-it-works.png"
+  },
+  {
+    "section": "content",
+    "num": "6.2",
+    "label_he": "מחירים ומדריך עלויות",
+    "file": "content-6.2-pricing-guide.png"
+  },
+  {
+    "section": "content",
+    "num": "6.3",
+    "label_he": "עזרה ושאלות נפוצות",
+    "file": "content-6.3-faq.png"
+  },
+  {
+    "section": "content",
+    "num": "6.4",
+    "label_he": "צור קשר ותמיכה",
+    "file": "content-6.4-support-contact.png"
+  },
+  {
+    "section": "content",
+    "num": "6.5",
+    "label_he": "תקנון ופרטיות",
+    "file": "content-6.5-terms-privacy.png"
+  },
+  {
+    "section": "content",
+    "num": "6.6",
+    "label_he": "בלוג ומדריכי תחזוקה",
+    "file": "content-6.6-blog-maintenance-guides.png"
+  },
+  {
+    "section": "content",
+    "num": "6.7",
+    "label_he": "404 ומצבי ריק",
+    "file": "content-6.7-404-empty-states.png"
+  },
+  {
+    "section": "admin",
+    "num": "7.1",
+    "label_he": "סקירה כללית",
+    "file": "admin-7.1-overview.png"
+  },
+  {
+    "section": "admin",
+    "num": "7.2",
+    "label_he": "אישור בעלי מקצוע",
+    "file": "admin-7.2-pro-approvals.png"
+  },
+  {
+    "section": "admin",
+    "num": "7.3",
+    "label_he": "קריאות במערכת",
+    "file": "admin-7.3-jobs-management.png"
+  },
+  {
+    "section": "admin",
+    "num": "7.4",
+    "label_he": "מחלוקות ובקרה",
+    "file": "admin-7.4-disputes-control.png"
+  }
+]
