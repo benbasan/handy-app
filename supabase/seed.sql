@@ -113,16 +113,22 @@ update public.pro_profiles
 -- ---------------------------------------------------------------------------
 
 insert into public.jobs (
-  id, customer_id, category_id, description, location, address_text, preferred_time, status
+  id, customer_id, category_id, description, photo_urls, location, address_text,
+  preferred_time, search_radius_km, status
 ) values
   (
     'd0000000-0000-4000-8000-000000000001',
     'a0000000-0000-4000-8000-000000000001',
     'c0000000-0000-4000-8000-000000000001',
     'נזילה מתחת לכיור במטבח, המים מטפטפים כל הזמן.',
+    -- An object path inside the private job-media bucket, not a public URL:
+    -- every view goes through a signed URL minted server-side. The matching
+    -- storage.objects row is created by the pgTAP suite, the only reader.
+    array['a0000000-0000-4000-8000-000000000001/seed-job-a/leak.jpg'],
     extensions.st_point(34.7806, 32.0809)::extensions.geography,
     'רחוב דיזנגוף 100, תל אביב',
-    'היום אחר הצהריים',
+    'today',
+    5,
     'open'
   ),
   (
@@ -130,8 +136,10 @@ insert into public.jobs (
     'a0000000-0000-4000-8000-000000000002',
     'c0000000-0000-4000-8000-000000000002',
     'שקע בסלון הפסיק לעבוד, המפסק קופץ בכל פעם שמחברים מכשיר.',
+    array['a0000000-0000-4000-8000-000000000002/seed-job-b/socket.jpg'],
     extensions.st_point(34.7749, 32.0714)::extensions.geography,
     'רחוב אלנבי 40, תל אביב',
-    'מחר בבוקר',
+    'tomorrow',
+    5,
     'open'
   );

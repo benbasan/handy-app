@@ -3,15 +3,53 @@
 /*
  * Tailwind v4 is CSS-first: there is no tailwind.config.ts.
  * Design tokens exported from Claude Design belong in the @theme block below.
+ *
+ * The five palette swatches printed on every screen in design/screens/ carry a
+ * legend: blue = the customer side, indigo = the pro side, emerald = the
+ * primary call to action, orange = a field price update, slate-900 = ink. They
+ * are sampled straight out of the PNGs, so the names below are roles rather
+ * than colours — `bg-cta`, not `bg-emerald-500` — and a later re-skin is one
+ * edit here instead of a sweep through every component.
  */
 @theme {
-  --color-background: #ffffff;
-  --color-foreground: #171717;
+  --color-canvas: #f7f9fc;
+  --color-surface: #ffffff;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #e2e8f0;
+
+  /* Customer-facing accent. */
+  --color-brand: #1e40af;
+  --color-brand-strong: #1a3798;
+  --color-brand-soft: #e4edf8;
+
+  /* Pro-facing accent — unused until Phase 3, kept here so the two sides of
+     the product cannot drift into two different blues. */
+  --color-pro: #4f46e5;
+
+  /* Primary action. Every "פרסם קריאה" button in the design is this green. */
+  --color-cta: #10b981;
+  --color-cta-strong: #059669;
+
+  /* Reserved for the field price-update flow (Phase 5). */
+  --color-alert: #f97316;
+
+  --color-background: var(--color-canvas);
+  --color-foreground: var(--color-ink);
   --font-sans: var(--font-heebo), system-ui, sans-serif;
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
   font-family: var(--font-sans);
+}
+
+/*
+ * Numbers stay left-to-right inside Hebrew text. Without this a price, a phone
+ * number or a coordinate typed into an RTL field reorders on screen.
+ */
+[dir="rtl"] .ltr-nums {
+  direction: ltr;
+  unicode-bidi: isolate;
 }

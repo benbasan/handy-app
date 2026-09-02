@@ -13,7 +13,7 @@ export default async function ProHomePage() {
         <h1 className="text-2xl font-bold">
           שלום{user.fullName ? `, ${user.fullName}` : ""}
         </h1>
-        <p className="mt-1 text-neutral-600">אזור בעלי המקצוע ב-Handy.</p>
+        <p className="mt-1 text-muted">אזור בעלי המקצוע ב-Handy.</p>
       </header>
 
       <CurrentUserCard user={user} verificationStatus={verificationStatus} />
@@ -25,9 +25,9 @@ export default async function ProHomePage() {
         </p>
       )}
 
-      <p className="text-sm text-neutral-500">
+      <p className="text-sm text-muted">
         Onboarding, פיד קריאות והגשת הצעות נבנים בשלבים הבאים — ראו{" "}
-        <code className="rounded bg-neutral-100 px-1">docs/roadmap.md</code>.
+        <code className="rounded bg-canvas px-1">docs/roadmap.md</code>.
       </p>
     </main>
   );

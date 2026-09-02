@@ -210,9 +210,12 @@ export type Database = {
           customer_id: string
           description: string
           id: string
+          latitude: number | null
           location: unknown
+          longitude: number | null
           photo_urls: string[]
           preferred_time: string | null
+          search_radius_km: number
           selected_bid_id: string | null
           status: string
           video_url: string | null
@@ -225,9 +228,12 @@ export type Database = {
           customer_id: string
           description: string
           id?: string
+          latitude?: number | null
           location: unknown
+          longitude?: number | null
           photo_urls?: string[]
           preferred_time?: string | null
+          search_radius_km?: number
           selected_bid_id?: string | null
           status?: string
           video_url?: string | null
@@ -240,9 +246,12 @@ export type Database = {
           customer_id?: string
           description?: string
           id?: string
+          latitude?: number | null
           location?: unknown
+          longitude?: number | null
           photo_urls?: string[]
           preferred_time?: string | null
+          search_radius_km?: number
           selected_bid_id?: string | null
           status?: string
           video_url?: string | null
@@ -545,6 +554,7 @@ export type Database = {
     }
     Functions: {
       auth_role: { Args: never; Returns: string }
+      can_read_job_media: { Args: { p_object_name: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_pro: { Args: { p_job_id: string }; Returns: boolean }
       is_bidding_pro: { Args: { p_job_id: string }; Returns: boolean }

@@ -107,12 +107,29 @@ clash. Configured in [supabase/config.toml](supabase/config.toml).
 | `npm run build`     | Production build                              |
 | `npm run lint`      | ESLint                                        |
 | `npm run typecheck` | `tsc --noEmit`                                |
+| `npm run test`      | Vitest unit tests                             |
 | `npm run format`    | Prettier write                                |
 | `npm run db:start`  | Start local Supabase                          |
 | `npm run db:stop`   | Stop local Supabase                           |
 | `npm run db:reset`  | Re-apply all migrations + `supabase/seed.sql` |
 | `npm run db:test`   | pgTAP suite — RLS policy assertions           |
 | `npm run db:types`  | Regenerate `lib/supabase/database.types.ts`   |
+
+## Google Maps
+
+Two keys, and neither is required to run the app locally:
+
+| Variable                          | Where it runs                                  | Restrict it by |
+| --------------------------------- | ---------------------------------------------- | -------------- |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Browser — Places Autocomplete, the map embed   | HTTP referrer  |
+| `GOOGLE_MAPS_SERVER_API_KEY`      | Server — Geocoding (address → `jobs.location`) | IP address     |
+
+With neither set, the address field is an ordinary text input and the server
+places the address against the built-in city gazetteer in `lib/maps/geocode.ts`.
+That is approximate on purpose, and the posted job says so. Development accepts
+it silently; a production build needs `ALLOW_NO_MAPS_KEY=1` to accept it, so a
+deploy that simply forgot the key fails loudly instead of filing every job in
+the middle of Tel Aviv.
 
 ## Database changes
 

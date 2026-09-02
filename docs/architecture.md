@@ -15,7 +15,7 @@
 | הרשמה/כניסה | Supabase Auth — Phone + OTP, ספק SMS: **Twilio** (מוגדר בתוך Supabase Auth) | Supabase תומכת ב-Twilio באופן מובנה; אין צורך לבנות זרימת OTP בעצמנו |
 | PDF (קבלות) | להחליט בשלב התשלומים/קבלות (ראו `CLAUDE.md` סעיף 9) | |
 | Hosting | Vercel (Next.js) + Supabase Cloud | |
-| בדיקות | Vitest (יחידה) + Playwright (E2E לזרימות קריטיות, מ-Phase 4 והלאה) | |
+| בדיקות | pgTAP לכל מה שתלוי ב-RLS · Vitest (יחידה, הוקם ב-Phase 2) · Playwright (E2E לזרימות קריטיות, מ-Phase 9) | `npm run db:test` / `npm run test`. הכלל: מדיניות RLS נבדקת במסד הנתונים שבו היא רצה, לא במוק ב-JS |
 
 ### גרסאות בפועל (הותקנו ב-Phase 0)
 
@@ -23,7 +23,7 @@ Next **16.3.4** · React **19.2.8** · Tailwind **4.3.3** · TypeScript 5 · `@s
 
 שתי נקודות שנובעות מהגרסאות האלה ושלא היו במסמך המקורי:
 
-1. **Tailwind v4 הוא CSS-first — אין `tailwind.config.ts`.** טוקני העיצוב מ-Claude Design נכנסים לבלוק `@theme` בתוך `app/globals.css`. שם מחפשים אותם, לא בקובץ קונפיג.
+1. **Tailwind v4 הוא CSS-first — אין `tailwind.config.ts`.** טוקני העיצוב מ-Claude Design נכנסים לבלוק `@theme` בתוך `app/globals.css`. שם מחפשים אותם, לא בקובץ קונפיג. הטוקנים עצמם נדגמו ב-Phase 2 ישירות מה-PNG-ים ב-`design/screens/` (כל מסך מדפיס את אותן חמש דגימות עם מקרא), והם מוגדרים לפי **תפקיד ולא לפי צבע** — `--color-cta` ולא `--color-emerald`: כחול = צד הלקוח, אינדיגו = צד בעל המקצוע, אמרלד = פעולה ראשית, כתום = עדכון מחיר בשטח, `#0f172a` = דיו.
 2. **`CLAUDE.md` ותיקיית `docs/` מוחרגות מ-Prettier** (ב-`.prettierignore`). Prettier מרפד תאי טבלה במרקדאון לפי רוחב תווים לטיניים, מה שהורס את היישור של טבלאות עבריות דו-כיווניות ומשכתב את המסמכים בכל הרצה.
 
 ### RTL — כלל מחייב
@@ -55,6 +55,7 @@ Next **16.3.4** · React **19.2.8** · Tailwind **4.3.3** · TypeScript 5 · `@s
   /maps                        עטיפות ל-Google Maps API (גיאוקוד, חישוב מרחק)
 /supabase
   /migrations                  קבצי SQL — **מקור האמת היחיד** לסכימת ה-DB
+  /tests                       pgTAP — טענות על מדיניות RLS
   /seed.sql                    נתוני דמו לפיתוח מקומי
 /docs                          מסמכי התכנון (התיקייה הזו)
 ```
@@ -125,6 +126,7 @@ erDiagram
         geography location
         text address_text
         text preferred_time
+        int search_radius_km
         text status
         uuid selected_bid_id FK
         timestamptz created_at
@@ -207,15 +209,32 @@ erDiagram
 
 **מה שלא נבנה ב-Phase 1 בכוונה:** מכונת המצבים של `price_updates` (`pending → approved/rejected`) והמחיר הנגזר — זהו Phase 5. ב-Phase 1 קיימים הטבלה, האילוצים והמדיניות בלבד.
 
+### מה נוסף ב-Phase 2 (`supabase/migrations/2026090212*`)
+
+| שינוי | למה |
+|---|---|
+| **`jobs.search_radius_km`** (`default 5`, `check 1..50`) | `product-spec.md` 3.2 נותן ללקוח לבחור רדיוס חיפוש בשלב הכתובת, וחוק עסקי 7 קובע ברירת מחדל של 3–5 ק״מ. זו ההעדפה של הלקוח בלבד; השער בפועל על הפיד נשאר `pro_serves_point` — הרדיוס של בעל המקצוע. איך השניים מצטלבים יוכרע ב-Phase 3. |
+| **`jobs.preferred_time` קיבל `check`** (`asap`/`today`/`tomorrow`/`this_week`/`flexible`) | כטקסט חופשי, ה-UI לא יכול לרנדר את הערך בעברית — הוא רק מהדהד את מה שנשמר. הטופס מציע בחירה סגורה, ולכן העמודה מחזיקה slug באנגלית והתוויות חיות ב-`lib/validation/jobs.ts`. |
+| **`jobs.latitude` / `jobs.longitude`** — עמודות `generated always as ... stored` | PostgREST מחזיר `geography` כ-hex EWKB. בלי הנגזרות האלה כל מסך שרוצה להראות ללקוח איפה הכתובת שלו נחתה היה צריך לפענח EWKB ב-JS. שתי הפונקציות immutable, ו-`location` נשאר מקור האמת היחיד. |
+| **bucket `job-media` (פרטי) + 4 מדיניות על `storage.objects`** | תמונות/וידאו/הקלטה של קריאה. פריסה: `<customer_id>/<upload_group>/<filename>` — הקבצים עולים בזמן שהקריאה עוד ממולאת, לפני שיש `job_id`. ההעלאה נעולה לתיקייה של המעלה ולתפקיד `customer`; אין מדיניות `update` בכלל (קובץ מוחלף בהעלאה חדשה, לא משתנה במקום). |
+| **`public.can_read_job_media(text)`** — `security definer` | התאום של מדיניות ה-`select` על `jobs`, בצד ה-Storage: בעל הקריאה, אדמין, בעל מקצוע מאומת שהקריאה בתוך הרדיוס שלו, מי שהגיש הצעה, ומי שנבחר. אם המדיניות על `jobs` משתנה — הפונקציה הזו משתנה איתה. |
+
+**נתיבי מדיה נשמרים כ-object paths, לא כ-URL-ים.** ה-bucket פרטי, וכל צפייה עוברת signed URL שנחתם בשרת תחת ה-RLS של הקורא — Storage לא חותם נתיב שהקורא לא היה יכול לקרוא ממילא.
+
+**מדיה עולה ישירות מהדפדפן ל-Storage**, לא דרך Server Action: סרטון של 30 שניות הוא עשרות מגה-בייט, הרבה מעבר למגבלת הגוף של Server Action. הטופס שולח לשרת נתיבים, וה-Zod schema מוודא שכל נתיב יושב בתיקייה של המשתמש שמפרסם — אותו דבר שמדיניות ה-`insert` של ה-bucket אוכפת, פעמיים.
+
 ### מבנה נתיבים ותפקידים (הוחלט ב-Phase 1)
 
 Route groups ב-Next.js לא מוסיפים segment לנתיב, ולכן `(customer)` ו-`(pro)` לא יכולים שניהם להחזיק את `/login`. ההחלטה: **הלקוח יושב בשורש** (הוא הקהל העיקרי), בעל מקצוע ואדמין עם prefix.
 
-| תפקיד | כניסה | בית |
-|---|---|---|
-| `customer` | `/login` | `/account` |
-| `pro` | `/pro/login` | `/pro` |
-| `admin` | `/admin/login` | `/admin` |
+| תפקיד | כניסה | בית | נתיבים נוספים |
+|---|---|---|---|
+| ציבורי | — | `/` (עמוד הנחיתה, מתוך `(marketing)`) | |
+| `customer` | `/login` | `/account` | `/new-request`, `/new-request/published/[jobId]` |
+| `pro` | `/pro/login` | `/pro` | |
+| `admin` | `/admin/login` | `/admin` | |
+
+`/new-request` רשום ב-`PROTECTED_AREAS` שב-`lib/routes.ts` למרות שהוא לא יושב מתחת ל-`/account`: לקוח נרשם תוך כדי פרסום הקריאה הראשונה (`product-spec.md` סעיף 2), ובלי הרישום הזה מבקר אנונימי היה מגיע לעמוד ורק ה-layout היה מחזיר אותו, רינדור אחד מאוחר מדי.
 
 בתוך כל route group יש קבוצה מקוננת `(authed)` שה-layout שלה קורא `requireRole()`; מסך הכניסה נמצא **מחוץ** לקבוצה הזו, אחרת השער היה חוסם את הדלת שדרכה נכנסים.
 
@@ -255,7 +274,9 @@ Supabase Realtime על גבי Postgres Changes + Broadcast:
 
 ## 6. אינטגרציות חיצוניות
 
-- **Google Maps Platform**: Maps JavaScript API (הצגת מפה), Places Autocomplete (שדה כתובת בפרסום קריאה), Geocoding API (הפיכת כתובת לקואורדינטות שנשמרות ב-`jobs.location`), Distance Matrix/Directions (ניווט לבעל מקצוע). דורש API key בצד קליינט עם הגבלת דומיין ב-Google Cloud Console.
+- **Google Maps Platform**: Maps JavaScript API (הצגת מפה), Places Autocomplete (שדה כתובת בפרסום קריאה), Geocoding API (הפיכת כתובת לקואורדינטות שנשמרות ב-`jobs.location`), Distance Matrix/Directions (ניווט לבעל מקצוע).
+  **שני מפתחות, ולא אחד** (הוחלט ב-Phase 2): `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` נשלח לדפדפן ומוגבל ב-referrer — ולכן חסר תועלת מהשרת; `GOOGLE_MAPS_SERVER_API_KEY` מוגבל ב-IP והוא זה שמריץ את הגיאוקוד. הקואורדינטות מ-Places Autocomplete הן רמז בלבד: `lib/maps/geocode.ts` בודק אותן מול תיבה סביב ישראל לפני שמשהו מגיע ל-`jobs.location`.
+  **בלי מפתח בכלל** המוצר עדיין עובד: הכתובת מוקלדת ידנית ומוצבת מול gazetteer מובנה של ערי ישראל. זה מקורב מעצם הגדרתו, ולכן כל תוצאה נושאת את ה-`source` שלה ומסך יכול לומר זאת. המצב הזה הוא opt-in דרך `ALLOW_NO_MAPS_KEY` — אחרת דיפלוי שפשוט שכח את המפתח היה מתייק בשקט כל קריאה למרכז תל אביב.
 - **Twilio** (דרך Supabase Auth Phone Provider): שליחת קוד OTP. דורש הקמת חשבון Twilio + מספר שולח (לבדוק אילו מגבלות חלות על שליחת SMS לישראל דרך Twilio בזמן ההקמה).
 - **Supabase Storage**: buckets נפרדים ל-`job-media` (תמונות/וידאו/קול של קריאות), `verification-docs` (מסמכי אימות — פרטי, לא ציבורי), `profile-photos`, `price-update-photos`. מדיניות גישה per-bucket תואמת ל-RLS.
 
@@ -265,10 +286,14 @@ Supabase Realtime על גבי Postgres Changes + Broadcast:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=        # שרת בלבד, לעולם לא בצד קליינט
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=  # דפדפן: Maps JS + Places, מוגבל ב-referrer
+GOOGLE_MAPS_SERVER_API_KEY=       # שרת: Geocoding, מוגבל ב-IP. נופל חזרה למפתח הדפדפן
+ALLOW_NO_MAPS_KEY=                # 1 = לאשר ריצה בלי מפתח כלל (גיאוקוד מקורב)
 TWILIO_ACCOUNT_SID=                # מוגדר בתוך Supabase Auth, לא בקוד שלנו ישירות
 TWILIO_AUTH_TOKEN=
 ```
+
+`.env.example` בריפו הוא המקור המחייב — הרשימה כאן מסכמת אותו.
 
 ## 8. למה לא Prisma / למה לא backend נפרד
 

@@ -1,24 +1,34 @@
+import Link from "next/link";
+import { AuthSplitLayout } from "@/components/ui/AuthSplitLayout";
 import { OtpLoginForm } from "@/components/ui/OtpLoginForm";
 import { redirectIfSignedIn } from "@/lib/supabase/session";
 
-export const metadata = { title: "כניסה — Handy" };
+export const metadata = { title: "כניסה לחשבון — Handy" };
 
+/** design/screens/customer-1.2-login-otp.png. */
 export default async function CustomerLoginPage() {
   await redirectIfSignedIn();
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center p-6">
+    <AuthSplitLayout
+      headline="כל הקריאות, ההצעות והקבלות שלך במקום אחד"
+      points={[
+        "מעקב בזמן אמת על כל קריאה פעילה",
+        "קבלות דיגיטליות וארכיון עבודות",
+        "בעלי מקצוע שמורים להזמנה חוזרת",
+      ]}
+    >
       <OtpLoginForm
         role="customer"
-        title="כניסה ל-Handy"
-        subtitle="הזינו מספר טלפון ונשלח אליכם קוד אימות ב-SMS. אין צורך בסיסמה."
+        title="כניסה לחשבון"
+        subtitle="נשלח קוד חד-פעמי ב-SMS. אין סיסמאות ואין צורך להירשם מראש."
       />
-      <p className="mt-8 text-sm text-neutral-600">
+      <p className="mt-8 text-sm text-muted">
         בעל מקצוע?{" "}
-        <a href="/pro/login" className="underline underline-offset-2">
-          כניסה לאזור בעלי המקצוע
-        </a>
+        <Link href="/pro/login" className="font-semibold text-brand">
+          כניסת בעלי מקצוע
+        </Link>
       </p>
-    </main>
+    </AuthSplitLayout>
   );
 }

@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { ROLE_HOME, ROLE_LOGIN } from "@/lib/routes";
 import { isUserRole, type UserRole } from "@/lib/validation/auth";
+import { getSupabaseEnv } from "./env";
 import { createClient } from "./server";
 
 /**
@@ -26,6 +27,11 @@ export type CurrentUser = {
  * wraps can both ask without a second round trip.
  */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  // CI builds with no Supabase credentials at all (see .github/workflows), and
+  // a public page that merely wants to know whether anyone is signed in should
+  // answer "no" rather than crash the render.
+  if (!getSupabaseEnv()) return null;
+
   const supabase = await createClient();
 
   // getUser, not getSession: this decides access, so the token has to be

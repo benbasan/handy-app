@@ -28,7 +28,7 @@ Do not introduce an alternative to any of these without discussing it with the u
 | ORM/DB access | Supabase JS client + generated types (`supabase gen types typescript`) | Avoid adding Prisma/Drizzle on top — one data-access layer only |
 | Supabase CLI | Installed as a **devDependency**, run via `npx supabase` | Version is locked in the repo and identical for everyone — not dependent on what happens to be installed globally |
 | Styling | **Tailwind CSS v4** | v4 is CSS-first: there is **no `tailwind.config.ts`**. Design tokens from Claude Design go in the `@theme` block in `app/globals.css` |
-| Maps / geocoding / distance | Google Maps Platform (Maps JS API, Geocoding, Places, Distance Matrix) | Needed for: address autocomplete, radius search, live "pro en route" tracking |
+| Maps / geocoding / distance | Google Maps Platform (Maps JS API, Geocoding, Places, Distance Matrix) | Needed for: address autocomplete, radius search, live "pro en route" tracking. **Two keys**: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (browser, referrer-restricted) and `GOOGLE_MAPS_SERVER_API_KEY` (server, IP-restricted — a referrer-restricted key cannot geocode). With no key the app falls back to manual address entry + a local gazetteer, opt-in via `ALLOW_NO_MAPS_KEY` |
 | File/media uploads | Supabase Storage | Job photos/videos/voice notes, pro verification documents, profile photos |
 | Realtime (bids arriving, chat, live location) | Supabase Realtime (Postgres changes + broadcast channels) | Do not add a separate WebSocket server |
 | PDF generation (receipts) | `@react-pdf/renderer` or a Supabase Edge Function calling a PDF service | Decide inside the phase that needs it, record the decision here |
@@ -36,7 +36,7 @@ Do not introduce an alternative to any of these without discussing it with the u
 | Package manager | npm (unless the user says otherwise) | |
 | Validation | **Zod** | Every server-side write path. Schemas in `lib/validation`, one file per entity |
 | Testing (DB) | **pgTAP** via `supabase test db` (`npm run db:test`) | RLS policies are tested in the database, where they run — not mocked in JS. Added in Phase 1 |
-| Testing (app) | Vitest (unit) + Playwright (critical E2E flows only, added from Phase 4 onward) | Neither exists yet — added by the first phase with logic that needs them |
+| Testing (app) | Vitest (unit, `npm run test`) + Playwright (critical E2E flows only, Phase 9) | Vitest arrived in Phase 2, the first phase with logic that needed it: the no-key geocoding fallback and the Zod schemas. Playwright still does not exist. Anything that depends on RLS is tested in pgTAP, not mocked in JS |
 | Language | TypeScript everywhere, `strict: true` | No `any` without a comment explaining why |
 
 **Mobile strategy:** web-only, fully responsive (mobile-web + desktop breakpoints), matching the two viewport variants already designed in Claude Design. No native app in this phase of the roadmap.
@@ -71,6 +71,9 @@ The product is Hebrew-facing, but all code (tables, variables, routes, types) is
 | קבלה | `receipt` | Generated PDF at job completion |
 | מחלוקת | `dispute` | Admin-mediated conflict on a job |
 | פרופיל ציבורי | `public_profile` | Pro's customer-facing profile page |
+| רדיוס חיפוש | `search_radius_km` | On a job: how far the customer wants it broadcast. Distinct from `radius_km`, which is the pro's own service radius |
+| מתי נוח / מועד | `preferred_time` | Closed vocabulary: `asap` / `today` / `tomorrow` / `this_week` / `flexible`. Hebrew labels live in `lib/validation/jobs.ts` |
+| מדיה של קריאה | `job-media` | Private Storage bucket, laid out as `<customer_id>/<upload_group>/<filename>` |
 
 Add new rows here whenever a new domain concept appears — do not let this glossary drift out of date.
 
@@ -79,10 +82,10 @@ Add new rows here whenever a new domain concept appears — do not let this glos
 ```
 /proxy.ts               → session refresh + anonymous gate (Next 16's name for middleware.ts)
 /app                    → Next.js App Router routes
-  /(customer)            → customer-facing routes — AT THE ROOT: /login, /account
+  /(customer)            → customer-facing routes — AT THE ROOT: /login, /account, /new-request
   /(pro)                 → pro-facing routes, prefixed: /pro/login, /pro
   /(admin)               → admin dashboard routes, prefixed: /admin/login, /admin
-  /(marketing)            → public marketing/SEO pages (category pages, guides, about)
+  /(marketing)            → public pages: the landing page at /, plus the SEO/content pages (Phase 8)
   /api                    → route handlers only where a server action doesn't fit (webhooks, etc.)
 /components
   /ui                     → generic design-system components (buttons, inputs, cards)
@@ -151,6 +154,7 @@ adding a column, decide explicitly whether a client may write it.
 
 - [ ] PDF library for receipts (decide in the payments/receipts phase)
 - [ ] Exact Twilio account setup / SMS sender ID for Israel
+- [ ] A real Google Maps Platform key. Everything that needs one — Places Autocomplete, the map on the published-job screen, server-side geocoding — is built behind a key check and degrades to manual address entry, so this blocks verification against Google, not development
 - [ ] Push notification approach for "pro is arriving" (browser push vs. none for MVP)
 
 *(Keep this list current — remove items once decided and folded into section 2, add new ones as they come up.)*
