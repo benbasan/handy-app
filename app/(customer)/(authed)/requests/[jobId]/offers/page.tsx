@@ -103,8 +103,13 @@ export default async function JobOffersPage({
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-2">
+      {/* The offers take the wide, leading (right, in RTL) column and the map
+          column sits at the end — the split in customer-2.2-compare-bids.png.
+          The order is pinned at every breakpoint, not only at lg: stacked on
+          a phone the offers still have to come first, which is what the
+          customer opened the page for. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        <aside className="order-2 space-y-4">
           <Card className="overflow-hidden p-0">
             {mapsKey && job.latitude !== null && job.longitude !== null ? (
               <iframe
@@ -155,12 +160,14 @@ export default async function JobOffersPage({
           </Card>
         </aside>
 
-        <div className="space-y-4 lg:order-1">
+        <div className="order-1 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-bold text-ink">
               {bids.length === 0
                 ? "עדיין לא התקבלו הצעות"
-                : `${bids.length} הצעות התקבלו`}
+                : bids.length === 1
+                  ? "התקבלה הצעה אחת"
+                  : `${bids.length} הצעות התקבלו`}
             </h2>
 
             {bids.length > 1 && !chosen && (

@@ -66,7 +66,7 @@ export default async function ProMessagesPage({
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-          <Card className="p-0 lg:order-1">
+          <Card className="order-1 min-w-0 p-0">
             {active && (
               <>
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-5">
@@ -106,7 +106,7 @@ export default async function ProMessagesPage({
             )}
           </Card>
 
-          <Card className="p-0 lg:order-2">
+          <Card className="order-2 min-w-0 p-0">
             <h2 className="border-b border-line p-5 font-bold text-ink">
               כל השיחות
             </h2>

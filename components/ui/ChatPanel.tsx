@@ -102,20 +102,25 @@ export function ChatPanel({
         <input type="hidden" name="jobId" value={jobId} />
         <input type="hidden" name="proId" value={proId} />
 
+        {/* min-w-0 on the growing half: a flex item defaults to min-width:auto,
+            which refuses to shrink below the input's intrinsic width and pushes
+            the send button off a 390px screen. */}
         <div className="flex items-center gap-3">
-          <input
-            name="body"
-            required
-            maxLength={MESSAGE_MAX}
-            autoComplete="off"
-            placeholder="כתוב הודעה"
-            aria-label="הודעה חדשה"
-            className={INPUT_CLASS}
-          />
+          <div className="min-w-0 flex-1">
+            <input
+              name="body"
+              required
+              maxLength={MESSAGE_MAX}
+              autoComplete="off"
+              placeholder="כתוב הודעה"
+              aria-label="הודעה חדשה"
+              className={INPUT_CLASS}
+            />
+          </div>
           <button
             type="submit"
             disabled={pending}
-            className={`shrink-0 rounded-xl px-6 py-3 font-semibold text-white transition-colors disabled:opacity-60 ${
+            className={`shrink-0 rounded-xl px-5 py-3 font-semibold text-white transition-colors disabled:opacity-60 sm:px-6 ${
               tone === "pro"
                 ? "bg-pro hover:bg-pro-strong"
                 : "bg-brand hover:bg-brand-strong"

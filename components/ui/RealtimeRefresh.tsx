@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
@@ -13,14 +14,23 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
  * The subscription carries no data into the page. It only tells the router the
  * server's answer is stale, and the server re-renders under the caller's own
  * RLS — so what arrives on screen is exactly what a reload would have shown,
- * and a payload that was delivered by mistake could never widen what is
- * rendered. That is also why this is a plain refresher rather than a store: a
- * bid is money, and the authority on it is the database, not a socket message
- * that has been sitting in a browser tab.
+ * and a payload delivered by mistake could never widen what is rendered. That
+ * is also why this is a plain refresher rather than a store: a bid is money,
+ * and the authority on it is the database, not a socket message that has been
+ * sitting in a browser tab.
  *
- * Realtime applies each subscriber's RLS before delivering a row, so a pro
- * subscribed to `bids` is woken only by their own, and a customer only by bids
- * on their own jobs.
+ * **The socket has to be handed the user's token before it joins.** This app
+ * restores its session from a cookie rather than by signing in on the client,
+ * so no auth event fires to push the token into the realtime client and the
+ * join wins the race against the token lookup. An unauthenticated socket does
+ * not merely see fewer rows — it is refused the subscription outright, with
+ * "invalid column for filter job_id", because `anon` holds no privilege on
+ * these tables and so cannot see the column it is being asked to filter on.
+ * `setAuth()` first, `subscribe()` second.
+ *
+ * Realtime then applies the subscriber's own RLS before delivering a row, so
+ * publishing these tables widens nothing: a pro subscribed to `bids` is woken
+ * only by their own, a customer only by bids on their own jobs.
  */
 
 /** How long a "just updated" flash stays on screen. */
@@ -52,23 +62,42 @@ export function RealtimeRefresh({
     if (!getSupabaseEnv()) return;
 
     const supabase = createClient();
-    const channel = supabase
-      .channel(`realtime:${table}:${filter ?? "all"}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table, ...(filter ? { filter } : {}) },
-        () => {
-          router.refresh();
-          setFlash(true);
-          if (timer.current) clearTimeout(timer.current);
-          timer.current = setTimeout(() => setFlash(false), FLASH_MS);
-        },
-      )
-      .subscribe();
+    let channel: RealtimeChannel | null = null;
+    let cancelled = false;
+
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+
+      await supabase.realtime.setAuth(data.session.access_token);
+      if (cancelled) return;
+
+      channel = supabase
+        // No `realtime:` prefix in the name: the client adds one of its own,
+        // and a hand-written one only doubles it in the topic.
+        .channel(`${table}:${filter ?? "all"}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table,
+            ...(filter ? { filter } : {}),
+          },
+          () => {
+            router.refresh();
+            setFlash(true);
+            if (timer.current) clearTimeout(timer.current);
+            timer.current = setTimeout(() => setFlash(false), FLASH_MS);
+          },
+        )
+        .subscribe();
+    })();
 
     return () => {
+      cancelled = true;
       if (timer.current) clearTimeout(timer.current);
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [router, table, filter]);
 

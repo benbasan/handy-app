@@ -58,8 +58,50 @@ export function BidCard({
         won ? "border-cta ring-1 ring-cta/30" : "border-line"
       } ${live || won ? "" : "opacity-70"}`}
     >
-      <div className="flex flex-wrap-reverse items-start justify-between gap-4">
-        <div className="min-w-56 flex-1">
+      {/* The pro at the leading edge with the price and its two actions at
+          the trailing one, as in customer-2.2-compare-bids.png. They stack
+          in that same order on a narrow screen. */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-56 flex-1 items-start gap-3">
+          <span
+            aria-hidden
+            className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-canvas text-sm font-bold text-muted"
+          >
+            {initials(bid.proName)}
+          </span>
+
+          <div className="min-w-0 flex-1 text-start">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-lg font-bold text-ink">
+                {bid.proName ?? "בעל מקצוע"}
+              </h3>
+              {bid.proVerified && <Badge tone="done">✓ מאומת Handy</Badge>}
+              {highlights.map((label) => (
+                <Badge key={label} tone="open">
+                  {label}
+                </Badge>
+              ))}
+            </div>
+
+            <p className="mt-1 text-sm text-muted">
+              {bid.proRating !== null && (
+                <>
+                  <span className="ltr-nums">★ {bid.proRating.toFixed(1)}</span>{" "}
+                  ·{" "}
+                </>
+              )}
+              <span className="ltr-nums">{bid.proJobsCompleted}</span> עבודות ·
+              מגיע תוך <span className="ltr-nums">{bid.etaMinutes}</span> דק׳
+            </p>
+
+            {bid.note && (
+              <p className="mt-3 rounded-xl bg-canvas px-4 py-3 text-sm text-ink">
+                {bid.note}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="min-w-56 flex-1 sm:max-w-64">
           <p className="text-3xl font-bold text-brand">
             <span className="ltr-nums">
               {bid.price.toLocaleString("he-IL")}
@@ -109,46 +151,6 @@ export function BidCard({
               <ErrorText>{state.error}</ErrorText>
             </div>
           )}
-        </div>
-
-        <div className="flex min-w-56 flex-1 items-start gap-3">
-          <div className="min-w-0 flex-1 text-end">
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <h3 className="text-lg font-bold text-ink">
-                {bid.proName ?? "בעל מקצוע"}
-              </h3>
-              {bid.proVerified && <Badge tone="done">✓ מאומת Handy</Badge>}
-              {highlights.map((label) => (
-                <Badge key={label} tone="open">
-                  {label}
-                </Badge>
-              ))}
-            </div>
-
-            <p className="mt-1 text-sm text-muted">
-              {bid.proRating !== null && (
-                <>
-                  <span className="ltr-nums">★ {bid.proRating.toFixed(1)}</span>{" "}
-                  ·{" "}
-                </>
-              )}
-              <span className="ltr-nums">{bid.proJobsCompleted}</span> עבודות ·
-              מגיע תוך <span className="ltr-nums">{bid.etaMinutes}</span> דק׳
-            </p>
-
-            {bid.note && (
-              <p className="mt-3 rounded-xl bg-canvas px-4 py-3 text-sm text-ink">
-                {bid.note}
-              </p>
-            )}
-          </div>
-
-          <span
-            aria-hidden
-            className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-canvas text-sm font-bold text-muted"
-          >
-            {initials(bid.proName)}
-          </span>
         </div>
       </div>
     </li>

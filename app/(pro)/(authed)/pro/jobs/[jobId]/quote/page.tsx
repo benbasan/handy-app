@@ -105,7 +105,11 @@ export default async function SubmitBidPage({
           <div className="flex flex-wrap gap-2">
             {when && <Badge tone="waiting">{when}</Badge>}
             <Badge tone="neutral">
-              {bidsCount === 0 ? "עדיין אין הצעות" : `${bidsCount} הצעות עד כה`}
+              {bidsCount === 0
+                ? "עדיין אין הצעות"
+                : bidsCount === 1
+                  ? "הצעה אחת עד כה"
+                  : `${bidsCount} הצעות עד כה`}
             </Badge>
           </div>
         </div>

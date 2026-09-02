@@ -91,7 +91,9 @@ export function FeedJobCard({
             ממך · {job.addressText} ·{" "}
             {job.bidsCount === 0
               ? "עדיין אין הצעות"
-              : `${job.bidsCount} הצעות עד כה`}
+              : job.bidsCount === 1
+                ? "הצעה אחת עד כה"
+                : `${job.bidsCount} הצעות עד כה`}
           </p>
         </div>
 

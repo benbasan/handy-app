@@ -71,7 +71,11 @@ export function SubmitBidForm({
   return (
     <form
       action={formAction}
-      className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start"
+      /* The dark price card sits at the trailing (left, in RTL) edge and the
+         job's own cards take the wide leading column — the split in
+         pro-2.3-submit-bid.png. DOM order is price-first so it leads on a
+         phone, where it is the thing the pro came to do. */
+      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start"
     >
       {bidId ? (
         <input type="hidden" name="bidId" value={bidId} />
@@ -81,7 +85,7 @@ export function SubmitBidForm({
       <input type="hidden" name="price" value={price} />
       <input type="hidden" name="etaMinutes" value={eta} />
 
-      <div className="space-y-4 lg:order-1">
+      <div className="order-1 space-y-4 lg:order-2">
         <div className="rounded-2xl bg-ink p-6 text-white">
           <p className="text-center text-sm text-white/70">המחיר שלך ללקוח</p>
           <p className="mt-1 text-center text-5xl font-bold">
@@ -210,7 +214,7 @@ export function SubmitBidForm({
         </div>
       </div>
 
-      <div className="space-y-6 lg:order-2">
+      <div className="order-2 space-y-6 lg:order-1">
         <fieldset className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
           <legend className="px-1 text-lg font-bold text-ink">זמן הגעה</legend>
 
