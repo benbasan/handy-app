@@ -31,6 +31,15 @@
 #     PUSH              push main after a merge  (default: 1)
 #     CLAUDE_BIN        path to the claude CLI   (default: auto-detected)
 #     ALLOW_NO_MAPS_KEY run without a Google Maps key, map features deferred (default: 0)
+#     LIMIT_RESUMES     usage-limit waits per phase before giving up (default: 8)
+#     LIMIT_POLL        seconds to wait when no reset time is known  (default: 900)
+#
+#   HITTING A USAGE LIMIT MID-RUN
+#     The run does not die: when a phase stops on a claude.ai usage limit, the
+#     script reads resetsAt out of the transcript's rate_limit_event, sleeps
+#     until then, and resumes THAT SAME session (--resume) so the phase keeps
+#     its context instead of starting over. The watchdog knows the difference
+#     between a limit wait and a hang, and only kills the latter.
 #
 # ---------------------------------------------------------------------------
 # READ THIS ONCE BEFORE THE FIRST REAL RUN
@@ -57,7 +66,14 @@ PUSH="${PUSH:-1}"
 DRY_RUN="${DRY_RUN:-0}"
 CLAUDE_BIN="${CLAUDE_BIN:-}"
 ALLOW_NO_MAPS_KEY="${ALLOW_NO_MAPS_KEY:-0}"
+LIMIT_RESUMES="${LIMIT_RESUMES:-8}"
+LIMIT_POLL="${LIMIT_POLL:-900}"
 MAPS_NOTE=""
+
+# Applies to the runner's own invocations only — your interactive sessions keep
+# whatever ~/.claude/settings.json says. Lets the CLI sit out a usage limit and
+# carry on by itself; the script's own wait+resume is the backstop if it exits.
+RUNNER_SETTINGS='{"autoContinueAtUsageLimit":true}'
 
 PREFLIGHT_ONLY=0
 case "${1:-}" in
@@ -160,6 +176,8 @@ preflight() {
     die "Could not extract PHASE_PROMPT from $PROMPT_FILE"
   [ -n "$(extract_block '<!-- REPAIR_PROMPT -->' '<!-- END_REPAIR_PROMPT -->')" ] ||
     die "Could not extract REPAIR_PROMPT from $PROMPT_FILE"
+  [ -n "$(extract_block '<!-- CONTINUE_PROMPT -->' '<!-- END_CONTINUE_PROMPT -->')" ] ||
+    die "Could not extract CONTINUE_PROMPT from $PROMPT_FILE"
 
   [ -d "$REPO_ROOT/node_modules" ] || die "node_modules missing — run 'npm install' first."
   [ -f "$REPO_ROOT/.env.local" ] || die ".env.local missing — copy .env.example and fill it in."
@@ -202,8 +220,40 @@ $(git status --short)"
 
   docker info >/dev/null 2>&1 || die "Docker is not running — the local Supabase stack needs it."
   ensure_supabase
+  check_api_and_headroom
 
   log "Preflight OK."
+}
+
+# One trivial (cheap-model) request: proves the CLI can actually reach the API
+# before we commit to a long run, and reports how much of the usage window is
+# left — an 8-phase Opus run against a nearly-full 7-day window will spend most
+# of its night waiting.
+check_api_and_headroom() {
+  local probe="$LOG_DIR/preflight-probe.jsonl"
+  if ! (cd /tmp && "$CLAUDE" -p "reply with exactly: ok" \
+    --model claude-haiku-4-5-20251001 \
+    --output-format stream-json --verbose) >"$probe" 2>"$LOG_DIR/preflight-probe.err"; then
+    die "The claude CLI could not complete a trivial request. Check that you are signed in
+(run 'claude' once interactively). Details: $LOG_DIR/preflight-probe.err"
+  fi
+
+  local five seven reset pct
+  five="$(rl_field "$probe" '.unifiedWindows.five_hour.utilization')"
+  seven="$(rl_field "$probe" '.unifiedWindows.seven_day.utilization')"
+  reset="$(rl_field "$probe" '.unifiedWindows.five_hour.resetsAt')"
+
+  if [ -n "$five" ]; then
+    log "  usage:    five-hour window $(printf '%.0f' "$(echo "$five * 100" | bc -l 2>/dev/null || echo 0)")% used$([ -n "$reset" ] && echo ", resets $(date -r "$reset" '+%H:%M' 2>/dev/null)")"
+  fi
+  if [ -n "$seven" ]; then
+    pct="$(printf '%.0f' "$(echo "$seven * 100" | bc -l 2>/dev/null || echo 0)")"
+    log "            seven-day window ${pct}% used"
+    if [ "$pct" -ge 80 ]; then
+      log "  WARNING: the seven-day window is ${pct}% used. This run will spend a lot of time"
+      log "           waiting for resets — consider starting it after the window rolls over."
+    fi
+  fi
 }
 
 ensure_supabase() {
@@ -218,29 +268,123 @@ ensure_supabase() {
 
 # --- running the agent ------------------------------------------------------
 
-# run_agent <prompt> <jsonl-log>; prints the agent's final message on stdout,
-# returns 124 on timeout, otherwise the CLI's exit code.
-run_agent() {
-  local prompt="$1" jsonl="$2"
-  : >"$jsonl"
+# --- usage limits -----------------------------------------------------------
+#
+# The stream carries `rate_limit_event` objects:
+#   {"type":"rate_limit_event","rate_limit_info":{"status":"allowed",
+#    "resetsAt":1788380400,"rateLimitType":"five_hour","unifiedWindows":{...}}}
+# The newest one tells us whether we are blocked and exactly when the window
+# reopens — which is what lets a limit be a pause instead of a failed run.
 
-  "$CLAUDE" -p "$prompt" \
-    --model "$MODEL" \
-    --dangerously-skip-permissions \
-    --output-format stream-json \
-    --verbose \
-    >"$jsonl" 2>&1 &
+rl_field() { # rl_field <jsonl> <jq expression against rate_limit_info>
+  [ -f "$1" ] || return 1
+  jq -r "select(.type == \"rate_limit_event\") | .rate_limit_info | $2 // empty" "$1" 2>/dev/null | tail -n 1
+}
+
+limit_blocked() {
+  local status
+  status="$(rl_field "$1" '.status')"
+  [ -n "$status" ] && [ "$status" != "allowed" ]
+}
+
+# Was this run cut short by a usage limit (rather than finishing or crashing)?
+stopped_by_limit() {
+  local jsonl="$1" err="$2"
+  limit_blocked "$jsonl" && return 0
+  [ -f "$err" ] && grep -qiE 'usage limit|rate limit|limit reached|limit will reset' "$err" && return 0
+  jq -r 'select(.type == "result") | [(.subtype // ""), (.terminal_reason // ""), (.result // "")] | @tsv' \
+    "$jsonl" 2>/dev/null | grep -qiE 'usage limit|rate limit|limit reached|limit will reset'
+}
+
+session_id_of() {
+  jq -r 'select(.session_id != null) | .session_id' "$1" 2>/dev/null | head -n 1
+}
+
+# Sleep until the limit window reopens, logging on stderr so callers can
+# capture stdout. Falls back to fixed polling when no resetsAt is available.
+wait_for_limit_reset() {
+  local jsonl="$1" reset now target
+  reset="$(rl_field "$jsonl" '.resetsAt')"
+  now="$(date '+%s')"
+
+  case "$reset" in
+    '' | *[!0-9]*) target=$((now + LIMIT_POLL)) ;;
+    *)
+      if [ "$reset" -gt "$now" ]; then
+        target=$((reset + 120)) # small buffer past the reset
+      else
+        target=$((now + LIMIT_POLL))
+      fi
+      ;;
+  esac
+
+  logerr "    Usage limit hit. Waiting until $(date -r "$target" '+%Y-%m-%d %H:%M' 2>/dev/null || echo "+$(((target - now) / 60))min"), then resuming this session."
+  while :; do
+    now="$(date '+%s')"
+    [ "$now" -ge "$target" ] && break
+    local left=$(((target - now)))
+    [ "$left" -gt 600 ] && left=600
+    sleep "$left"
+    now="$(date '+%s')"
+    if [ "$now" -lt "$target" ]; then
+      logerr "    ...waiting for the limit to reset ($(((target - now) / 60)) min left)"
+    fi
+  done
+}
+
+# --- running the agent ------------------------------------------------------
+
+# run_agent <prompt> <jsonl> <errlog> [resume-session-id]
+# Prints the agent's final message on stdout, logs on stderr.
+# Returns: the CLI's exit code, or 124 on a genuine hang.
+run_agent() {
+  local prompt="$1" jsonl="$2" err="$3" resume="${4:-}"
+  : >"$jsonl"
+  : >"$err"
+
+  if [ -n "$resume" ]; then
+    "$CLAUDE" --resume "$resume" -p "$prompt" \
+      --model "$MODEL" \
+      --settings "$RUNNER_SETTINGS" \
+      --dangerously-skip-permissions \
+      --output-format stream-json \
+      --verbose \
+      >"$jsonl" 2>"$err" &
+  else
+    "$CLAUDE" -p "$prompt" \
+      --model "$MODEL" \
+      --settings "$RUNNER_SETTINGS" \
+      --dangerously-skip-permissions \
+      --output-format stream-json \
+      --verbose \
+      >"$jsonl" 2>"$err" &
+  fi
   local pid=$!
 
-  local waited=0 timed_out=0
+  local started deadline now timed_out=0
+  started="$(date '+%s')"
+  deadline=$((started + PHASE_TIMEOUT))
+
   while kill -0 "$pid" 2>/dev/null; do
     sleep 15
-    waited=$((waited + 15))
-    if [ $((waited % 300)) -eq 0 ]; then
-      logerr "    ...still working (${waited}s elapsed, $(wc -l <"$jsonl" | tr -d ' ') events)"
+    now="$(date '+%s')"
+    if [ $(((now - started) % 300)) -lt 15 ]; then
+      logerr "    ...still working ($(((now - started) / 60)) min, $(wc -l <"$jsonl" | tr -d ' ') events)"
     fi
-    if [ "$waited" -ge "$PHASE_TIMEOUT" ]; then
-      logerr "    TIMEOUT after ${waited}s — killing the agent."
+    if [ "$now" -ge "$deadline" ]; then
+      # A limit wait is not a hang: if the CLI is sitting on a usage limit
+      # (autoContinueAtUsageLimit), give it until the window reopens.
+      if limit_blocked "$jsonl"; then
+        local reset
+        reset="$(rl_field "$jsonl" '.resetsAt')"
+        case "$reset" in
+          '' | *[!0-9]*) deadline=$((now + LIMIT_POLL)) ;;
+          *) [ "$reset" -gt "$now" ] && deadline=$((reset + 300)) || deadline=$((now + LIMIT_POLL)) ;;
+        esac
+        logerr "    Watchdog: agent is waiting on a usage limit, extending the deadline."
+        continue
+      fi
+      logerr "    TIMEOUT after $(((now - started) / 60)) min with no usage limit in sight — killing the agent."
       kill -TERM "$pid" 2>/dev/null
       sleep 5
       kill -KILL "$pid" 2>/dev/null
@@ -253,9 +397,56 @@ run_agent() {
   local rc=$?
   [ "$timed_out" = "1" ] && return 124
 
-  # The final assistant message lives in the terminal "result" event.
   jq -r 'select(.type == "result") | .result // empty' "$jsonl" 2>/dev/null
   return $rc
+}
+
+# run_agent_until_done <prompt> <log-basename> <continue-prompt>
+# Same contract as run_agent, but a usage limit becomes a wait + --resume of
+# the same session instead of a failure. Returns 126 when the limit keeps
+# stopping us after LIMIT_RESUMES waits.
+run_agent_until_done() {
+  local prompt="$1" base="$2" cont="$3"
+  local jsonl="$LOG_DIR/${base}.jsonl" err="$LOG_DIR/${base}.err"
+  local resumes=0 sid="" out rc
+
+  while :; do
+    if [ "$resumes" -eq 0 ]; then
+      out="$(run_agent "$prompt" "$jsonl" "$err")"
+      rc=$?
+    else
+      jsonl="$LOG_DIR/${base}-resume-${resumes}.jsonl"
+      err="$LOG_DIR/${base}-resume-${resumes}.err"
+      logerr "    Resuming session $sid (wait $resumes/$LIMIT_RESUMES)"
+      out="$(run_agent "$cont" "$jsonl" "$err" "$sid")"
+      rc=$?
+    fi
+
+    [ "$rc" = "124" ] && {
+      printf '%s' "$out"
+      return 124
+    }
+
+    if [ "$rc" != "0" ] && stopped_by_limit "$jsonl" "$err"; then
+      [ -n "$sid" ] || sid="$(session_id_of "$jsonl")"
+      if [ -z "$sid" ]; then
+        logerr "    Usage limit hit but no session id in the transcript — cannot resume."
+        printf '%s' "$out"
+        return 126
+      fi
+      if [ "$resumes" -ge "$LIMIT_RESUMES" ]; then
+        logerr "    Usage limit hit again after $LIMIT_RESUMES waits — giving up on this phase."
+        printf '%s' "$out"
+        return 126
+      fi
+      wait_for_limit_reset "$jsonl"
+      resumes=$((resumes + 1))
+      continue
+    fi
+
+    printf '%s' "$out"
+    return $rc
+  done
 }
 
 last_marker_line() {
@@ -382,6 +573,7 @@ fi
 
 PHASE_TEMPLATE="$(extract_block '<!-- PHASE_PROMPT -->' '<!-- END_PHASE_PROMPT -->')"
 REPAIR_TEMPLATE="$(extract_block '<!-- REPAIR_PROMPT -->' '<!-- END_REPAIR_PROMPT -->')"
+CONTINUE_TEMPLATE="$(extract_block '<!-- CONTINUE_PROMPT -->' '<!-- END_CONTINUE_PROMPT -->')"
 
 log "=== Handy autonomous phase runner ==="
 [ "$DRY_RUN" = "1" ] && log "DRY_RUN=1 — printing the plan, running nothing."
@@ -401,6 +593,8 @@ for n in $PHASES; do
   prompt="${PHASE_TEMPLATE//__PHASE__/$n}"
   prompt="${prompt//__BRANCH__/$branch}"
   prompt="${prompt//__ENV_NOTES__/$MAPS_NOTE}"
+  continue_prompt="${CONTINUE_TEMPLATE//__PHASE__/$n}"
+  continue_prompt="${continue_prompt//__BRANCH__/$branch}"
 
   echo ""
   log "--- Phase $n ($label) --- branch: $branch"
@@ -426,13 +620,18 @@ for n in $PHASES; do
     git checkout -b "$branch" >/dev/null 2>&1 || die "Could not create $branch."
   fi
 
-  log "  Starting the phase agent (timeout ${PHASE_TIMEOUT}s, log: $jsonl)"
-  result="$(run_agent "$prompt" "$jsonl")"
+  log "  Starting the phase agent (hang timeout ${PHASE_TIMEOUT}s, log: $jsonl)"
+  result="$(run_agent_until_done "$prompt" "phase-${n}" "$continue_prompt")"
   rc=$?
   marker="$(last_marker_line "$result")"
 
   if [ "$rc" = "124" ]; then
-    die "Phase $n hit the ${PHASE_TIMEOUT}s timeout. Branch $branch left as-is; transcript: $jsonl"
+    die "Phase $n hung for ${PHASE_TIMEOUT}s with no usage limit pending. Branch $branch left as-is; transcript: $jsonl"
+  fi
+  if [ "$rc" = "126" ]; then
+    die "Phase $n could not get past the claude.ai usage limit after $LIMIT_RESUMES waits.
+Branch $branch keeps the work done so far; transcript: $jsonl
+Re-run when you have headroom — an existing phase branch is picked up, not recreated."
   fi
   log "  Agent finished (exit $rc). Last line: ${marker:-<empty>}"
 
@@ -467,12 +666,14 @@ main is untouched. Branch $branch and the failure log ($gate_log) are left for y
     repair="${repair//__GATE_LOG__/$gate_log}"
     repair="${repair//__ENV_NOTES__/$MAPS_NOTE}"
 
-    repair_jsonl="$LOG_DIR/phase-${n}-repair-${attempt}.jsonl"
-    repair_result="$(run_agent "$repair" "$repair_jsonl")"
+    repair_result="$(run_agent_until_done "$repair" "phase-${n}-repair-${attempt}" "$continue_prompt")"
     rrc=$?
     repair_marker="$(last_marker_line "$repair_result")"
     if [ "$rrc" = "124" ]; then
-      die "Repair attempt $attempt for phase $n timed out. Branch $branch left as-is."
+      die "Repair attempt $attempt for phase $n hung. Branch $branch left as-is."
+    fi
+    if [ "$rrc" = "126" ]; then
+      die "Repair attempt $attempt for phase $n could not get past the usage limit. Branch $branch left as-is."
     fi
     log "  Repair agent finished (exit $rrc). Last line: ${repair_marker:-<empty>}"
     case "$repair_marker" in
