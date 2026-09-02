@@ -27,6 +27,12 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # Unit tests, for logic that is plain functions: the address gazetteer
+      # and the Zod schemas. Anything that depends on RLS is tested in the
+      # database instead, by the `database` job below.
+      - name: Unit tests
+        run: npm run test
+
       # Runs without Supabase env vars on purpose: the app must build
       # without secrets. See lib/supabase/env.ts.
       - name: Build
