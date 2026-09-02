@@ -170,9 +170,7 @@ preflight() {
     if [ "$ALLOW_NO_MAPS_KEY" = "1" ]; then
       log "  WARNING: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is empty. Running anyway (ALLOW_NO_MAPS_KEY=1);"
       log "           map/address features will be built behind a fallback and marked 'ממתין למשתמש'."
-      MAPS_NOTE="
-
-הערה על סביבה: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ריק ב-.env.local, אז אין לך מפתח
+      MAPS_NOTE="הערה על סביבה: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ריק ב-.env.local, אז אין לך מפתח
 Google Maps אמיתי לעבוד מולו. תבנה את האינטגרציה במלואה (Places Autocomplete,
 גיאוקוד, מפה) מאחורי בדיקה של קיום המפתח, עם fallback שמאפשר להזין כתובת ידנית
 וגיאוקוד לפי הזנה ידנית או קואורדינטות ברירת מחדל בפיתוח — כך שה-build והטסטים
@@ -402,7 +400,7 @@ for n in $PHASES; do
   # characters sed would happily mangle.
   prompt="${PHASE_TEMPLATE//__PHASE__/$n}"
   prompt="${prompt//__BRANCH__/$branch}"
-  prompt="${prompt}${MAPS_NOTE}"
+  prompt="${prompt//__ENV_NOTES__/$MAPS_NOTE}"
 
   echo ""
   log "--- Phase $n ($label) --- branch: $branch"
@@ -467,6 +465,7 @@ main is untouched. Branch $branch and the failure log ($gate_log) are left for y
     repair="${REPAIR_TEMPLATE//__PHASE__/$n}"
     repair="${repair//__BRANCH__/$branch}"
     repair="${repair//__GATE_LOG__/$gate_log}"
+    repair="${repair//__ENV_NOTES__/$MAPS_NOTE}"
 
     repair_jsonl="$LOG_DIR/phase-${n}-repair-${attempt}.jsonl"
     repair_result="$(run_agent "$repair" "$repair_jsonl")"
