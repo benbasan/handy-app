@@ -240,8 +240,13 @@ export async function listProApplications(
 
   const { data } = await supabase
     .from("pro_profiles")
+    // `profiles!pro_profiles_user_id_fkey`, not a bare `profiles`: there are
+    // two paths between these tables — the direct foreign key, and a
+    // many-to-many through `saved_pros` — and PostgREST answers an ambiguous
+    // embed with HTTP 300 and no rows at all, which would render this queue
+    // silently empty.
     .select(
-      "user_id, bio, radius_km, service_address_text, verification_status, submitted_at, profiles(full_name, phone), pro_categories(categories(name_he)), verification_documents(id, doc_type, file_url, status)",
+      "user_id, bio, radius_km, service_address_text, verification_status, submitted_at, profiles!pro_profiles_user_id_fkey(full_name, phone), pro_categories(categories(name_he)), verification_documents(id, doc_type, file_url, status)",
     )
     .in("verification_status", [...statuses])
     .order("submitted_at", { ascending: true, nullsFirst: false });
