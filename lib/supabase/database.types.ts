@@ -202,6 +202,39 @@ export type Database = {
           },
         ]
       }
+      job_dismissals: {
+        Row: {
+          created_at: string
+          job_id: string
+          pro_id: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          pro_id: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          pro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_dismissals_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_dismissals_pro_id_fkey"
+            columns: ["pro_id"]
+            isOneToOne: false
+            referencedRelation: "pro_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           address_text: string
@@ -374,42 +407,105 @@ export type Database = {
           },
         ]
       }
+      pro_categories: {
+        Row: {
+          category_id: string
+          created_at: string
+          pro_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          pro_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          pro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pro_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pro_categories_pro_id_fkey"
+            columns: ["pro_id"]
+            isOneToOne: false
+            referencedRelation: "pro_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       pro_profiles: {
         Row: {
           accepting_jobs: boolean
           bio: string | null
           created_at: string
           jobs_completed_count: number
+          onboarding_step: number
+          payment_methods: string[]
+          payout_account_last4: string | null
+          payout_bank_branch: string | null
+          payout_bank_name: string | null
           profile_strength_pct: number
           radius_km: number
           rating_avg: number | null
+          service_address_text: string | null
           service_point: unknown
+          submitted_at: string | null
           user_id: string
           verification_status: string
+          work_days: number[]
+          work_end_time: string
+          work_start_time: string
         }
         Insert: {
           accepting_jobs?: boolean
           bio?: string | null
           created_at?: string
           jobs_completed_count?: number
+          onboarding_step?: number
+          payment_methods?: string[]
+          payout_account_last4?: string | null
+          payout_bank_branch?: string | null
+          payout_bank_name?: string | null
           profile_strength_pct?: number
           radius_km?: number
           rating_avg?: number | null
+          service_address_text?: string | null
           service_point?: unknown
+          submitted_at?: string | null
           user_id: string
           verification_status?: string
+          work_days?: number[]
+          work_end_time?: string
+          work_start_time?: string
         }
         Update: {
           accepting_jobs?: boolean
           bio?: string | null
           created_at?: string
           jobs_completed_count?: number
+          onboarding_step?: number
+          payment_methods?: string[]
+          payout_account_last4?: string | null
+          payout_bank_branch?: string | null
+          payout_bank_name?: string | null
           profile_strength_pct?: number
           radius_km?: number
           rating_avg?: number | null
+          service_address_text?: string | null
           service_point?: unknown
+          submitted_at?: string | null
           user_id?: string
           verification_status?: string
+          work_days?: number[]
+          work_end_time?: string
+          work_start_time?: string
         }
         Relationships: [
           {
@@ -560,7 +656,36 @@ export type Database = {
       is_bidding_pro: { Args: { p_job_id: string }; Returns: boolean }
       is_job_owner: { Args: { p_job_id: string }; Returns: boolean }
       is_verified_pro: { Args: never; Returns: boolean }
-      pro_serves_point: { Args: { p_point: unknown }; Returns: boolean }
+      job_bid_count: { Args: { p_job_id: string }; Returns: number }
+      open_jobs_for_pro: {
+        Args: { p_max_km?: number }
+        Returns: {
+          address_text: string
+          bids_count: number
+          category_id: string
+          category_name_he: string
+          category_slug: string
+          created_at: string
+          description: string
+          distance_km: number
+          id: string
+          latitude: number
+          longitude: number
+          photo_urls: string[]
+          preferred_time: string
+          search_radius_km: number
+          status: string
+        }[]
+      }
+      pro_serves_job: {
+        Args: { p_point: unknown; p_search_radius_km: number }
+        Returns: boolean
+      }
+      set_pro_verification: {
+        Args: { p_pro_id: string; p_status: string }
+        Returns: string
+      }
+      submit_pro_for_approval: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

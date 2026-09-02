@@ -48,6 +48,8 @@ Do not introduce an alternative to any of these without discussing it with the u
 - **RLS on everything.** Every table gets explicit RLS policies (customer sees own jobs, pro sees open jobs + own bids, admin sees all). Never disable RLS to "make it work" — fix the policy instead.
 - **Server-side validation always.** Every write path (server action or route handler) validates input with Zod, even if the client also validates. Never trust client input for price, commission, or status transitions.
 - **Money is server-authoritative.** Prices, the 12% commission calculation, and price-update deltas are computed and enforced server-side, never trusted from the client.
+- **A status a user must not set themselves is a `security definer` function, never a column grant.** `pro_profiles.verification_status` has no UPDATE grant for any client role: a pro submits through `submit_pro_for_approval()` (which re-checks completeness) and an admin decides through `set_pro_verification()` (which checks `is_admin()`). A grant wide enough for the admin would also have let a pro verify themselves.
+- **A job reaches a pro only inside BOTH radii** — `least(pro_profiles.radius_km, jobs.search_radius_km)` — and that is enforced in the RLS policy on `jobs`, not in the feed query, so it holds for anything that ever reads the table.
 - **Price-change rule is enforced in the DB layer, not just the UI:** a job's price can only change through a `price_updates` record that carries a photo URL and moves through `pending → approved/rejected` — there is no direct `UPDATE jobs SET price = ...` path from client code.
 - **RTL: logical properties only.** The UI is Hebrew and the app renders `dir="rtl"`. Always use Tailwind's logical utilities — `ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`/`text-end`, `border-s`/`border-e` — and **never** the physical `ml-`/`mr-`, `pl-`/`pr-`, `left-`/`right-`, `text-left`/`text-right`. A physical utility looks correct in a Latin-language preview and silently breaks the layout in Hebrew.
 - **No secrets in code.** All API keys (Google Maps, Twilio, Supabase service role) go in environment variables, never committed. Maintain `.env.example` with every required key, kept in sync.
@@ -74,6 +76,12 @@ The product is Hebrew-facing, but all code (tables, variables, routes, types) is
 | רדיוס חיפוש | `search_radius_km` | On a job: how far the customer wants it broadcast. Distinct from `radius_km`, which is the pro's own service radius |
 | מתי נוח / מועד | `preferred_time` | Closed vocabulary: `asap` / `today` / `tomorrow` / `this_week` / `flexible`. Hebrew labels live in `lib/validation/jobs.ts` |
 | מדיה של קריאה | `job-media` | Private Storage bucket, laid out as `<customer_id>/<upload_group>/<filename>` |
+| מסמכי אימות | `verification-docs` | Private Storage bucket, laid out as `<pro_id>/<filename>`. No update and no delete policy — a document is replaced by uploading a new one |
+| תחומי התמחות | `pro_categories` | Which trades a pro works in. A feed filter, not a security boundary |
+| לא מתאים לי | `job_dismissals` | A pro hiding one job from their own feed. Visible to nobody else |
+| ימי ושעות עבודה | `work_days` / `work_start_time` / `work_end_time` | `work_days` is 0 = Sunday … 6 = Saturday |
+| שלב בהרשמה | `onboarding_step` | 0–5, highest step completed. `draft` → `pending` happens through `submit_pro_for_approval()` |
+| חשבון לגביית עמלה | `payout_bank_name` / `payout_bank_branch` / `payout_account_last4` | Last four digits only — see section 9 |
 
 Add new rows here whenever a new domain concept appears — do not let this glossary drift out of date.
 
@@ -83,7 +91,9 @@ Add new rows here whenever a new domain concept appears — do not let this glos
 /proxy.ts               → session refresh + anonymous gate (Next 16's name for middleware.ts)
 /app                    → Next.js App Router routes
   /(customer)            → customer-facing routes — AT THE ROOT: /login, /account, /new-request
-  /(pro)                 → pro-facing routes, prefixed: /pro/login, /pro
+  /(pro)                 → pro-facing routes, prefixed. /pro is the PUBLIC
+                            landing page and /pro/login the door; the signed-in
+                            home is /pro/dashboard (see docs/architecture.md)
   /(admin)               → admin dashboard routes, prefixed: /admin/login, /admin
   /(marketing)            → public pages: the landing page at /, plus the SEO/content pages (Phase 8)
   /api                    → route handlers only where a server action doesn't fit (webhooks, etc.)
@@ -156,6 +166,8 @@ adding a column, decide explicitly whether a client may write it.
 - [ ] Exact Twilio account setup / SMS sender ID for Israel
 - [ ] A real Google Maps Platform key. Everything that needs one — Places Autocomplete, the map on the published-job screen, server-side geocoding — is built behind a key check and degrades to manual address entry, so this blocks verification against Google, not development
 - [ ] Push notification approach for "pro is arriving" (browser push vs. none for MVP)
+- [ ] **How a pro's full bank account number is stored**, if it is stored at all. Phase 3 collects bank, branch and the last four digits only (`payout_account_last4`) — enough for the pro to recognise the account on screen. Collecting the rest is real money movement, which section 8 says to decide with the user, in the payments phase
+- [ ] A public bucket for pro profile photos. Phase 3 files the profile photo in the private `verification-docs` bucket as `doc_type = 'profile_photo'`; the customer-facing public profile (Phase 8) is what will need a photo customers can actually load
 
 *(Keep this list current — remove items once decided and folded into section 2, add new ones as they come up.)*
 

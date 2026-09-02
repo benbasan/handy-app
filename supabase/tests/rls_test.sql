@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(44);
+select plan(67);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -246,10 +246,19 @@ select is(
   'a pro cannot see another pro''s earnings'
 );
 
+-- Counted rather than compared to a literal: seed.sql gives this pro an id
+-- card and a licence, and the fixture above adds a third. What matters is that
+-- every row they can see is theirs.
 select is(
-  (select count(*) from public.verification_documents),
-  1::bigint,
-  'a pro sees only their own verification documents'
+  (select count(*) from public.verification_documents where pro_id <> :pro_verified),
+  0::bigint,
+  'a pro sees no other pro''s verification documents'
+);
+
+select cmp_ok(
+  (select count(*) from public.verification_documents where pro_id = :pro_verified),
+  '>', 0::bigint,
+  'a pro does see their own verification documents'
 );
 
 reset role;
@@ -507,6 +516,219 @@ select is(
   'customer',
   'a sign-up asking for role=admin is downgraded to customer'
 );
+
+-- ===========================================================================
+-- 10. Phase 3 — the pro's side
+--
+-- Two new tables (pro_categories, job_dismissals), one new private bucket
+-- (verification-docs), the two status transitions that are functions rather
+-- than column grants, and the rule this phase decided: a job is visible to a
+-- pro only inside BOTH radii.
+-- ===========================================================================
+
+reset role;
+
+-- Two jobs the same distance from the verified pro's service point (~6 km
+-- north of it, well inside his 10 km radius) that differ only in the radius
+-- their customer asked for. Everything else about them is identical, so the
+-- pair isolates exactly one variable.
+insert into public.jobs (
+  id, customer_id, category_id, description, location, address_text,
+  preferred_time, search_radius_km, status
+) values
+  (
+    'd0000000-0000-4000-8000-0000000000f1',
+    :customer_a, 'c0000000-0000-4000-8000-000000000001',
+    'ברז דולף — קריאה שהלקוח ביקש לשדר עד 3 ק״מ בלבד.',
+    extensions.st_point(34.7818, 32.1393)::extensions.geography,
+    'רחוב רחוק 1, תל אביב', 'flexible', 3, 'open'
+  ),
+  (
+    'd0000000-0000-4000-8000-0000000000f2',
+    :customer_a, 'c0000000-0000-4000-8000-000000000001',
+    'אותה קריאה בדיוק, אבל הלקוח ביקש לשדר עד 10 ק״מ.',
+    extensions.st_point(34.7818, 32.1393)::extensions.geography,
+    'רחוב רחוק 2, תל אביב', 'flexible', 10, 'open'
+  );
+
+insert into storage.objects (bucket_id, name, owner, metadata) values
+  ('verification-docs', 'a0000000-0000-4000-8000-000000000003/id-card.jpg', :pro_verified, '{}'),
+  ('verification-docs', 'a0000000-0000-4000-8000-000000000004/id-card.jpg', :pro_pending, '{}');
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select cmp_ok(
+  (select count(*) from public.pro_categories),
+  '>', 0::bigint,
+  'a pro reads their own תחומי התמחות'
+);
+
+select is(
+  (select count(*) from public.pro_categories where pro_id <> :pro_verified),
+  0::bigint,
+  'a pro cannot see another pro''s תחומי התמחות'
+);
+
+select throws_ok(
+  $$ insert into public.pro_categories (pro_id, category_id)
+     values ('a0000000-0000-4000-8000-000000000004',
+             'c0000000-0000-4000-8000-000000000003') $$,
+  '42501',
+  null,
+  'a pro cannot add a specialisation to another pro''s profile'
+);
+
+select throws_ok(
+  $$ update public.pro_profiles set verification_status = 'verified'
+      where user_id = 'a0000000-0000-4000-8000-000000000003' $$,
+  '42501',
+  null,
+  'a pro cannot verify themselves — there is no column grant on verification_status'
+);
+
+select throws_ok(
+  $$ select public.set_pro_verification(
+       'a0000000-0000-4000-8000-000000000003', 'verified') $$,
+  '42501',
+  null,
+  'and cannot reach the same column through the admin function either'
+);
+
+select throws_ok(
+  $$ select public.submit_pro_for_approval() $$,
+  '22023',
+  null,
+  'an already-verified pro cannot re-submit themselves into the approval queue'
+);
+
+-- The both-radii rule, which is the decision this phase had to make.
+select is(
+  (select count(*) from public.jobs where id = 'd0000000-0000-4000-8000-0000000000f1'),
+  0::bigint,
+  'a job 6 km away is invisible to a pro with a 10 km radius when its customer asked for 3 km'
+);
+
+select is(
+  (select count(*) from public.jobs where id = 'd0000000-0000-4000-8000-0000000000f2'),
+  1::bigint,
+  'the identical job is visible once its customer asks for 10 km — only search_radius_km differed'
+);
+
+-- The feed function, which runs as the caller and therefore inherits all of
+-- the above rather than re-deciding it.
+select is(
+  (select count(*) from public.open_jobs_for_pro() where id = :job_a),
+  1::bigint,
+  'the feed shows an open job in radius and in one of the pro''s trades'
+);
+
+select is(
+  (select count(*) from public.open_jobs_for_pro() where id = :job_b),
+  0::bigint,
+  'the feed hides an in-radius job in a trade the pro did not pick'
+);
+
+select lives_ok(
+  $$ insert into public.job_dismissals (pro_id, job_id)
+     values ('a0000000-0000-4000-8000-000000000003',
+             'd0000000-0000-4000-8000-000000000001') $$,
+  'a pro can dismiss a job from their own feed'
+);
+
+select is(
+  (select count(*) from public.open_jobs_for_pro() where id = :job_a),
+  0::bigint,
+  'a dismissed job leaves that pro''s feed'
+);
+
+select throws_ok(
+  $$ insert into public.job_dismissals (pro_id, job_id)
+     values ('a0000000-0000-4000-8000-000000000004',
+             'd0000000-0000-4000-8000-000000000002') $$,
+  '42501',
+  null,
+  'a pro cannot dismiss a job on another pro''s behalf'
+);
+
+select is(
+  (select count(*) from storage.objects
+    where name = 'a0000000-0000-4000-8000-000000000003/id-card.jpg'),
+  1::bigint,
+  'a pro reads their own verification document out of the private bucket'
+);
+
+select is(
+  (select count(*) from storage.objects
+    where name = 'a0000000-0000-4000-8000-000000000004/id-card.jpg'),
+  0::bigint,
+  'and cannot read another pro''s — unlike job-media there is no shared-visibility path here at all'
+);
+
+reset role;
+
+select pg_temp.act_as(:pro_pending);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.open_jobs_for_pro()),
+  0::bigint,
+  'a pro still waiting for approval has an empty feed — the verified gate is in the policy, not the query'
+);
+
+select is(
+  (select count(*) from public.job_dismissals),
+  0::bigint,
+  'a pro cannot see which jobs another pro dismissed'
+);
+
+reset role;
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name, owner, metadata)
+     values ('verification-docs',
+             'a0000000-0000-4000-8000-000000000001/id.jpg',
+             'a0000000-0000-4000-8000-000000000001', '{}') $$,
+  '42501',
+  null,
+  'a customer cannot upload to verification-docs at all — that bucket belongs to pros'
+);
+
+reset role;
+
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select cmp_ok(
+  (select count(*) from storage.objects where bucket_id = 'verification-docs'),
+  '>=', 2::bigint,
+  'an admin reads every verification document — that is the whole point of the approvals queue'
+);
+
+select is(
+  public.set_pro_verification('a0000000-0000-4000-8000-000000000004', 'verified'),
+  'verified',
+  'an admin approves a pending pro'
+);
+
+select is(
+  (select verification_status from public.pro_profiles
+    where user_id = 'a0000000-0000-4000-8000-000000000004'),
+  'verified',
+  'and the change actually landed on the row'
+);
+
+select is(
+  (select count(*) from public.verification_documents
+    where pro_id = 'a0000000-0000-4000-8000-000000000004' and status = 'pending'),
+  0::bigint,
+  'approving the pro clears their documents out of the unreviewed queue'
+);
+
+reset role;
 
 select * from finish();
 

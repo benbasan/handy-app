@@ -19,7 +19,7 @@ import {
   INPUT_CLASS,
   SectionCard,
 } from "@/components/ui/primitives";
-import { AddressField, type AddressValue } from "./AddressField";
+import { AddressField, type AddressValue } from "@/components/ui/AddressField";
 import { EMPTY_MEDIA, MediaFields, type MediaValue } from "./MediaFields";
 
 /**
