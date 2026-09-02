@@ -111,3 +111,26 @@ PHASE___PHASE___BLOCKED: <סיבה קצרה>
 בשורה האחרונה ממש, ושום דבר אחריה: `REPAIR_DONE` או
 `REPAIR_BLOCKED: <סיבה קצרה>`.
 <!-- END_REPAIR_PROMPT -->
+
+---
+
+הפרומט הבא נשלח עם `--resume` לאותו session, אחרי שהריצה נעצרה על מגבלת שימוש
+והסקריפט חיכה שהחלון ייפתח. הסוכן ממשיך עם כל ההקשר שלו — זה לא session חדש.
+
+<!-- CONTINUE_PROMPT -->
+הריצה שלך נעצרה באמצע בגלל מגבלת שימוש של claude.ai, והמגבלה התאפסה. תמשיך
+מאיפה שנעצרת.
+
+קודם כל תבדוק מה המצב בפועל לפני שאתה כותב קוד: `git status`, `git log --oneline`
+מול main, ומה כבר מומש בקוד. יכול להיות שפעולה נקטעה באמצע — תסיים אותה נכון
+במקום להתחיל אותה מחדש או לשכפל קוד קיים.
+
+כל הכללים מההנחיה המקורית עדיין בתוקף: אתה על branch `__BRANCH__` בלבד, אל תמזג
+ואל תעשה push, commits קטנים לפי Conventional Commits, ולפני סיום תריץ בעצמך
+`npm run lint`, `npm run typecheck`, `npm run build`, `npm run db:reset`,
+`npm run db:test` ותוודא שהם עוברים, עם עץ עבודה נקי.
+
+בשורה האחרונה ממש, ושום דבר אחריה: `PHASE___PHASE___DONE` או
+`PHASE___PHASE___BLOCKED: <סיבה קצרה>` — ואם אתה באמצע ריצת תיקון, `REPAIR_DONE`
+או `REPAIR_BLOCKED: <סיבה קצרה>`.
+<!-- END_CONTINUE_PROMPT -->
