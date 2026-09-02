@@ -210,7 +210,9 @@ export type Database = {
           customer_id: string
           description: string
           id: string
+          latitude: number | null
           location: unknown
+          longitude: number | null
           photo_urls: string[]
           preferred_time: string | null
           search_radius_km: number
@@ -226,7 +228,9 @@ export type Database = {
           customer_id: string
           description: string
           id?: string
+          latitude?: number | null
           location: unknown
+          longitude?: number | null
           photo_urls?: string[]
           preferred_time?: string | null
           search_radius_km?: number
@@ -242,7 +246,9 @@ export type Database = {
           customer_id?: string
           description?: string
           id?: string
+          latitude?: number | null
           location?: unknown
+          longitude?: number | null
           photo_urls?: string[]
           preferred_time?: string | null
           search_radius_km?: number
