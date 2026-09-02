@@ -37,6 +37,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# autonomous phase runner (run-all-phases.sh) — transcripts and gate logs
+.runner-logs/
+run-all-phases.log
+logs/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
