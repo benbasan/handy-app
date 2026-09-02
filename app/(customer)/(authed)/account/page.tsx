@@ -38,8 +38,13 @@ export default async function CustomerAccountPage() {
             שלום{user.fullName ? ` ${user.fullName}` : ""}
           </h1>
           <p className="mt-2 text-muted">
-            {jobs.length} קריאות · {savedProsCount ?? 0} בעלי מקצוע שמורים · חבר
-            Handy מ-{memberSince}
+            {countLabel(jobs.length, "קריאה אחת", "קריאות")} ·{" "}
+            {countLabel(
+              savedProsCount ?? 0,
+              "בעל מקצוע שמור אחד",
+              "בעלי מקצוע שמורים",
+            )}{" "}
+            · חבר Handy מ-{memberSince}
           </p>
         </header>
 
@@ -48,7 +53,7 @@ export default async function CustomerAccountPage() {
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <Card className="p-0">
           <h2 className="border-b border-line p-5 text-lg font-bold text-ink sm:p-6">
             הקריאות שלי
@@ -86,6 +91,11 @@ export default async function CustomerAccountPage() {
       </div>
     </div>
   );
+}
+
+/** Hebrew has a singular form for one; "1 קריאות" reads as a bug. */
+function countLabel(count: number, one: string, many: string): string {
+  return count === 1 ? one : `${count} ${many}`;
 }
 
 const STATUS_LABEL: Record<

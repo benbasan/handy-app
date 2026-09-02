@@ -131,24 +131,15 @@ export function MediaFields({
 
   return (
     <div className="space-y-3">
+      {/* Voice, video, photo — the order the design puts them in, which in RTL
+          means the photo tile sits on the trailing edge as it does there. */}
       <div className="grid gap-3 sm:grid-cols-3">
-        {/* Photo */}
-        <FilePickerTile
-          kind="photo"
-          title="גררו תמונה לכאן"
-          subtitle={`photo of issue · עד ${MAX_PHOTOS}`}
-          multiple
-          disabled={photosFull || busy !== null}
-          busy={busy === "photo"}
-          onFiles={(files) =>
-            files
-              .slice(0, MAX_PHOTOS - value.photoPaths.length)
-              .forEach((file) => void accept(file, "photo"))
-          }
-          onDrop={drop("photo", MAX_PHOTOS - value.photoPaths.length)}
+        <VoiceNoteTile
+          disabled={value.voiceNotePath !== null || busy !== null}
+          busy={busy === "voice"}
+          onFile={(file) => void accept(file, "voice")}
         />
 
-        {/* Video */}
         <FilePickerTile
           kind="video"
           title="העלו סרטון קצר"
@@ -159,11 +150,21 @@ export function MediaFields({
           onDrop={drop("video", 1)}
         />
 
-        {/* Voice note */}
-        <VoiceNoteTile
-          disabled={value.voiceNotePath !== null || busy !== null}
-          busy={busy === "voice"}
-          onFile={(file) => void accept(file, "voice")}
+        <FilePickerTile
+          kind="photo"
+          title="גררו תמונה לכאן"
+          // Kept entirely Latin: a Hebrew "עד 5" inside a dir="ltr" run
+          // reorders on screen to "5 עד".
+          subtitle={`photo of issue · up to ${MAX_PHOTOS}`}
+          multiple
+          disabled={photosFull || busy !== null}
+          busy={busy === "photo"}
+          onFiles={(files) =>
+            files
+              .slice(0, MAX_PHOTOS - value.photoPaths.length)
+              .forEach((file) => void accept(file, "photo"))
+          }
+          onDrop={drop("photo", MAX_PHOTOS - value.photoPaths.length)}
         />
       </div>
 
