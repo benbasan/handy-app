@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/ui/AppShell";
 import { requireRole } from "@/lib/supabase/session";
 
 /**
@@ -8,7 +9,7 @@ import { requireRole } from "@/lib/supabase/session";
 export default async function CustomerAuthedLayout({
   children,
 }: LayoutProps<"/">) {
-  await requireRole("customer");
+  const user = await requireRole("customer");
 
-  return <>{children}</>;
+  return <AppShell user={user}>{children}</AppShell>;
 }

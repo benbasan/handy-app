@@ -37,6 +37,9 @@ export const USER_ROLE_LABEL: Record<UserRole, string> = {
 
 const PROTECTED_AREAS: ReadonlyArray<{ prefix: string; login: string }> = [
   { prefix: ROLE_HOME.customer, login: ROLE_LOGIN.customer },
+  // Posting a job sits outside /account but is just as signed-in: a customer
+  // registers on the way to their first job (product-spec.md section 2).
+  { prefix: "/new-request", login: ROLE_LOGIN.customer },
   { prefix: ROLE_HOME.pro, login: ROLE_LOGIN.pro },
   { prefix: ROLE_HOME.admin, login: ROLE_LOGIN.admin },
 ];
