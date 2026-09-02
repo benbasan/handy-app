@@ -195,3 +195,147 @@ insert into public.verification_documents (pro_id, doc_type, file_url, status, r
    'a0000000-0000-4000-8000-000000000003/license.pdf', 'approved', now() - interval '29 days'),
   ('a0000000-0000-4000-8000-000000000004', 'id_card',
    'a0000000-0000-4000-8000-000000000004/id-card.jpg', 'pending', null);
+
+-- ---------------------------------------------------------------------------
+-- Phase 4 — bids and a conversation
+--
+-- design/screens/customer-2.2-compare-bids.png shows three offers side by
+-- side, which needs three verified pros who actually cover the same address.
+-- Two more join the seed for that, both real coordinates a few hundred metres
+-- from job A. Their names are the ones on the design's own cards.
+--
+-- The fourth bid is deliberately already lapsed: it is what gives the
+-- "נדחו / פגו" tab on design/screens/pro-2.4-my-bids.png something real, and
+-- what proves business rule 6 has a visible effect without waiting 45 minutes.
+-- ---------------------------------------------------------------------------
+
+insert into auth.users (
+  instance_id, id, aud, role, phone, phone_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+)
+select
+  '00000000-0000-0000-0000-000000000000',
+  u.id, 'authenticated', 'authenticated', u.phone, now(),
+  '{"provider":"phone","providers":["phone"]}'::jsonb,
+  jsonb_build_object('role', 'pro', 'full_name', u.full_name),
+  now(), now(), '', '', '', ''
+from (
+  values
+    ('a0000000-0000-4000-8000-000000000006'::uuid, '972500000006', 'מוסא חדד'),
+    ('a0000000-0000-4000-8000-000000000007'::uuid, '972500000007', 'אלכס פרידמן')
+) as u (id, phone, full_name);
+
+insert into auth.identities (
+  id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
+)
+select
+  gen_random_uuid(), u.id, u.id::text, 'phone',
+  jsonb_build_object('sub', u.id::text, 'phone', u.phone),
+  now(), now(), now()
+from auth.users u
+where u.id in (
+  'a0000000-0000-4000-8000-000000000006',
+  'a0000000-0000-4000-8000-000000000007'
+);
+
+update public.pro_profiles
+   set verification_status = 'verified',
+       bio = 'אינסטלטור, שירות גם בשעות הערב.',
+       radius_km = 8,
+       service_point = extensions.st_point(34.7830, 32.0790)::extensions.geography,
+       service_address_text = 'רחוב שינקין 20, תל אביב',
+       rating_avg = 4.7,
+       jobs_completed_count = 98,
+       profile_strength_pct = 80,
+       onboarding_step = 5,
+       submitted_at = now() - interval '60 days',
+       payment_methods = array['cash', 'bit'],
+       payout_bank_name = 'בנק דיסקונט',
+       payout_bank_branch = '060',
+       payout_account_last4 = '1122'
+ where user_id = 'a0000000-0000-4000-8000-000000000006';
+
+update public.pro_profiles
+   set verification_status = 'verified',
+       bio = 'אינסטלציה וניקוז, 9 שנות ניסיון.',
+       radius_km = 6,
+       service_point = extensions.st_point(34.7770, 32.0830)::extensions.geography,
+       service_address_text = 'רחוב בוגרשוב 5, תל אביב',
+       rating_avg = 4.6,
+       jobs_completed_count = 156,
+       profile_strength_pct = 75,
+       onboarding_step = 5,
+       submitted_at = now() - interval '45 days',
+       payment_methods = array['cash', 'paybox', 'transfer'],
+       payout_bank_name = 'בנק מזרחי',
+       payout_bank_branch = '415',
+       payout_account_last4 = '8801'
+ where user_id = 'a0000000-0000-4000-8000-000000000007';
+
+insert into public.pro_categories (pro_id, category_id) values
+  ('a0000000-0000-4000-8000-000000000006', 'c0000000-0000-4000-8000-000000000001'),
+  ('a0000000-0000-4000-8000-000000000006', 'c0000000-0000-4000-8000-000000000002'),
+  ('a0000000-0000-4000-8000-000000000007', 'c0000000-0000-4000-8000-000000000001');
+
+insert into public.verification_documents (pro_id, doc_type, file_url, status, reviewed_at) values
+  ('a0000000-0000-4000-8000-000000000006', 'id_card',
+   'a0000000-0000-4000-8000-000000000006/id-card.jpg', 'approved', now() - interval '59 days'),
+  ('a0000000-0000-4000-8000-000000000007', 'id_card',
+   'a0000000-0000-4000-8000-000000000007/id-card.jpg', 'approved', now() - interval '44 days');
+
+-- expires_at is written explicitly here only because the seed is not a client:
+-- through PostgREST the column has no INSERT grant at all, so a real bid can
+-- only ever take the 45-minute default.
+insert into public.bids (
+  id, job_id, pro_id, price, eta_minutes, note, status, expires_at, created_at
+) values
+  (
+    'b0000000-0000-4000-8000-000000000001',
+    'd0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000003',
+    380, 25, 'אחריות שנה על העבודה. מביא חלקים מקוריים.',
+    'pending', now() + interval '40 minutes', now() - interval '5 minutes'
+  ),
+  (
+    'b0000000-0000-4000-8000-000000000002',
+    'd0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000006',
+    340, 40, 'זמין גם בשעות הערב, ללא תוספת מחיר.',
+    'pending', now() + interval '35 minutes', now() - interval '10 minutes'
+  ),
+  (
+    'b0000000-0000-4000-8000-000000000003',
+    'd0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000007',
+    300, 55, 'מגיע מחר בבוקר עם כל הציוד.',
+    'pending', now() + interval '25 minutes', now() - interval '20 minutes'
+  ),
+  (
+    'b0000000-0000-4000-8000-000000000004',
+    'd0000000-0000-4000-8000-000000000002',
+    'a0000000-0000-4000-8000-000000000006',
+    420, 60, 'אפשר גם היום אחרי 17:00.',
+    'expired', now() - interval '2 hours', now() - interval '3 hours'
+  );
+
+-- One conversation, so the chat screens have something other than an empty
+-- state on a fresh reset. A thread is (job, pro): this one is customer A with
+-- the pro who bid 380, and no other pro on the job can read a word of it.
+insert into public.messages (job_id, pro_id, sender_id, body, created_at, read_at) values
+  (
+    'd0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000003',
+    'a0000000-0000-4000-8000-000000000003',
+    'שלום דנה, ראיתי את התמונה. המחיר כולל את הביקור ואת החלקים.',
+    now() - interval '4 minutes',
+    now() - interval '3 minutes'
+  ),
+  (
+    'd0000000-0000-4000-8000-000000000001',
+    'a0000000-0000-4000-8000-000000000003',
+    'a0000000-0000-4000-8000-000000000001',
+    'מעולה, אני בבית עד 18:00.',
+    now() - interval '3 minutes',
+    null
+  );
