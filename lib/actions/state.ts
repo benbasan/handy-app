@@ -51,3 +51,28 @@ export type SendMessageState = {
 };
 
 export const EMPTY_SEND_MESSAGE_STATE: SendMessageState = {};
+
+export type PriceUpdateFormState = {
+  error?: string;
+  /** Keyed by the schema's field name, so a form can sit the message under the right control. */
+  fieldErrors?: Record<string, string>;
+  /** Set once the request is with the customer — the form collapses on it. */
+  sent?: boolean;
+};
+
+export const EMPTY_PRICE_UPDATE_FORM_STATE: PriceUpdateFormState = {};
+
+export type PriceDecisionState = {
+  error?: string;
+  /** 'approved' | 'rejected', so the card can confirm what the customer chose. */
+  decision?: string;
+};
+
+export const EMPTY_PRICE_DECISION_STATE: PriceDecisionState = {};
+
+export type JobProgressState = {
+  error?: string;
+  status?: string;
+};
+
+export const EMPTY_JOB_PROGRESS_STATE: JobProgressState = {};

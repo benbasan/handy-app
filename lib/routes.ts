@@ -38,8 +38,16 @@ export const PRO_ROUTES = {
   offers: "/pro/offers",
   messages: "/pro/messages",
   settings: "/pro/settings",
+  /** design/screens/pro-3.2-my-jobs.png is captured at handy.co.il/pro/my-jobs. */
+  myJobs: "/pro/my-jobs",
   /** design/screens/pro-2.3-submit-bid.png is captured at /pro/jobs/<id>/quote. */
   quote: (jobId: string) => `/pro/jobs/${jobId}/quote`,
+  /**
+   * The job the pro won, while they are doing it — the price-update card, the
+   * route map and the progress bar. The design captures it at
+   * handy.co.il/pro/jobs/8842, one segment under the feed it came from.
+   */
+  manageJob: (jobId: string) => `/pro/jobs/${jobId}`,
 } as const;
 
 /**
@@ -53,6 +61,12 @@ export const CUSTOMER_ROUTES = {
   published: (jobId: string) => `/new-request/published/${jobId}`,
   offers: (jobId: string) => `/requests/${jobId}/offers`,
   chat: (jobId: string) => `/requests/${jobId}/chat`,
+  /**
+   * Live tracking, once a pro has been chosen — captured at
+   * handy.co.il/request/H-24817/track in
+   * design/screens/customer-3.1-tracking-chat.png.
+   */
+  track: (jobId: string) => `/requests/${jobId}/track`,
 } as const;
 
 export const ADMIN_ROUTES = {
@@ -85,6 +99,7 @@ const PROTECTED_AREAS: ReadonlyArray<{ prefix: string; login: string }> = [
   { prefix: PRO_ROUTES.join, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.onboarding, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.jobs, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.myJobs, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.offers, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.messages, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.settings, login: ROLE_LOGIN.pro },
