@@ -37,7 +37,7 @@ Do not introduce an alternative to any of these without discussing it with the u
 | Package manager | npm (unless the user says otherwise) | |
 | Validation | **Zod** | Every server-side write path. Schemas in `lib/validation`, one file per entity |
 | Testing (DB) | **pgTAP** via `supabase test db` (`npm run db:test`) | RLS policies are tested in the database, where they run — not mocked in JS. Added in Phase 1 |
-| Testing (app) | Vitest (unit, `npm run test`) + Playwright (critical E2E flows only, Phase 9) | Vitest arrived in Phase 2, the first phase with logic that needed it: the no-key geocoding fallback and the Zod schemas. Playwright still does not exist. Anything that depends on RLS is tested in pgTAP, not mocked in JS |
+| Testing (app) | Vitest (unit, `npm run test`) + Playwright (critical E2E flows only, `npm run test:e2e`) | Vitest arrived in Phase 2, the first phase with logic that needed it: the no-key geocoding fallback and the Zod schemas. Playwright arrived in Phase 9 and drives a **production build** against the real local stack — no mocks, because RLS, the `security definer` functions and Storage are the whole point of a browser test. Anything that depends on RLS is tested in pgTAP, not mocked in JS |
 | Language | TypeScript everywhere, `strict: true` | No `any` without a comment explaining why |
 
 **Mobile strategy:** web-only, fully responsive (mobile-web + desktop breakpoints), matching the two viewport variants already designed in Claude Design. No native app in this phase of the roadmap.
