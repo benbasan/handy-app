@@ -5,7 +5,7 @@ import { ReviewReplyForm } from "@/components/pro/ReviewReplyForm";
 import { BUTTON_QUIET } from "@/components/ui/primitives";
 import { MARKETING_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { getMyProProfile } from "@/lib/supabase/pros";
-import { listMyReviews, proMediaUrl } from "@/lib/supabase/publicProfiles";
+import { listMyReviews } from "@/lib/supabase/publicProfiles";
 import { requireRole } from "@/lib/supabase/session";
 import { profileStrength } from "@/lib/validation/publicProfile";
 
@@ -110,7 +110,6 @@ export default async function ProPublicProfilePage() {
               avatarPath: profile.avatarPath,
               galleryPaths: profile.galleryPaths,
             }}
-            mediaUrl={(path) => proMediaUrl(path) ?? ""}
           />
 
           <section className="mt-6 rounded-2xl border border-line bg-surface">

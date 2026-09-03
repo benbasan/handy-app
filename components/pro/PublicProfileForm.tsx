@@ -10,6 +10,7 @@ import {
 import { savePublicProfile } from "@/lib/actions/publicProfile";
 import { EMPTY_PRO_FORM_STATE, type ProFormState } from "@/lib/actions/state";
 import { SITE_URL } from "@/lib/seo";
+import { proMediaUrl } from "@/lib/supabase/buckets";
 import {
   MAX_PRO_MEDIA_BYTES,
   PRO_MEDIA_ACCEPT,
@@ -35,7 +36,6 @@ import {
 export function PublicProfileForm({
   userId,
   initial,
-  mediaUrl,
 }: {
   userId: string;
   initial: {
@@ -45,8 +45,6 @@ export function PublicProfileForm({
     avatarPath: string | null;
     galleryPaths: string[];
   };
-  /** path → public URL. The bucket is public, so this is a plain join. */
-  mediaUrl: (path: string) => string;
 }) {
   const [state, action, pending] = useActionState<ProFormState, FormData>(
     savePublicProfile,
@@ -95,7 +93,7 @@ export function PublicProfileForm({
                need a remotePattern for a host known only at runtime. */
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={mediaUrl(avatarPath)}
+              src={proMediaUrl(avatarPath) ?? ""}
               alt=""
               className="size-24 rounded-2xl object-cover"
             />
@@ -217,7 +215,7 @@ export function PublicProfileForm({
             <li key={path} className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element -- see the note on the portrait above. */}
               <img
-                src={mediaUrl(path)}
+                src={proMediaUrl(path) ?? ""}
                 alt=""
                 className="aspect-square w-full rounded-xl object-cover"
               />

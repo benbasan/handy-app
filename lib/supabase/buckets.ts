@@ -1,5 +1,7 @@
+import { getSupabaseEnv } from "./env";
+
 /**
- * Storage bucket names, in a module that pulls in nothing else.
+ * Storage bucket names, in a module that pulls in nothing but the environment.
  *
  * They are needed on both sides — the browser uploads, the server signs — and
  * putting them in a data-access module would drag `next/headers` into the
@@ -30,3 +32,20 @@ export const PRICE_UPDATE_PHOTOS_BUCKET = "price-update-photos";
  * documents stay in the private `verification-docs` bucket.
  */
 export const PRO_MEDIA_BUCKET = "pro-media";
+
+/**
+ * The public URL of an object in `pro-media`. A plain string join, because the
+ * bucket is public — the one public bucket in the project. A customer
+ * comparing pros before they have an account cannot be handed a signed URL:
+ * signing runs under a reader's RLS, and there is no reader.
+ *
+ * It lives here rather than beside the rest of the public read layer so that a
+ * Client Component can call it: lib/supabase/publicProfiles.ts reaches for
+ * `next/headers`, and this needs nothing but `NEXT_PUBLIC_SUPABASE_URL`.
+ */
+export function proMediaUrl(path: string | null): string | null {
+  if (!path) return null;
+  const env = getSupabaseEnv();
+  if (!env) return null;
+  return `${env.url}/storage/v1/object/public/${PRO_MEDIA_BUCKET}/${path}`;
+}

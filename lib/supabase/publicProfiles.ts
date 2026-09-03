@@ -1,7 +1,8 @@
 import { cache } from "react";
-import { PRO_MEDIA_BUCKET } from "./buckets";
-import { getSupabaseEnv } from "./env";
+import { proMediaUrl } from "./buckets";
 import { createClient } from "./server";
+
+export { proMediaUrl } from "./buckets";
 
 /**
  * Read side of the public half of the product (Phase 8) — the pages an
@@ -17,19 +18,6 @@ import { createClient } from "./server";
  * Nothing here needs a session. A signed-out visitor's client carries the anon
  * key and each function is granted to `anon` explicitly.
  */
-
-/**
- * The public URL of an object in `pro-media`. The bucket is public — the one
- * public bucket in the project — because a customer comparing pros before they
- * have an account cannot be handed a signed URL: signing runs under a reader's
- * RLS, and there is no reader.
- */
-export function proMediaUrl(path: string | null): string | null {
-  if (!path) return null;
-  const env = getSupabaseEnv();
-  if (!env) return null;
-  return `${env.url}/storage/v1/object/public/${PRO_MEDIA_BUCKET}/${path}`;
-}
 
 export type PublicProProfile = {
   slug: string;
