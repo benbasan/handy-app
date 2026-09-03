@@ -13,7 +13,7 @@
 | מפות/גיאולוקיישן | Google Maps Platform (Maps JS API, Geocoding, Places Autocomplete, Distance Matrix) | כיסוי טוב בישראל, תיעוד מלא, ספריות React מוכנות |
 | מיקום גיאוגרפי ב-DB | **PostGIS** (extension של Postgres, זמין ב-Supabase) | שאילתות "בעלי מקצוע ברדיוס X ק״מ מנקודה" צריכות אינדקס גיאוגרפי אמיתי, לא חישוב מרחק ב-JS |
 | הרשמה/כניסה | Supabase Auth — Phone + OTP, ספק SMS: **Twilio** (מוגדר בתוך Supabase Auth) | Supabase תומכת ב-Twilio באופן מובנה; אין צורך לבנות זרימת OTP בעצמנו |
-| PDF (קבלות) | להחליט בשלב התשלומים/קבלות (ראו `CLAUDE.md` סעיף 9) | |
+| PDF (קבלות) | **`@react-pdf/renderer`** + פונט Heebo (TTF) שמאוחסן בריפו ב-`assets/fonts/` | הוכרע ב-Phase 6. קבלה בעברית היא בעיית **bidi**, לא בעיית פונט: ל-PDF אין מנוע דו-כיווניות משלו, ולכן כותב קל יותר (pdf-lib, pdfkit) היה מחייב היפוך ידני של רצפים עבריים. הספרייה הזו פורסת טקסט דרך textkit שעושה את זה, ומקבלת TTF — מה שעברית דורשת |
 | Hosting | Vercel (Next.js) + Supabase Cloud | |
 | בדיקות | pgTAP לכל מה שתלוי ב-RLS · Vitest (יחידה, הוקם ב-Phase 2) · Playwright (E2E לזרימות קריטיות, מ-Phase 9) | `npm run db:test` / `npm run test`. הכלל: מדיניות RLS נבדקת במסד הנתונים שבו היא רצה, לא במוק ב-JS |
 
@@ -53,6 +53,10 @@ Next **16.3.4** · React **19.2.8** · Tailwind **4.3.3** · TypeScript 5 · `@s
   /validation                  סכמות Zod, קובץ אחד לכל ישות
   /actions                     Server Actions, מקובצים לפי ישות (jobs, bids, price-updates...)
   /maps                        עטיפות ל-Google Maps API (גיאוקוד, חישוב מרחק)
+  /pdf                         מסמך הקבלה (Phase 6). server-only, נגיש רק מה-Route Handler
+/assets/fonts                  קובצי ה-TTF של Heebo שה-PDF מטמיע. לא ב-`public/`:
+                               הם לא מוגשים לדפדפן לעולם (האפליקציה מקבלת Heebo
+                               מ-next/font/google) ונקראים ב-`fs` בזמן בקשה
 /supabase
   /migrations                  קבצי SQL — **מקור האמת היחיד** לסכימת ה-DB
   /tests                       pgTAP — טענות על מדיניות RLS
@@ -284,6 +288,28 @@ erDiagram
 
 **חוק השקיפות נאכף בשלוש שכבות, ובכוונה.** התמונה: כפתור השליחה בטופס נשאר מושבת עד שקובץ נחת ב-Storage; `requestPriceUpdateSchema` דורש נתיב בתיקייה של בעל המקצוע הזה ולקריאה הזו; ו-`price_updates.photo_url` הוא `not null` עם `check` על מחרוזת לא ריקה מאז Phase 1. כלל כל כך מרכזי לא נשען על תכונת `disabled`.
 
+### מה נוסף ב-Phase 6 (`supabase/migrations/20260906120000_job_completion_commission_receipt.sql`)
+
+| שינוי | למה |
+|---|---|
+| **`complete_job(job_id, payment_method)`** — `security definer` | סגירת המעגל הכלכלי בהצהרה אחת, כי כל חלק בה חייב להיות נכון באותו רגע: הקריאה עוברת ל-`completed`, נכתבת שורת `commission_charges`, ומונה העבודות של בעל המקצוע זז. ל-`commission_charges` מעולם לא היה grant של INSERT לאף תפקיד קליינט — Phase 1 כתבה בעצמה שהשורה תיכתב ב-Phase 6 בקוד מורשה. `base_price` נקרא מההצעה שנבחרה, `total_price` מ-`job_effective_price()`, וה-12% מחושב מהם. הפונקציה אידמפוטנטית: זו הפעולה האחרונה של בעל המקצוע בעבודה, בדרך כלל מהטלפון, ובקשה שנשלחה פעמיים אסור שתחייב פעמיים |
+| **סגירה מכריעה בקשת עדכון מחיר שממתינה, כ-`rejected`** | היא לא משנה שום מספר — `job_effective_price()` מעולם לא ספרה שורה `pending` — אבל עבודה שהסתיימה לא יכולה להישאר עם שאלה פתוחה שאיש לא יכול לענות עליה, ובעל מקצוע לא יכול להיתקע בהמתנה לתשובה שאולי לא תגיע. זה בדיוק אותו כלל של 3.5, ברגע האחרון שבו עוד אפשר לשבור אותו |
+| **בעל המקצוע מצהיר איך שולם, לא הלקוח בוחר** | הכפתור בעיצוב הוא "סיימתי — **עדכן גבייה**". Handy אינה צד לתשלום (חוק עסקי 4) — היא מתעדת את הגבייה כדי לחייב 12% ולהנפיק קבלה, ומי שקיבל את הכסף לידיים הוא בעל המקצוע. ארבעת השבבים במסך הסיכום של הלקוח (`design/screens/customer-4.1`) מציגים את מה שנרשם ומסמנים אותו — הם לא טופס. פער בין מה שנרשם למה שקרה הוא מחלוקת, וזה Phase 7 |
+| **`commission_rate()`** — `immutable`, מחזירה 0.12 | המספר מופיע בשורת העמלה, בקבלה, במסך ההצעה ובארנק. אחד מהם שסוטה מהאחרים הוא באג שאיש לא מבחין בו עד שבעל מקצוע קורא את הדוח שלו |
+| **`reviews` איבד INSERT ו-UPDATE, ובמקומם `submit_job_review()`** | ה-grants של Phase 1 אפשרו ללקוח לדרג בעל מקצוע לפני שעשה משהו, ולשכתב את הציון אחר כך כמנוף. הפונקציה דורשת קריאה `completed` ובעלות, ומחליפה תשובה קודמת במקום להיכשל על מפתח כפול — חמשת הכוכבים הם פקד שמותר להתחרט עליו |
+| **טריגר `reviews_refresh_pro_rating`** | `pro_profiles.rating_avg` נגזר מ-`reviews` ומעולם לא היה ניתן לכתיבה על ידי קליינט (Phase 1 השאירה אותו מחוץ ל-grant). טריגר ולא שורה בתוך הפונקציה, כדי שזה יחזיק גם לכלי הניהול של Phase 7 |
+| **`job_receipt(job_id)`** — `security definer` | הקבלה נוקבת בשני הצדדים, ול-`profiles` אין מדיניות קריאה בין משתמשים. זה גם המקום היחיד שבו שני הקוראים מקבלים תשובות שונות: `commission_amount` ו-`net_amount` חוזרים NULL ללקוח, כי ה-12% הוא בין Handy לבעל המקצוע (סעיף 4 של המסמך הזה). **שורות הקבלה אינן כאן** — שורות ה-`price_updates` המאושרות *הן* השורות, ולשני הצדדים כבר יש מדיניות קריאה עליהן |
+| **`my_completed_jobs(since)` ו-`my_earnings_stats(since)`** — `security definer` | לשונית ההיסטוריה ב-`pro-3.2-my-jobs.png` והמסך כולו ב-`pro-4.1-earnings-wallet.png`. שתיהן מצמצמות ל-`auth.uid()` **בתוך** הפונקציה, ולכן "בעל מקצוע לא רואה את ההכנסות של אחר" אינו פילטר שקובץ קריאה יכול לשכוח |
+| **`my_saved_pros()`** — `security definer` | `saved_pros` היא טבלה של שני מזהים; הרשימה צריכה שם. מחזירה בדיוק את ארבע העובדות הציבוריות שכרטיס הצעה מציג, לעולם לא טלפון ולא מסמך |
+| **`pro_profiles.payment_methods`: `transfer` → `bank_transfer`** | Phase 1 כתבה `bank_transfer` על `commission_charges.payment_method`, Phase 3 כתבה `transfer` על הפרופיל. שתי איות לאותן ארבע אפשרויות, ששום דבר לא הבחין בהן עד שהשלב הזה הציב את שתיהן על אותו מסך. האיות של Phase 1 ניצח, כי הוא זה שמגיע לקבלה |
+| **`/api/receipts/[jobId]`** — Route Handler | היחיד באפליקציה. סעיף 2 של המסמך הזה שומר את `/api` למקרים שבהם Server Action לא מתאים, וזה אחד: מה שחוזר הוא קובץ ו-`Content-Disposition`, לא רינדור מחדש. אין בו בדיקת בעלות — היא הייתה מקום רביעי שבו אותו כלל נכתב, והיחיד מהארבעה בלי טסט מאחוריו; `job_receipt()` זורקת לזר, וזריקה מגיעה כ-404 |
+
+**למה `@react-pdf/renderer`, ולמה הפונט יושב בריפו.** האפליקציה טוענת Heebo דרך `next/font/google`, שמייצר WOFF2 שמנוע ה-PDF לא קורא. שני קבצי ה-TTF ב-`assets/fonts/` הם אותה משפחה תחת אותו רישיון OFL, נקראים מהדיסק ומועברים כ-data URL — `Font.register` מקבל נתיב, URL או data URL, וה-data URL הוא היחיד שלא תלוי בתיקיית העבודה של המרנדר. `next.config.ts` מוסיף את הספרייה ל-`serverExternalPackages` (היא מביאה מנוע פריסה ב-WASM שלא שורד bundling) ואת `assets/fonts/**` ל-`outputFileTracingIncludes`.
+
+**bidi היא בעיית פריסה, ומאמתים אותה רק בעיניים.** בשורה עברית, מילה לטינית, מזהה כמו `H-00004` ותאריך הם רצפים נפרדים; האלגוריתם של יוניקוד מסדר אותם *נכון* והתוצאה עדיין נקראת בסדר הלא נכון לבן אדם. הגרסה הראשונה של הקבלה נראתה תקינה בקוד וסידרה את הכותרת כ-"אינסטלציה · 2 בספטמבר 2026 H-00004 קריאה". התיקון אינו טריק אלא כלל: **עובדה אחת בשורה** — שורות תווית/ערך, משפט אחד בשורה, ותאריך בספרות בלבד (`2.9.2026, 05:01`) במקום "2 בספטמבר 2026". בדפדפן זה בדרך כלל סלחני; ב-PDF לא.
+
+**מה שלא נבנה ב-Phase 6 בכוונה:** שום דבר לא *גובה* את העמלה. `commission_charges` הוא פנקס בלי סליקה מאחוריו — אין שדה "שולמה", אין sweep, ואין קוד מאחורי ההבטחה "סליקה כל שני וחמישי" שבאונבורדינג. זו תנועת כסף אמיתית, ולפי `CLAUDE.md` סעיף 8 היא הכרעה של המשתמש. באותו אופן: ל-`jobs.status` יש ערך `cancelled` בלי אף מעבר שמוביל אליו, ולכן מונה ה"ביטולים" שבעיצוב לא צויר.
+
 ### שינוי נתיבים ב-Phase 3: `/pro` הפך לעמוד נחיתה ציבורי
 
 עמוד הנחיתה לבעלי מקצוע (`design/screens/pro-1.1-landing.png`) צולם ב-`handy.co.il/pro`, ומבקר אנונימי חייב להגיע אליו. route group לא מוסיף segment, ולכן `/pro` לא יכול להיות גם עמוד שיווקי פתוח וגם בית מוגן. ההכרעה: `/pro` ציבורי, והבית של בעל המקצוע ירד ל-`/pro/dashboard` — גם זה ה-URL שבעיצוב עצמו.
@@ -293,9 +319,11 @@ erDiagram
 | תפקיד | כניסה | בית | נתיבים נוספים |
 |---|---|---|---|
 | ציבורי | — | `/` · `/pro` | |
-| `customer` | `/login` | `/account` | `/new-request`, `/new-request/published/[jobId]`, `/requests/[jobId]/offers`, `/requests/[jobId]/chat` |
-| `pro` | `/pro/login` | `/pro/dashboard` | `/pro/join`, `/pro/onboarding`, `/pro/jobs`, `/pro/jobs/[jobId]/quote`, `/pro/offers`, `/pro/messages`, `/pro/settings` |
+| `customer` | `/login` | `/account` | `/new-request`, `/new-request/published/[jobId]`, `/requests/[jobId]/offers`, `/requests/[jobId]/chat`, `/requests/[jobId]/track`, `/requests/[jobId]/summary` |
+| `pro` | `/pro/login` | `/pro/dashboard` | `/pro/join`, `/pro/onboarding`, `/pro/jobs`, `/pro/jobs/[jobId]`, `/pro/jobs/[jobId]/quote`, `/pro/offers`, `/pro/my-jobs`, `/pro/wallet`, `/pro/messages`, `/pro/settings` |
 | `admin` | `/admin/login` | `/admin` | `/admin/pros` |
+
+`/api/receipts/[jobId]` הוא ה-Route Handler היחיד באפליקציה, והוא אינו ב-`PROTECTED_AREAS`: הוא מזהה את הקורא בעצמו ומחזיר 401, כי תשובה לבקשת קובץ אינה הפניה למסך כניסה.
 
 `/requests/…` נוסף ב-Phase 4 ורשום ב-`PROTECTED_AREAS`: פרסום קריאה הוא דבר אחד, והחיים איתה אחר כך הם דבר אחר, והעיצוב מצלם את שני המסכים האלה ב-`handy.co.il/request/<ref>`.
 
@@ -320,7 +348,7 @@ Route groups ב-Next.js לא מוסיפים segment לנתיב, ולכן `(custo
 - **`geography` (PostGIS point)** ב-`jobs.location` וב-`pro_profiles.service_point` — מאפשר שאילתת `ST_DWithin` יעילה ("כל בעלי המקצוע ברדיוס X מנקודה") עם אינדקס GiST, במקום לסרוק את כל הטבלה ולחשב מרחק ב-JS.
 - **`bids.status`** כולל `pending / selected / rejected / expired`. הוכרע ב-Phase 4: פג התוקף מנוהל ע"י `expire_stale_bids()` שמתוזמנת ב-**pg_cron** כל דקה (ולא Edge Function — cron במסד הנתונים לא דורש יעד דיפלוי), ובנוסף נקראת מהמסכים שמציגים סטטוסים. הנכונות אינה תלויה בה: `select_bid()` קוראת את השעון בעצמה וכל פונקציות הקריאה מדווחות הצעה שפגה כ-`expired`.
 - **`price_updates`** הוא הטבלה שאוכפת את חוק השקיפות: אין עמודת `price` ניתנת לעדכון ישיר בטבלת `jobs` — המחיר בפועל של קריאה הוא נגזרת (מחיר ההצעה שנבחרה + כל `price_updates` שאושרו).
-- **`commission_charges`** נוצרת אוטומטית (טריגר DB או Server Action) עם סיום העבודה, ומחשבת 12% מהסכום הכולל.
+- **`commission_charges`** נוצרת ב-`complete_job()` (Phase 6) — לא בטריגר ולא ב-Server Action: זו הצהרה אחת שגם מזיזה את `jobs.status` וגם מכריעה בקשת מחיר שנשארה פתוחה, וכל שלושתם חייבים להיות נכונים באותו רגע. `base_price` הוא ההצעה שנבחרה, `total_price` הוא `job_effective_price()`, וה-12% מחושב מהם. לאף תפקיד קליינט אין INSERT או UPDATE עליה.
 - טבלת `notifications` תתווסף בשלב שבו בונים התראות בפועל (לא קריטית ל-Phase 1).
 
 ## 4. Row Level Security — עקרונות
@@ -331,7 +359,8 @@ RLS חובה בכל טבלה (ראו גם `CLAUDE.md` סעיף 3). כללי אצ
 - **`bids`**: בעל מקצוע רואה/עורך רק את ההצעות שלו. לקוח רואה את כל ההצעות על הקריאות שלו (אבל לא יכול לערוך). אדמין רואה הכל.
 - **`pro_profiles` / `verification_documents`**: בעל מקצוע רואה/עורך רק את הפרופיל שלו; המסמכים לא נגישים ללקוחות בשום מקרה (רק שדה `verification_status` נגזר, לא הקובץ עצמו). אדמין רואה הכל. **`verification_status` אינו ניתן לכתיבה לאף client role** — שני המעברים החוקיים שלו הם `submit_pro_for_approval()` ו-`set_pro_verification()` (Phase 3).
 - **`pro_categories` / `job_dismissals`**: בעל מקצוע רואה ועורך רק את השורות שלו. אדמין רואה הכל. ללקוח אין מדיניות באף אחת מהן.
-- **`commission_charges`**: בעל מקצוע רואה רק את שלו. אדמין רואה הכל. לקוח לא רואה בכלל (זה לא עניינו).
+- **`commission_charges`**: בעל מקצוע רואה רק את שלו. אדמין רואה הכל. לקוח לא רואה בכלל (זה לא עניינו) — גם לא את שורת העבודה שלו עצמו, ולכן `job_receipt()` מחזירה לו את הסכום ששילם בלי העמלה.
+- **`reviews`**: קריאה — לבעל הקריאה, לבעל המקצוע שדורג ולאדמין. כתיבה — לאף אחד: `submit_job_review()` היא הדרך היחידה, והיא דורשת קריאה `completed`.
 
 **איך זה נבדק (מ-Phase 1 והלאה):** `supabase/tests/rls_test.sql` — חבילת pgTAP שמורצת ב-`npm run db:test` וב-CI. היא מתחזה למשתמשים בדיוק כמו PostgREST (`request.jwt.claims` + מעבר ל-role `authenticated`, כי ה-role של הסשן הוא `postgres` שנושא `BYPASSRLS` והיה עובר דרך כל מדיניות), ומוכיחה בפועל את הטענות שבסעיף הזה. שתי בדיקות מבניות שומרות על העתיד: **כל** טבלה ב-`public` עם RLS מופעל, ו**כל** טבלה עם לפחות מדיניות אחת — טבלה עם RLS ובלי מדיניות היא חור שקט שנראה מאובטח ומחזיר אפס שורות.
 

@@ -32,7 +32,7 @@ Do not introduce an alternative to any of these without discussing it with the u
 | File/media uploads | Supabase Storage | Job photos/videos/voice notes, pro verification documents, profile photos |
 | Realtime (bids arriving, chat, live location) | Supabase Realtime (Postgres changes + broadcast channels) | Do not add a separate WebSocket server. In the browser the socket must be handed the session token **before** it joins (`setAuth()` then `subscribe()`) — this app restores its session from a cookie, so no auth event pushes the token in on its own, and an unauthenticated socket is refused the subscription outright |
 | Scheduled database work (bid expiry) | **pg_cron**, installed by migration | Chosen in Phase 4 over a scheduled Edge Function: cron inside the database needs no deploy target and is available both locally and on Supabase Cloud. It is only ever housekeeping — nothing in the product may depend on a sweep having run |
-| PDF generation (receipts) | `@react-pdf/renderer` or a Supabase Edge Function calling a PDF service | Decide inside the phase that needs it, record the decision here |
+| PDF generation (receipts) | **`@react-pdf/renderer`**, with the Heebo TTF faces vendored in `assets/fonts/` | Decided in Phase 6. A Hebrew receipt is a **bidi** problem, not a font problem: a PDF has no bidirectional-text engine, so a lighter writer (pdf-lib, pdfkit) would have meant reordering Hebrew runs by hand. This one lays text out through textkit, which does it. `next.config.ts` lists it in `serverExternalPackages` and traces `assets/fonts/**` into the deployment. Verify a receipt by **rendering it and looking**, never by reading the source |
 | Hosting | Vercel (frontend/Next.js) + Supabase Cloud (DB/backend) | |
 | Package manager | npm (unless the user says otherwise) | |
 | Validation | **Zod** | Every server-side write path. Schemas in `lib/validation`, one file per entity |
@@ -57,8 +57,14 @@ Do not introduce an alternative to any of these without discussing it with the u
 - **Price-change rule is enforced in the DB layer, not just the UI:** a job's price can only change through a `price_updates` record that carries a photo URL and moves through `pending → approved/rejected` — there is no direct `UPDATE jobs SET price = ...` path from client code.
 - **A job's live price is `job_effective_price()`, a function — there is no price column anywhere.** It is the selected bid's price, replaced by the newest *approved* `price_updates` row. A pending or refused request is nowhere in it, which is what makes "אם הלקוח לא מאשר, העבודה ממשיכה במחיר המקורי" true by construction: there is no place for an unapproved number to sit, so nothing has to remember to ignore one.
 - **Neither side writes `price_updates` directly.** Phase 1's grants let the pro assert `original_price` (a money field) and let the customer flip `status` back and forth. Both are revoked. `request_price_update()` reads the original price itself and pins the photo to `<pro_id>/<job_id>/…`; `decide_price_update()` is one-way, once, and a `before update` trigger holds that line even for a caller that bypasses RLS entirely.
+- **Closing a job is `complete_job()`, and the 12% is computed inside it.** `commission_charges` has never had an INSERT grant for any client role. The function reads the base from the selected bid and the total from `job_effective_price()`, writes the charge, moves `jobs.status` to `completed` and bumps the pro's completed count — one statement, because every part of it has to be true at the same instant. It is idempotent: this is the last thing a pro does on a job, usually on a phone, and a retried request must not double-charge.
+- **The pro declares how they were paid; nobody chooses it afterwards.** Handy is not a party to the payment (business rule 4) — it records the collection so it can charge its 12% and print a receipt. The four chips on the customer's summary screen show what was recorded, they are not a form. A recorded method the customer disputes is a dispute, which is Phase 7.
+- **Completing a job settles a price request the customer never answered, as `rejected`.** It changes no number — `job_effective_price()` has never counted a pending row — but a finished job must not still be asking a question nobody can act on, and a pro must not be stuck waiting for an answer that may never come.
+- **A review is `submit_job_review()`, on a finished job only.** Phase 1's grants let a customer rate a pro before the pro had done anything and rewrite the score afterwards as leverage; both are revoked. `pro_profiles.rating_avg` is recomputed by trigger from `reviews` — it has never been writable by any client.
+- **A receipt tells each side a different truth.** `job_receipt()` returns `commission_amount` and `net_amount` as NULL to the customer: the 12% is between Handy and the pro. `/api/receipts/[jobId]` renders the matching document per role rather than one document with a hidden field.
 - **Live location is a table (`job_locations`), not a broadcast channel.** One row per job, written only through `report_job_location()`, readable by the job's customer, that pro and an admin. Chosen over the broadcast `docs/architecture.md` originally sketched because "who may watch where this pro is" then becomes a policy pgTAP can prove, and because a customer opening the page mid-journey sees a last known position rather than a blank map. Reporting is opt-in, from the pro's own switch, every 15 seconds while the tab is open.
-- **RTL: logical properties only.** The UI is Hebrew and the app renders `dir="rtl"`. Always use Tailwind's logical utilities — `ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`/`text-end`, `border-s`/`border-e` — and **never** the physical `ml-`/`mr-`, `pl-`/`pr-`, `left-`/`right-`, `text-left`/`text-right`. A physical utility looks correct in a Latin-language preview and silently breaks the layout in Hebrew.
+- **RTL: logical properties only.** The UI is Hebrew and the app renders `dir="rtl"`. Always use Tailwind's logical utilities — `ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`/`text-end`, `border-s`/`border-e` — and **never** the physical `ml-`/`mr-`, `pl-`/`pr-`, `left-`/`right-`, `text-left`/`text-right`. A physical utility looks correct in a Latin-language preview and silently breaks the layout in Hebrew. The one exception is `lib/pdf/`: react-pdf's stylesheet has no logical properties and a PDF page has no `dir`, so it uses symmetric physical values and an explicit `textAlign: "right"` — the document is always Hebrew.
+- **Bidi is a layout problem, not a font problem, and it is only ever verified by looking.** In a Hebrew line, a Latin word, a reference like `H-00004` and a date are separate bidi runs; the Unicode algorithm reorders them correctly and the result can still read in the wrong order to a person. Keep such a line to **one fact** — a label/value row, one sentence per line, an all-digit date — rather than a sentence that mixes three runs. In the browser this is usually forgiving; in a PDF it is not.
 - **No secrets in code.** All API keys (Google Maps, Twilio, Supabase service role) go in environment variables, never committed. Maintain `.env.example` with every required key, kept in sync.
 - **Small, reviewable commits.** See Git Workflow below — do not batch an entire phase into one commit.
 
@@ -97,6 +103,14 @@ The product is Hebrew-facing, but all code (tables, variables, routes, types) is
 | ההצעות שלי | `my_bids` | A pro's own offers. `winning_price` on a lost one is the price that won, never who offered it |
 | שיחה | `thread` | One conversation, keyed `(job_id, pro_id)`. Not a table — the key is on `messages` |
 | נקרא | `read_at` | On `messages`. Writable only by the side that did **not** send it |
+| סיימתי — עדכן גבייה | `complete_job()` | `assigned`/`in_progress` → `completed`, by the assigned pro, writing the commission row in the same statement |
+| אמצעי תשלום | `payment_method` | Closed vocabulary: `cash` / `bit` / `paybox` / `bank_transfer`. Phase 6 unified it — Phase 3 had spelled the last one `transfer` on `pro_profiles.payment_methods` |
+| עמלה שנרשמה | `commission_charges` | One row per closed job: `base_price` (the chosen bid), `total_price` (`job_effective_price()`), `commission_amount` (12%). Read-only to every client role |
+| שיעור העמלה | `commission_rate()` | 12%, as a function, so the receipt, the wallet and the bid form cannot drift apart |
+| קבלה | `job_receipt()` | The billing summary of a closed job, to its two sides. The commission is NULL for the customer. The PDF is `/api/receipts/[jobId]` |
+| דירוג | `submit_job_review()` | The only write path into `reviews`. Completed jobs only; a trigger recomputes `pro_profiles.rating_avg` |
+| ארנק / הכנסות | `my_earnings_stats()` / `my_completed_jobs()` | `/pro/wallet`. Range totals plus the lifetime rating; scoped to `auth.uid()` inside the function |
+| שמור לפעם הבאה | `saved_pros` / `my_saved_pros()` | The customer's own list. A pro can never see who saved them |
 
 Add new rows here whenever a new domain concept appears — do not let this glossary drift out of date.
 
@@ -121,6 +135,13 @@ Add new rows here whenever a new domain concept appears — do not let this glos
   /supabase               → client factory, generated DB types, session DAL
   /validation              → Zod schemas, one file per entity
   /actions                 → server actions, grouped by entity
+  /pdf                     → the receipt document (Phase 6). Server-only: it
+                             imports `server-only` and is reachable from the
+                             route handler alone
+/assets/fonts              → the Heebo TTF faces the PDF embeds. Not `public/`:
+                             they are never served to a browser (the app gets
+                             Heebo from next/font/google), they are read with
+                             `fs` at request time
 /supabase
   /migrations              → SQL migrations (source of truth for schema — see below)
   /tests                   → pgTAP tests (`npm run db:test`) — RLS policy assertions
@@ -178,11 +199,12 @@ adding a column, decide explicitly whether a client may write it.
 
 ## 9. Open decisions (fill in as they're made)
 
-- [ ] PDF library for receipts (decide in the payments/receipts phase)
 - [ ] Exact Twilio account setup / SMS sender ID for Israel
 - [ ] A real Google Maps Platform key. Everything that needs one — Places Autocomplete, the map on the published-job screen, server-side geocoding — is built behind a key check and degrades to manual address entry, so this blocks verification against Google, not development
 - [ ] Push notification approach for "pro is arriving" (browser push vs. none for MVP). Phase 4 needed none, and Phase 5 still does not: the tracking screen, the price-update card and both chats update through Supabase Realtime while the tab is open. That remains a different thing from reaching someone who has closed it — and Phase 5 is the phase that makes the gap visible, because "בעל המקצוע הגיע" and "יש בקשת עדכון מחיר" are exactly the two moments worth a push
-- [ ] **How a pro's full bank account number is stored**, if it is stored at all. Phase 3 collects bank, branch and the last four digits only (`payout_account_last4`) — enough for the pro to recognise the account on screen. Collecting the rest is real money movement, which section 8 says to decide with the user, in the payments phase
+- [ ] **How a pro's full bank account number is stored**, if it is stored at all. Phase 3 collects bank, branch and the last four digits only (`payout_account_last4`) — enough for the pro to recognise the account on screen. Phase 6 did **not** change this: it *records* the 12% as a `commission_charges` row, and recording a debt is not collecting it. Collecting the rest is real money movement, which section 8 says to decide with the user
+- [ ] **What actually debits the commission.** `commission_charges` is a ledger with no settlement behind it — nothing sweeps it, nothing marks a charge paid, and the onboarding copy's "סליקה כל שני וחמישי" has no code. That is money movement and is deliberately the user's call (section 8). When it arrives it wants a status on the row and, probably, a payout run
+- [ ] **Cancelling an assigned job.** The design's "העבודות שלי" summary counts ביטולים and nothing in the product can produce one: `jobs.status` has a `cancelled` value with no transition into it. Phase 6 left the counter off the screen rather than draw a permanent zero. Who may cancel, until when, and what it does to a bid that was already accepted are product questions
 - [ ] A public bucket for pro profile photos. Phase 3 files the profile photo in the private `verification-docs` bucket as `doc_type = 'profile_photo'`; the customer-facing public profile (Phase 8) is what will need a photo customers can actually load
 
 *(Keep this list current — remove items once decided and folded into section 2, add new ones as they come up.)*
