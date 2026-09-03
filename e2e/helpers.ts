@@ -17,7 +17,26 @@ export async function signIn(page: Page, key: DemoUserKey): Promise<void> {
   await page.getByRole("button", { name: "שליחת קוד ב-SMS" }).click();
 
   const token = page.getByLabel("קוד אימות");
-  await expect(token).toBeVisible();
+
+  // GoTrue answers a too-soon resend with "you can only request this after N
+  // seconds". Wait the number it names and ask once more, rather than either
+  // failing the whole run or turning the limit down — it is the throttle the
+  // security checklist wants kept.
+  const throttled = page.getByRole("alert").filter({
+    hasText: /you can only request this after/i,
+  });
+
+  await expect(token.or(throttled).first()).toBeVisible();
+
+  if (await throttled.isVisible()) {
+    const message = (await throttled.textContent()) ?? "";
+    const seconds = Number(/after (\d+) seconds?/i.exec(message)?.[1] ?? 60);
+
+    await page.waitForTimeout((seconds + 2) * 1000);
+    await page.getByRole("button", { name: "שליחת קוד ב-SMS" }).click();
+    await expect(token).toBeVisible();
+  }
+
   await token.fill(OTP_CODE);
   await page.getByRole("button", { name: "אישור והתחברות" }).click();
 
