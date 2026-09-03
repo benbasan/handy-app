@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(149);
+select plan(196);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -83,10 +83,20 @@ select is(
   'customer A cannot see customer B''s job'
 );
 
+-- Three, and every one of them theirs: the job this section is about, plus
+-- the two Phase 6 added to the seed so the summary and receipt screens have
+-- finished work to render. The number is not the point — "no row that is not
+-- mine" is, which is why customer B's single job is asserted separately above.
 select is(
   (select count(*) from public.jobs),
-  1::bigint,
-  'customer A sees exactly one job in total — no leakage through an unfiltered select'
+  3::bigint,
+  'and nothing else — every job an unfiltered select returns to customer A is customer A''s'
+);
+
+select is(
+  (select count(*) from public.jobs where customer_id <> :customer_a),
+  0::bigint,
+  'stated directly: not one row belonging to anybody else'
 );
 
 -- An UPDATE that matches no visible row silently affects nothing, which is the
@@ -145,10 +155,19 @@ reset role;
 select pg_temp.act_as(:pro_verified);
 set local role authenticated;
 
+-- Two open calls inside the radius, plus the three Phase 6 seeded as finished
+-- work of their own — a pro keeps reading a job they won through every later
+-- status (the "assigned pro reads own job" policy from Phase 4).
 select is(
-  (select count(*) from public.jobs),
+  (select count(*) from public.jobs where status in ('open', 'bidding')),
   2::bigint,
   'a verified pro sees both open Tel Aviv jobs inside their 10km radius'
+);
+
+select is(
+  (select count(*) from public.jobs where status not in ('open', 'bidding')),
+  3::bigint,
+  'and, beyond the feed, only the jobs they were actually assigned'
 );
 
 reset role;
@@ -244,10 +263,19 @@ reset role;
 select pg_temp.act_as(:pro_verified);
 set local role authenticated;
 
+-- The fixture above plus the three closed jobs Phase 6 added to the seed. As
+-- with jobs, the count is incidental; the assertion under it is the one that
+-- matters.
 select is(
   (select count(*) from public.commission_charges),
-  1::bigint,
-  'a pro sees exactly their own commission charges'
+  4::bigint,
+  'a pro sees their own commission charges'
+);
+
+select is(
+  (select count(*) from public.commission_charges where pro_id <> :pro_verified),
+  0::bigint,
+  'and not one row belonging to another pro'
 );
 
 select is(
@@ -773,7 +801,7 @@ select pg_temp.act_as(:customer_a);
 set local role authenticated;
 
 select is(
-  (select count(*) from public.bids),
+  (select count(*) from public.bids where job_id = :job_a),
   3::bigint,
   'the customer reads every bid on their own job'
 );
@@ -874,8 +902,14 @@ select is(
 
 select is(
   (select count(*) from public.my_bids()),
-  2::bigint,
-  'ההצעות שלי lists exactly the caller''s own bids'
+  5::bigint,
+  'ההצעות שלי lists exactly the caller''s own bids — the two in this section plus the three closed jobs in the seed'
+);
+
+select is(
+  (select count(*) from public.my_bids() where status = 'selected'),
+  3::bigint,
+  'and none belonging to anyone else, at any status'
 );
 
 select lives_ok(
@@ -1546,6 +1580,356 @@ select is(
 
 reset role;
 
+-- ===========================================================================
+-- 13. Phase 6 — closing a job: the commission, the receipt and the rating
+--
+-- The roadmap's definition of done for this phase asks for the commission to
+-- be right "גם עם ובלי price_updates מאושרים", so both cases are here: job A
+-- closes at 520 (390 agreed, +130 the customer approved in section 12) and
+-- job C closes at the 320 that was agreed, with a request the customer never
+-- answered settled on the way out.
+-- ===========================================================================
+
+reset role;
+
+-- The fixture at the top of this file stands in for a charge that already
+-- exists, and section 5 has had everything it needs from it. This section is
+-- about the row complete_job() writes, and job_id is unique.
+delete from public.commission_charges where job_id = :job_a;
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.complete_job('d0000000-0000-4000-8000-000000000001', 'cash') $$,
+  '42501',
+  null,
+  'a customer cannot close the job themselves — the commission is charged to the pro who did the work'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.complete_job('d0000000-0000-4000-8000-000000000001', 'cash') $$,
+  '42501',
+  null,
+  'and neither can a pro who bid on the job and lost it'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.complete_job('d0000000-0000-4000-8000-000000000001', 'crypto') $$,
+  '22023',
+  null,
+  'the payment method is a closed vocabulary — Handy records how the pro was paid, it does not invent methods'
+);
+
+select ok(
+  public.complete_job(:job_a, 'cash') is not null,
+  '"סיימתי — עדכן גבייה": the assigned pro closes the job'
+);
+
+select is(
+  (select status from public.jobs where id = :job_a),
+  'completed',
+  'which moves the job to completed'
+);
+
+select is(
+  (select base_price from public.commission_charges where job_id = :job_a),
+  390::numeric,
+  'the commission row records the bid that was agreed as the base'
+);
+
+select is(
+  (select total_price from public.commission_charges where job_id = :job_a),
+  520::numeric,
+  'the price that actually held — job_effective_price(), approved update included — as the total'
+);
+
+select is(
+  (select commission_amount from public.commission_charges where job_id = :job_a),
+  62.40::numeric,
+  'and 12% of that total as Handy''s cut, computed in the database and never sent by the client'
+);
+
+select is(
+  public.complete_job(:job_a, 'cash'),
+  (select id from public.commission_charges where job_id = :job_a),
+  'pressing it twice returns the same charge rather than raising — this is the last thing a pro does, often on a phone'
+);
+
+select is(
+  (select count(*) from public.commission_charges where job_id = :job_a),
+  1::bigint,
+  'and there is still exactly one commission row for the job'
+);
+
+select throws_ok(
+  $$ insert into public.commission_charges
+       (job_id, pro_id, base_price, total_price, commission_amount, payment_method)
+     values ('d0000000-0000-4000-8000-000000000002',
+             'a0000000-0000-4000-8000-000000000003', 900, 900, 1, 'cash') $$,
+  '42501',
+  null,
+  'a pro cannot write their own commission row — the table has never had an INSERT grant'
+);
+
+select throws_ok(
+  $$ update public.commission_charges set commission_amount = 0
+      where job_id = 'd0000000-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'nor lower the one that was written for them'
+);
+
+select is(
+  (select commission_amount from public.job_receipt(:job_a)),
+  62.40::numeric,
+  'the pro''s receipt shows what Handy took'
+);
+
+select is(
+  (select net_amount from public.job_receipt(:job_a)),
+  457.60::numeric,
+  'and what is left after it'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.commission_charges),
+  0::bigint,
+  'the customer cannot see the commission row at all — the 12% is between Handy and the pro'
+);
+
+select is(
+  (select total_price from public.job_receipt(:job_a)),
+  520::numeric,
+  'their receipt still carries the amount they were charged'
+);
+
+select is(
+  (select commission_amount from public.job_receipt(:job_a)),
+  null::numeric,
+  'without the commission, which is none of their business'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select * from public.job_receipt('d0000000-0000-4000-8000-000000000001') $$,
+  '42501',
+  null,
+  'and a stranger to the job gets no receipt for it'
+);
+
+-- ---------------------------------------------------------------------------
+-- The rating, which is the pro's public reputation
+-- ---------------------------------------------------------------------------
+
+select throws_ok(
+  $$ select public.submit_job_review('d0000000-0000-4000-8000-000000000001', 5) $$,
+  '42501',
+  null,
+  'a customer cannot rate a job that is not theirs'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.submit_job_review('d0000000-0000-4000-8000-000000000001', 5) $$,
+  '42501',
+  null,
+  'and a pro cannot rate themselves'
+);
+
+select throws_ok(
+  $$ insert into public.reviews (job_id, rating)
+     values ('d0000000-0000-4000-8000-000000000001', 5) $$,
+  '42501',
+  null,
+  'nobody writes reviews directly any more: Phase 1''s INSERT grant let a customer rate a pro before the work was done'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.submit_job_review('d0000000-0000-4000-8000-000000000001', 6) $$,
+  '22023',
+  null,
+  'a rating is one to five stars'
+);
+
+select ok(
+  public.submit_job_review(:job_a, 5, 'הסביר כל שקל לפני שעשה אותו.') is not null,
+  'the customer rates the finished job'
+);
+
+select is(
+  (select rating from public.job_receipt(:job_a)),
+  5,
+  'and it lands on the summary screen beside the receipt'
+);
+
+select ok(
+  public.submit_job_review(:job_a, 4) is not null,
+  'changing their mind while still on the page replaces the answer rather than failing on a duplicate key'
+);
+
+select is(
+  (select count(*) from public.reviews where job_id = :job_a),
+  1::bigint,
+  'leaving exactly one review on the job'
+);
+
+reset role;
+
+select is(
+  (select rating_avg from public.pro_profiles where user_id = :pro_verified),
+  4.7::numeric,
+  'and the pro''s rating_avg — a column no client has ever been able to write — is recomputed from the reviews themselves'
+);
+
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.submit_job_review('d0000000-0000-4000-8000-000000000003', 5) $$,
+  '22023',
+  null,
+  'a job that is still under way cannot be rated'
+);
+
+-- ---------------------------------------------------------------------------
+-- Closing with nothing approved, and a request still waiting
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select is(
+  public.job_effective_price(:job_c),
+  320::numeric,
+  'job C carries a price update the customer never answered, and its price is still the one that was agreed'
+);
+
+select ok(
+  public.complete_job(:job_c, 'bit') is not null,
+  'the pro closes it anyway — waiting for an answer that may never come is not a state a job can be stuck in'
+);
+
+select is(
+  (select status from public.price_updates where job_id = :job_c),
+  'rejected',
+  'which settles the unanswered request rather than leaving it asking'
+);
+
+select is(
+  public.job_effective_price(:job_c),
+  320::numeric,
+  'and the job closes at the price that was agreed — product-spec.md 3.5, at the last moment it can still be broken'
+);
+
+select is(
+  (select total_price from public.commission_charges where job_id = :job_c),
+  320::numeric,
+  'the commission row is written against that price'
+);
+
+select is(
+  (select commission_amount from public.commission_charges where job_id = :job_c),
+  38.40::numeric,
+  'and 12% of it, with no approved update anywhere in the sum'
+);
+
+select is(
+  (select count(*) from public.my_completed_jobs()),
+  1::bigint,
+  'העבודות שלי · היסטוריה shows this pro exactly the one job they closed'
+);
+
+select is(
+  (select count(*) from public.my_completed_jobs()
+    where job_id = 'd0000000-0000-4000-8000-000000000001'),
+  0::bigint,
+  'and never another pro''s — the earnings screen is scoped inside the function, not in the query behind it'
+);
+
+select is(
+  (select gross from public.my_earnings_stats()),
+  320::numeric,
+  'the wallet totals only what this pro earned'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.my_completed_jobs()),
+  4::bigint,
+  'while the other pro sees their own four'
+);
+
+select is(
+  (select gross from public.my_earnings_stats()),
+  1620::numeric,
+  'and their own total'
+);
+
+select is(
+  (select rating_count from public.my_earnings_stats()),
+  3,
+  'over the ratings their own customers left'
+);
+
+-- ---------------------------------------------------------------------------
+-- "שמור לפעם הבאה"
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select lives_ok(
+  $$ insert into public.saved_pros (customer_id, pro_id)
+     values ('a0000000-0000-4000-8000-000000000001',
+             'a0000000-0000-4000-8000-000000000003') $$,
+  'the customer saves the pro for next time'
+);
+
+select is(
+  (select full_name from public.my_saved_pros()),
+  'דוד מזרחי',
+  'and the list can name them, which two ids alone could not'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.my_saved_pros()),
+  0::bigint,
+  'somebody else''s saved list is not theirs to read'
+);
+
+reset role;
 
 select * from finish();
 

@@ -12,11 +12,9 @@ import type { ProProfile } from "@/lib/supabase/pros";
  * the Handy Pro wordmark on the leading edge, navigation beside it, and the
  * availability switch plus the feed button on the trailing edge.
  *
- * The design's nav also lists ארנק, which is Phase 6, and CLAUDE.md's
- * one-phase-at-a-time rule says not to build it early — a link to a 404 is
- * worse than no link, so it is left out rather than stubbed. הצעות and הודעות
- * joined the row in Phase 4 and העבודות שלי in Phase 5, each when the screen
- * behind it became real.
+ * Each link joined the row when the screen behind it became real — a link to
+ * a 404 is worse than no link: הצעות and הודעות in Phase 4, העבודות שלי in
+ * Phase 5, and ארנק in Phase 6, once a closed job had earnings to show.
  */
 export function ProShell({
   profile,
@@ -46,6 +44,9 @@ export function ProShell({
             </Link>
             <Link href={PRO_ROUTES.myJobs} className="hover:text-pro">
               העבודות שלי
+            </Link>
+            <Link href={PRO_ROUTES.wallet} className="hover:text-pro">
+              ארנק
             </Link>
             <Link
               href={PRO_ROUTES.messages}

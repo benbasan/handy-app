@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/primitives";
 import { categoryIcon } from "@/lib/categories";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
-import { createClient } from "@/lib/supabase/server";
+import { listMySavedPros } from "@/lib/supabase/completion";
 import { listMyJobs, type JobSummary } from "@/lib/supabase/jobs";
 import { requireRole } from "@/lib/supabase/session";
 import {
@@ -24,10 +24,7 @@ export default async function CustomerAccountPage() {
   const user = await requireRole("customer");
   const jobs = await listMyJobs();
 
-  const supabase = await createClient();
-  const { count: savedProsCount } = await supabase
-    .from("saved_pros")
-    .select("pro_id", { count: "exact", head: true });
+  const savedPros = await listMySavedPros();
 
   const memberSince = new Date(user.createdAt).getFullYear();
 
@@ -41,7 +38,7 @@ export default async function CustomerAccountPage() {
           <p className="mt-2 text-muted">
             {countLabel(jobs.length, "קריאה אחת", "קריאות")} ·{" "}
             {countLabel(
-              savedProsCount ?? 0,
+              savedPros.length,
               "בעל מקצוע שמור אחד",
               "בעלי מקצוע שמורים",
             )}{" "}
@@ -82,9 +79,49 @@ export default async function CustomerAccountPage() {
         <aside className="space-y-6">
           <Card>
             <h2 className="text-lg font-bold text-ink">בעלי המקצוע שלי</h2>
-            <p className="mt-2 text-sm text-muted">
-              בעלי מקצוע שתשמרו בסיום עבודה יופיעו כאן, להזמנה חוזרת בלחיצה אחת.
-            </p>
+
+            {savedPros.length === 0 ? (
+              <p className="mt-2 text-sm text-muted">
+                בעלי מקצוע שתשמרו בסיום עבודה יופיעו כאן, להזמנה חוזרת בלחיצה
+                אחת.
+              </p>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {savedPros.map((pro) => (
+                  <li
+                    key={pro.proId}
+                    className="flex items-center gap-3 rounded-xl border border-line p-3"
+                  >
+                    <span
+                      aria-hidden
+                      className="flex size-10 shrink-0 items-center justify-center rounded-full bg-canvas font-bold text-brand"
+                    >
+                      {(pro.fullName ?? "??").slice(0, 1)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-ink">
+                        {pro.fullName ?? "בעל מקצוע"}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        {pro.ratingAvg !== null && (
+                          <>
+                            ★{" "}
+                            <span className="ltr-nums">
+                              {pro.ratingAvg.toFixed(1)}
+                            </span>{" "}
+                            ·{" "}
+                          </>
+                        )}
+                        <span className="ltr-nums">
+                          {pro.jobsCompletedCount}
+                        </span>{" "}
+                        עבודות{pro.verified ? " · מאומת Handy" : ""}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           <CurrentUserCard user={user} />
@@ -154,17 +191,21 @@ function JobRow({ job }: { job: JobSummary }) {
         href={
           job.status === "draft"
             ? CUSTOMER_ROUTES.published(job.id)
-            : job.status === "assigned" || job.status === "in_progress"
-              ? CUSTOMER_ROUTES.track(job.id)
-              : CUSTOMER_ROUTES.offers(job.id)
+            : job.status === "completed"
+              ? CUSTOMER_ROUTES.summary(job.id)
+              : job.status === "assigned" || job.status === "in_progress"
+                ? CUSTOMER_ROUTES.track(job.id)
+                : CUSTOMER_ROUTES.offers(job.id)
         }
         className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
       >
         {job.status === "open" || job.status === "bidding"
           ? "צפייה בהצעות"
-          : job.status === "assigned" || job.status === "in_progress"
-            ? "מעקב חי"
-            : "פתח"}
+          : job.status === "completed"
+            ? "סיכום וקבלה"
+            : job.status === "assigned" || job.status === "in_progress"
+              ? "מעקב חי"
+              : "פתח"}
       </Link>
     </li>
   );

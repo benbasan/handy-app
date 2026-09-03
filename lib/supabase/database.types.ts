@@ -735,6 +735,11 @@ export type Database = {
         Args: { p_object_name: string }
         Returns: boolean
       }
+      commission_rate: { Args: never; Returns: number }
+      complete_job: {
+        Args: { p_job_id: string; p_payment_method: string }
+        Returns: string
+      }
       decide_price_update: {
         Args: { p_approve: boolean; p_id: string }
         Returns: string
@@ -756,6 +761,26 @@ export type Database = {
         }[]
       }
       job_effective_price: { Args: { p_job_id: string }; Returns: number }
+      job_receipt: {
+        Args: { p_job_id: string }
+        Returns: {
+          address_text: string
+          base_price: number
+          category_name_he: string
+          charged_at: string
+          commission_amount: number
+          customer_name: string
+          description: string
+          job_id: string
+          net_amount: number
+          payment_method: string
+          pro_id: string
+          pro_name: string
+          rating: number
+          review_comment: string
+          total_price: number
+        }[]
+      }
       mark_job_in_progress: { Args: { p_job_id: string }; Returns: string }
       my_active_jobs: {
         Args: never
@@ -806,6 +831,38 @@ export type Database = {
           winning_price: number
         }[]
       }
+      my_completed_jobs: {
+        Args: { p_since?: string }
+        Returns: {
+          address_text: string
+          base_price: number
+          category_name_he: string
+          category_slug: string
+          charged_at: string
+          commission_amount: number
+          customer_name: string
+          description: string
+          job_id: string
+          net_amount: number
+          payment_method: string
+          rating: number
+          total_price: number
+        }[]
+      }
+      my_earnings_stats: {
+        Args: { p_since?: string }
+        Returns: {
+          commission: number
+          gross: number
+          jobs_count: number
+          lifetime_commission: number
+          lifetime_gross: number
+          lifetime_jobs_count: number
+          net: number
+          rating_avg: number
+          rating_count: number
+        }[]
+      }
       my_message_threads: {
         Args: never
         Returns: {
@@ -818,6 +875,18 @@ export type Database = {
           last_body: string
           pro_id: string
           unread_count: number
+        }[]
+      }
+      my_saved_pros: {
+        Args: never
+        Returns: {
+          bio: string
+          full_name: string
+          jobs_completed_count: number
+          pro_id: string
+          rating_avg: number
+          saved_at: string
+          verified: boolean
         }[]
       }
       open_jobs_for_pro: {
@@ -880,6 +949,10 @@ export type Database = {
           min_price: number
           sample_count: number
         }[]
+      }
+      submit_job_review: {
+        Args: { p_comment?: string; p_job_id: string; p_rating: number }
+        Returns: string
       }
       submit_pro_for_approval: { Args: never; Returns: string }
       thread_messages: {

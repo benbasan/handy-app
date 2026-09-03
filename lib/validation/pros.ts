@@ -58,14 +58,29 @@ export const SERVICE_RADIUS_LABEL: Record<number, string> = {
 };
 
 /** product-spec.md 3.6 / business rule 4: Handy never handles the money. */
-export const PAYMENT_METHODS = ["cash", "bit", "paybox", "transfer"] as const;
+/**
+ * The four ways a customer pays a pro directly — product-spec.md 3.6 and
+ * business rule 4: Handy never processes the money, it only records how it
+ * changed hands so it can charge its 12% and print a receipt.
+ *
+ * `bank_transfer`, not `transfer`: Phase 1 spelled it that way on
+ * `commission_charges.payment_method`, and Phase 3 spelled it the other way on
+ * `pro_profiles.payment_methods`. Phase 6 put both on the same screen, noticed,
+ * and settled on the spelling that ends up on a receipt.
+ */
+export const PAYMENT_METHODS = [
+  "cash",
+  "bit",
+  "paybox",
+  "bank_transfer",
+] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   cash: "מזומן",
   bit: "ביט",
   paybox: "פייבוקס",
-  transfer: "העברה בנקאית",
+  bank_transfer: "העברה בנקאית",
 };
 
 /** Business rule 3, and the only number in the product that is not negotiable. */

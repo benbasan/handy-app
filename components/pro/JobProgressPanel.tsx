@@ -19,10 +19,11 @@ import {
  * `mark_job_in_progress()` and nothing the browser writes itself, because
  * `jobs.status` lost its column grant in Phase 4.
  *
- * The third segment (הושלם) is drawn because the design draws it, and it has
- * no button: finishing a job creates a commission charge and a receipt, and
- * that is Phase 6's to build. A button that half-works would be worse than the
- * honest line of text under it.
+ * The third segment (הושלם) has no button *here*. Finishing a job is one
+ * question this panel cannot answer — how the pro was paid — and that question
+ * belongs beside the price it is about, which is where
+ * components/pro/CompleteJobForm.tsx puts it, in the sidebar the design draws
+ * it in.
  */
 export function JobProgressPanel({
   jobId,
@@ -80,7 +81,9 @@ export function JobProgressPanel({
         </form>
       ) : (
         <p className="mt-5 rounded-xl bg-canvas p-4 text-center text-sm text-muted">
-          העבודה בביצוע. סיום העבודה, גביית התשלום והקבלה נבנים בשלב הבא.
+          {current === "completed"
+            ? "העבודה הושלמה. הקבלה והעמלה מופיעות בהיסטוריית העבודות ובארנק."
+            : "העבודה בביצוע. לסיום ולעדכון הגבייה — הכרטיס הירוק שבצד."}
         </p>
       )}
 

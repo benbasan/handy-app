@@ -48,6 +48,8 @@ export const PRO_ROUTES = {
    * handy.co.il/pro/jobs/8842, one segment under the feed it came from.
    */
   manageJob: (jobId: string) => `/pro/jobs/${jobId}`,
+  /** ארנק, הכנסות ועמלות — design/screens/pro-4.1-earnings-wallet.png, at /pro/wallet. */
+  wallet: "/pro/wallet",
 } as const;
 
 /**
@@ -67,7 +69,27 @@ export const CUSTOMER_ROUTES = {
    * design/screens/customer-3.1-tracking-chat.png.
    */
   track: (jobId: string) => `/requests/${jobId}/track`,
+  /**
+   * Where a call ends: the billing summary, the rating and the receipt —
+   * design/screens/customer-4.1-summary-receipt-rating.png, captured at
+   * handy.co.il/request/H-24817/summary.
+   */
+  summary: (jobId: string) => `/requests/${jobId}/summary`,
 } as const;
+
+/**
+ * The receipt PDF. Not inside either role's map because both roles download it
+ * — the customer from the summary screen, the pro from their history — and the
+ * route hands each of them a different document (the pro's copy carries the
+ * commission; see lib/pdf/receipt.tsx).
+ *
+ * A route handler rather than a server action, because what comes back is a
+ * file and a Content-Disposition rather than a re-render — the exception
+ * docs/architecture.md section 2 reserves /api for.
+ */
+export function receiptPath(jobId: string): string {
+  return `/api/receipts/${jobId}`;
+}
 
 export const ADMIN_ROUTES = {
   home: "/admin",
@@ -103,6 +125,7 @@ const PROTECTED_AREAS: ReadonlyArray<{ prefix: string; login: string }> = [
   { prefix: PRO_ROUTES.offers, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.messages, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.settings, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.wallet, login: ROLE_LOGIN.pro },
   { prefix: ROLE_HOME.admin, login: ROLE_LOGIN.admin },
 ];
 

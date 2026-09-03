@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JobProgressPanel } from "@/components/pro/JobProgressPanel";
 import { LocationReporter } from "@/components/pro/LocationReporter";
+import { CompleteJobForm } from "@/components/pro/CompleteJobForm";
 import { PriceUpdateForm } from "@/components/pro/PriceUpdateForm";
 import { ChatDock } from "@/components/ui/ChatDock";
 import { ChatPanel } from "@/components/ui/ChatPanel";
@@ -11,6 +12,7 @@ import { Badge, BUTTON_QUIET, Card } from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { PRO_ROUTES } from "@/lib/routes";
 import { getJob } from "@/lib/supabase/jobs";
+import { getMyProProfile } from "@/lib/supabase/pros";
 import { listMyThreads, listThreadMessages } from "@/lib/supabase/messages";
 import {
   listPriceUpdates,
@@ -24,6 +26,7 @@ import {
   listMyActiveJobs,
 } from "@/lib/supabase/tracking";
 import { jobReference } from "@/lib/validation/jobs";
+import { isPaymentMethod } from "@/lib/validation/completion";
 import {
   formatIls,
   PRICE_UPDATE_STATUS_LABEL_PRO,
@@ -58,13 +61,16 @@ export default async function ProManageJobPage({
   );
   if (!active) notFound();
 
-  const [job, contact, location, updates, threads] = await Promise.all([
-    getJob(jobId),
-    getJobContact(jobId),
-    getJobLocation(jobId),
-    listPriceUpdates(jobId),
-    listMyThreads(),
-  ]);
+  const [job, contact, location, updates, threads, profile] = await Promise.all(
+    [
+      getJob(jobId),
+      getJobContact(jobId),
+      getJobLocation(jobId),
+      listPriceUpdates(jobId),
+      listMyThreads(),
+      getMyProProfile(),
+    ],
+  );
   if (!job) notFound();
 
   const pending = pendingUpdate(updates);
@@ -72,6 +78,13 @@ export default async function ProManageJobPage({
 
   const photos = await signPriceUpdatePhotos(
     updates.map((update) => update.photoPath),
+  );
+
+  // The methods this pro ticked in onboarding, ordered first on the closing
+  // form. A hint, never a gate: a customer can hand over cash to a pro who
+  // only listed Bit, and the receipt has to be able to say so.
+  const acceptedMethods = (profile?.paymentMethods ?? []).filter(
+    isPaymentMethod,
   );
 
   const thread =
@@ -148,24 +161,30 @@ export default async function ProManageJobPage({
             />
           )}
 
-          <Card>
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-sm font-semibold text-muted">
-                מחיר מאושר לקריאה
-              </p>
-              <p className="text-2xl font-bold text-ink">
-                <span className="ltr-nums">
-                  {formatIls(active.currentPrice)}
-                </span>{" "}
-                ₪
-              </p>
-            </div>
-            <p className="mt-2 text-sm text-muted">
+          <div className="space-y-2">
+            <p className="rounded-xl bg-canvas p-3 text-sm text-muted">
               {active.currentPrice === active.agreedPrice
                 ? "המחיר שסוכם בהצעה שנבחרה."
                 : `כולל עדכון מחיר שהלקוח אישר (מחיר מקורי ${formatIls(active.agreedPrice)} ₪).`}
             </p>
-          </Card>
+
+            {pending && (
+              <p className="rounded-xl bg-alert-soft p-3 text-sm text-ink">
+                אם תסגרו את העבודה עכשיו, בקשת עדכון המחיר שממתינה תיסגר
+                כ&quot;לא אושרה&quot; והגבייה תהיה על{" "}
+                <span className="ltr-nums font-bold">
+                  {formatIls(active.currentPrice)}
+                </span>{" "}
+                ₪.
+              </p>
+            )}
+
+            <CompleteJobForm
+              jobId={jobId}
+              totalPrice={active.currentPrice}
+              acceptedMethods={acceptedMethods}
+            />
+          </div>
 
           {settled.length > 0 && (
             <Card>

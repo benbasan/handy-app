@@ -159,7 +159,7 @@ update public.pro_profiles
        work_end_time = '19:00',
        onboarding_step = 5,
        submitted_at = now() - interval '30 days',
-       payment_methods = array['cash', 'bit', 'transfer'],
+       payment_methods = array['cash', 'bit', 'bank_transfer'],
        payout_bank_name = 'בנק לאומי',
        payout_bank_branch = '800',
        payout_account_last4 = '4417'
@@ -267,7 +267,7 @@ update public.pro_profiles
        profile_strength_pct = 75,
        onboarding_step = 5,
        submitted_at = now() - interval '45 days',
-       payment_methods = array['cash', 'paybox', 'transfer'],
+       payment_methods = array['cash', 'paybox', 'bank_transfer'],
        payout_bank_name = 'בנק מזרחי',
        payout_bank_branch = '415',
        payout_account_last4 = '8801'
@@ -412,3 +412,114 @@ values (
   'a0000000-0000-4000-8000-000000000006/d0000000-0000-4000-8000-000000000003/fault.jpg',
   'צינור סדוק בקיר מאחורי הדוד — נדרשת החלפת קטע צינור ואיטום מחדש.'
 );
+
+-- ---------------------------------------------------------------------------
+-- Phase 6 — three jobs that are already closed
+--
+-- The summary screen (design/screens/customer-4.1-summary-receipt-rating.png),
+-- the היסטוריה tab of pro-3.2-my-jobs.png and the whole of
+-- pro-4.1-earnings-wallet.png only exist once work has been *finished*, and a
+-- fresh reset otherwise has none. These three belong to the verified pro
+-- (דוד מזרחי) and are spread across the wallet's three ranges — one from
+-- yesterday, one from four days ago, one from twelve — so the היום/השבוע/החודש
+-- toggle has something to actually distinguish.
+--
+-- The first is the design's own numbers: 380 base, an approved field update of
+-- +140, 520 total, 62.40 commission.
+-- ---------------------------------------------------------------------------
+
+insert into public.jobs (
+  id, customer_id, category_id, description, photo_urls, location, address_text,
+  preferred_time, search_radius_km, status, created_at
+) values
+  (
+    'd0000000-0000-4000-8000-000000000004',
+    'a0000000-0000-4000-8000-000000000001',
+    'c0000000-0000-4000-8000-000000000001',
+    'הדוד מטפטף ויש רטיבות בקיר הממ״ד.',
+    '{}',
+    extensions.st_point(34.7806, 32.0809)::extensions.geography,
+    'רחוב ברודצקי 18, תל אביב',
+    'asap', 5, 'open', now() - interval '1 day' - interval '3 hours'
+  ),
+  (
+    'd0000000-0000-4000-8000-000000000005',
+    'a0000000-0000-4000-8000-000000000002',
+    'c0000000-0000-4000-8000-00000000000a',
+    'איטום מחדש של מרפסת אחרי חורף.',
+    '{}',
+    extensions.st_point(34.7749, 32.0714)::extensions.geography,
+    'רחוב דיזנגוף 210, תל אביב',
+    'this_week', 5, 'open', now() - interval '4 days' - interval '5 hours'
+  ),
+  (
+    'd0000000-0000-4000-8000-000000000006',
+    'a0000000-0000-4000-8000-000000000001',
+    'c0000000-0000-4000-8000-000000000001',
+    'החלפת ברז מטבח וסיפון.',
+    '{}',
+    extensions.st_point(34.7770, 32.0830)::extensions.geography,
+    'רחוב יהודה המכבי 7, תל אביב',
+    'flexible', 5, 'open', now() - interval '12 days' - interval '2 hours'
+  );
+
+-- 'selected' straight away, for the reason the Phase 5 block gives: the seed is
+-- not a client, and through PostgREST a bid can only reach this state through
+-- select_bid().
+insert into public.bids (
+  id, job_id, pro_id, price, eta_minutes, note, status, expires_at, created_at
+) values
+  ('b0000000-0000-4000-8000-000000000006', 'd0000000-0000-4000-8000-000000000004',
+   'a0000000-0000-4000-8000-000000000003', 380, 25, 'כולל חלקים ואחריות שנה.',
+   'selected', now() - interval '1 day', now() - interval '1 day' - interval '2 hours'),
+  ('b0000000-0000-4000-8000-000000000007', 'd0000000-0000-4000-8000-000000000005',
+   'a0000000-0000-4000-8000-000000000003', 260, 60, 'איטום פוליאוריטן, שתי שכבות.',
+   'selected', now() - interval '4 days', now() - interval '4 days' - interval '4 hours'),
+  ('b0000000-0000-4000-8000-000000000008', 'd0000000-0000-4000-8000-000000000006',
+   'a0000000-0000-4000-8000-000000000003', 320, 40, 'מגיע עם ברז חלופי.',
+   'selected', now() - interval '12 days', now() - interval '12 days' - interval '1 hour');
+
+update public.jobs set status = 'completed',
+       selected_bid_id = 'b0000000-0000-4000-8000-000000000006'
+ where id = 'd0000000-0000-4000-8000-000000000004';
+update public.jobs set status = 'completed',
+       selected_bid_id = 'b0000000-0000-4000-8000-000000000007'
+ where id = 'd0000000-0000-4000-8000-000000000005';
+update public.jobs set status = 'completed',
+       selected_bid_id = 'b0000000-0000-4000-8000-000000000008'
+ where id = 'd0000000-0000-4000-8000-000000000006';
+
+-- The approved field update behind the design's "עדכון מחיר מאושר +140 ₪".
+insert into public.price_updates
+  (job_id, pro_id, original_price, new_price, photo_url, note, status, decided_at, created_at)
+values (
+  'd0000000-0000-4000-8000-000000000004',
+  'a0000000-0000-4000-8000-000000000003',
+  380, 520,
+  'a0000000-0000-4000-8000-000000000003/d0000000-0000-4000-8000-000000000004/fault.jpg',
+  'הדוד עצמו סדוק — נדרשה החלפה, לא רק איטום.',
+  'approved',
+  now() - interval '1 day' - interval '30 minutes',
+  now() - interval '1 day' - interval '50 minutes'
+);
+
+-- Written directly for the same reason the bids above are: through the app the
+-- only path into this table is complete_job(), which computes every one of
+-- these numbers itself. 12% of the total, to the agora.
+insert into public.commission_charges
+  (job_id, pro_id, base_price, total_price, commission_amount, payment_method, charged_at)
+values
+  ('d0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000003',
+   380, 520, 62.40, 'cash',          now() - interval '1 day'),
+  ('d0000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000003',
+   260, 260, 31.20, 'bit',           now() - interval '4 days'),
+  ('d0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000003',
+   320, 320, 38.40, 'bank_transfer', now() - interval '12 days');
+
+-- Two of the three are rated. The third is deliberately not: "ממתין לדירוג" is
+-- a real state on the wallet's table and the history tab, and an empty column
+-- is how it is meant to look.
+insert into public.reviews (job_id, rating, comment, created_at) values
+  ('d0000000-0000-4000-8000-000000000004', 5,
+   'הגיע בזמן, הסביר כל שקל לפני שעשה אותו. ממליצה.', now() - interval '23 hours'),
+  ('d0000000-0000-4000-8000-000000000005', 5, null, now() - interval '3 days');
