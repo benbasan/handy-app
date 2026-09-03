@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(196);
+select plan(244);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -155,13 +155,17 @@ reset role;
 select pg_temp.act_as(:pro_verified);
 set local role authenticated;
 
--- Two open calls inside the radius, plus the three Phase 6 seeded as finished
--- work of their own — a pro keeps reading a job they won through every later
--- status (the "assigned pro reads own job" policy from Phase 4).
+-- Three open calls inside the radius — the two Tel Aviv ones and the Ramat Gan
+-- call Phase 7 seeded so the admin overview has a job nobody has bid on —
+-- plus the three Phase 6 seeded as finished work of their own: a pro keeps
+-- reading a job they won through every later status (the "assigned pro reads
+-- own job" policy from Phase 4). The trade the job is in does not narrow this:
+-- the policy gates on verified + accepting + both radii, and the category is a
+-- filter inside open_jobs_for_pro(), not a secret.
 select is(
   (select count(*) from public.jobs where status in ('open', 'bidding')),
-  2::bigint,
-  'a verified pro sees both open Tel Aviv jobs inside their 10km radius'
+  3::bigint,
+  'a verified pro sees every open job inside their 10km radius'
 );
 
 select is(
@@ -1927,6 +1931,451 @@ select is(
   (select count(*) from public.my_saved_pros()),
   0::bigint,
   'somebody else''s saved list is not theirs to read'
+);
+
+
+-- ===========================================================================
+-- 14. Phase 7 — the admin dashboard, and the enforcement behind it
+--
+-- Two different shapes of protection meet in this phase, and the tests are
+-- split along the seam:
+--
+--  * The dossier an admin reads to judge a dispute is **rows** — jobs, bids,
+--    price_updates, messages — and every one of those tables has carried an
+--    "admin reads all" policy since the phase that created it. Sections 1, 5
+--    and 11 already prove nobody else reads them.
+--  * The dashboard's *numbers* are **aggregates**, and an aggregate cannot be
+--    expressed as a row policy: "how many jobs today" is not a row anyone
+--    owns. Each one is therefore a security definer function that asks
+--    is_admin() at its own front door, and this section is what proves the
+--    door is shut for everybody else.
+--
+-- Then the enforcement of product-spec.md 5.4, which is the half that can
+-- actually hurt someone: none of it is a hidden button.
+-- ===========================================================================
+
+reset role;
+
+\set dispute_from_customer '''e0000000-0000-4000-8000-000000000001'''
+\set dispute_from_pro '''e0000000-0000-4000-8000-000000000002'''
+\set dispute_decided '''e0000000-0000-4000-8000-000000000003'''
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select * from public.admin_overview() $$,
+  '42501',
+  null,
+  'a customer cannot read the overview — its figures are aggregates over everybody'
+);
+
+select throws_ok(
+  $$ select * from public.admin_jobs() $$,
+  '42501',
+  null,
+  'nor the table of every call in the system'
+);
+
+select throws_ok(
+  $$ select * from public.admin_disputes() $$,
+  '42501',
+  null,
+  'nor the dispute queue'
+);
+
+select throws_ok(
+  $$ select * from public.admin_trust_metrics() $$,
+  '42501',
+  null,
+  'nor the trust metrics computed from it'
+);
+
+select throws_ok(
+  $$ select * from public.admin_jobs_by_day() $$,
+  '42501',
+  null,
+  'nor the calls-per-day chart'
+);
+
+select throws_ok(
+  $$ select * from public.admin_category_mix() $$,
+  '42501',
+  null,
+  'nor the trade mix under it'
+);
+
+select throws_ok(
+  $$ select * from public.admin_job_cities() $$,
+  '42501',
+  null,
+  'nor even the list of cities the filter chip offers'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ select * from public.admin_jobs() $$,
+  '42501',
+  null,
+  'and a verified pro is not an admin either — the gate is the role, not the badge'
+);
+
+-- ---------------------------------------------------------------------------
+-- What the admin actually gets
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.admin_jobs(null, null, null, null, null)),
+  (select count(*) from public.jobs),
+  'the admin sees every call in the system, across both customers'
+);
+
+select is(
+  (select count(*) from public.admin_job_cities()),
+  2::bigint,
+  'the city filter offers the cities that actually have calls, derived from the address'
+);
+
+select is(
+  (select count(*) from public.admin_jobs(null, null, null, 'רמת גן', null)),
+  1::bigint,
+  'and filtering by one of them narrows to it'
+);
+
+select is(
+  (select count(*) from public.admin_jobs(null, null, 'hvac', null, null)),
+  1::bigint,
+  'as does filtering by trade'
+);
+
+-- Counted rather than compared to a single row: the H-00001 reference is
+-- derived from the uuid's last five digits (lib/validation/jobs.ts), so two
+-- different calls can wear the same one. The search has to find the call, not
+-- pretend the reference is a key.
+select is(
+  (select count(*) from public.admin_jobs('H-00001', null, null, null, null)
+    where job_id = 'd0000000-0000-4000-8000-000000000001'),
+  1::bigint,
+  'searching the H-00001 reference from the design finds that call'
+);
+
+select is(
+  (select count(*) from public.admin_jobs(null, 'completed', null, null, null)),
+  (select count(*) from public.jobs where status = 'completed'),
+  'and the status filter agrees with the table underneath it'
+);
+
+select is(
+  (select open_disputes from public.admin_overview()),
+  2,
+  'the overview counts the cases still waiting for a human'
+);
+
+select is(
+  (select jobs_without_bids from public.admin_overview()),
+  1,
+  'and the "קריאות ללא הצעות מעל שעה" alert counts a real call, not a placeholder'
+);
+
+select is(
+  (select count(*) from public.admin_jobs_by_day(7)),
+  7::bigint,
+  'the chart returns a bar per day including the quiet ones'
+);
+
+select is(
+  (select category_slug from public.admin_category_mix(30) limit 1),
+  'plumbing',
+  'and the legend under it is ordered by how much work each trade actually saw'
+);
+
+select is(
+  (select disputes_count from public.admin_trust_metrics()),
+  3,
+  'מדדי אמון counts every case opened in the window'
+);
+
+select is(
+  (select price_updates_approved_pct from public.admin_trust_metrics()),
+  50::numeric,
+  'and the share of field price updates a customer agreed to — the number that separates a real fault from an inflated bill'
+);
+
+-- ---------------------------------------------------------------------------
+-- A dispute belongs to the person who opened it, and to nobody else's pen
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.disputes),
+  2::bigint,
+  'a customer sees the cases on their own calls'
+);
+
+select is(
+  (select count(*) from public.disputes
+    where id = 'e0000000-0000-4000-8000-000000000003'),
+  0::bigint,
+  'and not the one opened on somebody else''s'
+);
+
+select throws_ok(
+  $$ update public.disputes set status = 'resolved'
+      where id = 'e0000000-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'the complainant cannot close their own case — disputes has no UPDATE grant for any client role'
+);
+
+select throws_ok(
+  $$ select public.resolve_dispute('e0000000-0000-4000-8000-000000000001', 'resolved', null, 500) $$,
+  '42501',
+  null,
+  'and cannot reach the function that would, however they call it'
+);
+
+select throws_ok(
+  $$ select public.set_pro_enforcement('a0000000-0000-4000-8000-000000000003', 'require_documents') $$,
+  '42501',
+  null,
+  'nor punish the pro they are complaining about'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.disputes (job_id, opened_by, reason, status, credit_amount)
+     values ('d0000000-0000-4000-8000-000000000002',
+             'a0000000-0000-4000-8000-000000000002', 'רוצה זיכוי', 'resolved', 5000) $$,
+  '42501',
+  null,
+  'and cannot open one already decided in their own favour: Phase 1''s table-wide INSERT grant let them write status and credit_amount, and this phase narrowed it to three columns'
+);
+
+select lives_ok(
+  $$ insert into public.disputes (job_id, opened_by, reason)
+     values ('d0000000-0000-4000-8000-000000000002',
+             'a0000000-0000-4000-8000-000000000002',
+             'בעל המקצוע לא הגיע במועד שנקבע.') $$,
+  'what they can do is state the complaint on their own call'
+);
+
+select is(
+  (select status from public.disputes
+    where job_id = 'd0000000-0000-4000-8000-000000000002'),
+  'open',
+  'which arrives open, at the default, waiting for somebody at Handy'
+);
+
+select throws_ok(
+  $$ insert into public.disputes (job_id, opened_by, reason)
+     values ('d0000000-0000-4000-8000-000000000002',
+             'a0000000-0000-4000-8000-000000000002', 'ושוב') $$,
+  '23505',
+  null,
+  'a second live case on the same call is the same case — one row, or two answers to one question'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.disputes (job_id, opened_by, reason)
+     values ('d0000000-0000-4000-8000-000000000002',
+             'a0000000-0000-4000-8000-000000000001', 'לא העבודה שלי') $$,
+  '42501',
+  null,
+  'and a stranger to the call cannot open one on it at all'
+);
+
+-- ---------------------------------------------------------------------------
+-- "הכרעה וזיכוי"
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  public.resolve_dispute(
+    'e0000000-0000-4000-8000-000000000001', 'resolved',
+    'נבדק מול תיעוד הקריאה: התמונה אינה של התקלה בכתובת הזו.', 140),
+  'resolved',
+  'the admin decides the case against the full documentation of the call'
+);
+
+select is(
+  (select credit_amount from public.disputes
+    where id = 'e0000000-0000-4000-8000-000000000001'),
+  140::numeric,
+  'and the credit to the customer is written by the same statement that closes it'
+);
+
+select ok(
+  (select resolved_at is not null and resolved_by = 'a0000000-0000-4000-8000-000000000005'
+     from public.disputes where id = 'e0000000-0000-4000-8000-000000000001'),
+  'stamped with when, and by whom — which is what "זמן הכרעה ממוצע" is measured from'
+);
+
+select throws_ok(
+  $$ select public.resolve_dispute('e0000000-0000-4000-8000-000000000001', 'rejected') $$,
+  '22023',
+  null,
+  'a decided case cannot be decided again'
+);
+
+select throws_ok(
+  $$ select public.resolve_dispute('e0000000-0000-4000-8000-000000000002', 'rejected', null, 90) $$,
+  '22023',
+  null,
+  'and a credit cannot ride along with a case that was refused'
+);
+
+select throws_ok(
+  $$ select public.resolve_dispute('e0000000-0000-4000-8000-000000000002', 'ignored') $$,
+  '22023',
+  null,
+  'the outcomes are a closed vocabulary'
+);
+
+-- ---------------------------------------------------------------------------
+-- כלי אכיפה — product-spec.md 5.4, enforced where the thing happens
+-- ---------------------------------------------------------------------------
+
+reset role;
+
+-- Section 13 closed job C. The block under test is checked inside
+-- request_price_update(), which needs a call still under way, so the fixture
+-- goes back to where Phase 5 left it.
+update public.jobs set status = 'in_progress'
+ where id = 'd0000000-0000-4000-8000-000000000003';
+
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  public.set_pro_enforcement('a0000000-0000-4000-8000-000000000006', 'block_price_updates'),
+  'block_price_updates',
+  'the admin blocks field price updates for one pro'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.request_price_update(
+       'd0000000-0000-4000-8000-000000000003', 900,
+       'a0000000-0000-4000-8000-000000000006/d0000000-0000-4000-8000-000000000003/fault2.jpg') $$,
+  '42501',
+  null,
+  'and the block bites inside the only function that can write the table, not on a hidden button'
+);
+
+select throws_ok(
+  $$ update public.pro_profiles set price_updates_blocked = false
+      where user_id = 'a0000000-0000-4000-8000-000000000006' $$,
+  '42501',
+  null,
+  'the pro cannot lift it themselves — the column has no grant, exactly like verification_status'
+);
+
+reset role;
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  public.set_pro_enforcement('a0000000-0000-4000-8000-000000000006', 'unblock_price_updates'),
+  'unblock_price_updates',
+  'the same tool lifts it again'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.request_price_update(
+       'd0000000-0000-4000-8000-000000000003', 900,
+       'a0000000-0000-4000-8000-000000000006/d0000000-0000-4000-8000-000000000003/fault2.jpg') $$,
+  'and the identical request then goes through — so it was the block that refused it, not anything else'
+);
+
+reset role;
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  public.set_pro_enforcement('a0000000-0000-4000-8000-000000000003', 'require_documents'),
+  'require_documents',
+  'דרישת מסמכים מחודשת moves the pro back into the queue'
+);
+
+select is(
+  (select verification_status from public.pro_profiles
+    where user_id = 'a0000000-0000-4000-8000-000000000003'),
+  'pending',
+  'which is not a label: pending is what is_verified_pro() answers false to'
+);
+
+select ok(
+  (select documents_required_at is not null from public.pro_profiles
+    where user_id = 'a0000000-0000-4000-8000-000000000003'),
+  'and the demand is stamped, so the pro can be told why'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+     values ('d0000000-0000-4000-8000-000000000002',
+             'a0000000-0000-4000-8000-000000000003', 400, 30) $$,
+  '42501',
+  null,
+  'so the pro cannot take new work until somebody has looked at the documents again'
+);
+
+reset role;
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.set_pro_enforcement('a0000000-0000-4000-8000-000000000003', 'ban') $$,
+  '22023',
+  null,
+  'the enforcement actions are a closed vocabulary too'
+);
+
+select is(
+  public.set_pro_verification('a0000000-0000-4000-8000-000000000003', 'verified'),
+  'verified',
+  'and the admin can put them back'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select lives_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+     values ('d0000000-0000-4000-8000-000000000002',
+             'a0000000-0000-4000-8000-000000000003', 400, 30) $$,
+  'after which the same offer they were refused a moment ago is accepted'
 );
 
 reset role;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Badge, BUTTON_BASE } from "@/components/ui/primitives";
+import { Badge, BUTTON_BASE, ErrorText } from "@/components/ui/primitives";
 import { decideProVerification } from "@/lib/actions/admin";
 import { EMPTY_ADMIN_DECISION_STATE } from "@/lib/actions/state";
 import { formatIsraeliMobile } from "@/lib/validation/auth";
@@ -27,6 +27,34 @@ const STATUS_TONE: Record<
   draft: { label: "טיוטה", tone: "neutral" },
 };
 
+/**
+ * The one-word verdict in the middle of every row on
+ * design/screens/admin-7.2-pro-approvals.png — תקין · חסר רישיון · דורש בדיקה.
+ *
+ * Derived from what the pro actually uploaded rather than stored anywhere: it
+ * is a reading of the documents beside it, and a column would be a second
+ * answer that could disagree with them. An admin who demanded fresh papers
+ * (product-spec.md 5.4) sees that instead, because it is the newer fact.
+ */
+function documentVerdict(application: ProApplication): {
+  label: string;
+  className: string;
+} {
+  if (application.documentsRequiredAt) {
+    return { label: "נדרשו מסמכים מחודשים", className: "text-danger" };
+  }
+
+  const types = new Set(application.docs.map((doc) => doc.docType));
+
+  if (!types.has("id_card")) {
+    return { label: "דורש בדיקה", className: "text-danger" };
+  }
+  if (!types.has("license") && !types.has("insurance")) {
+    return { label: "חסר רישיון", className: "text-admin" };
+  }
+  return { label: "תקין", className: "text-cta-strong" };
+}
+
 export function ProApprovalRow({
   application,
   docUrls,
@@ -48,6 +76,8 @@ export function ProApprovalRow({
   const waitingFor = application.submittedAt
     ? hoursSince(application.submittedAt)
     : null;
+
+  const verdict = documentVerdict(application);
 
   return (
     <li className="rounded-2xl border border-line bg-surface p-5">
@@ -92,8 +122,18 @@ export function ProApprovalRow({
           )}
         </div>
 
+        <p className={`min-w-32 text-sm font-bold ${verdict.className}`}>
+          {verdict.label}
+        </p>
+
         <Badge tone={status.tone}>{status.label}</Badge>
       </div>
+
+      {application.priceUpdatesBlocked && (
+        <p className="mt-3 rounded-xl bg-danger-soft px-4 py-2 text-sm font-semibold text-danger">
+          עדכוני מחיר בשטח חסומים לבעל המקצוע הזה — נקבע מתוך מסך המחלוקות.
+        </p>
+      )}
 
       {application.docs.length > 0 && (
         <ul className="mt-4 flex flex-wrap gap-2">
@@ -141,7 +181,7 @@ export function ProApprovalRow({
           name="status"
           value="rejected"
           disabled={pending}
-          className={`${BUTTON_BASE} bg-red-600 px-5 py-2 text-sm text-white hover:bg-red-700`}
+          className={`${BUTTON_BASE} bg-danger px-5 py-2 text-sm text-white hover:bg-danger-strong`}
         >
           דחה
         </button>
@@ -156,11 +196,7 @@ export function ProApprovalRow({
           השהה
         </button>
 
-        {state.error && (
-          <p role="alert" className="text-sm font-medium text-red-700">
-            {state.error}
-          </p>
-        )}
+        {state.error && <ErrorText>{state.error}</ErrorText>}
       </form>
     </li>
   );

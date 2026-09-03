@@ -5,15 +5,18 @@ import {
   BUTTON_QUIET,
   Card,
 } from "@/components/ui/primitives";
+import { DisputeOpener } from "@/components/ui/DisputeOpener";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { PRO_ROUTES, receiptPath } from "@/lib/routes";
 import {
   getMyEarningsStats,
   listMyCompletedJobs,
 } from "@/lib/supabase/completion";
+import { listJobDisputes } from "@/lib/supabase/disputes";
 import { requireRole } from "@/lib/supabase/session";
 import { listMyActiveJobs } from "@/lib/supabase/tracking";
 import { relativeTime } from "@/lib/validation/bids";
+import type { DisputeStatus } from "@/lib/validation/disputes";
 import { formatIls } from "@/lib/validation/priceUpdates";
 import { PAYMENT_METHOD_LABEL } from "@/lib/validation/pros";
 import { JOB_PROGRESS_LABEL_PRO } from "@/lib/validation/tracking";
@@ -50,6 +53,23 @@ export default async function ProMyJobsPage({
     listMyCompletedJobs(),
     getMyEarningsStats(),
   ]);
+
+  // Read only for the tab that shows it. `disputes: participants read` is what
+  // scopes these rows — a pro sees the cases on jobs they bid on, and nothing
+  // else — so this is a projection of their own history, not a lookup.
+  const disputes = new Map<string, DisputeStatus>();
+  if (showingHistory) {
+    const rows = await Promise.all(
+      completed.map(async (job) => ({
+        jobId: job.jobId,
+        cases: await listJobDisputes(job.jobId),
+      })),
+    );
+    for (const row of rows) {
+      const status = row.cases[0]?.status;
+      if (status) disputes.set(row.jobId, status);
+    }
+  }
 
   const openValue = active.reduce((sum, job) => sum + job.currentPrice, 0);
   const awaitingDecision = active.filter(
@@ -133,7 +153,7 @@ export default async function ProMyJobsPage({
         </aside>
 
         {showingHistory ? (
-          <HistoryList jobs={completed} />
+          <HistoryList jobs={completed} disputes={disputes} />
         ) : (
           <ActiveList jobs={active} />
         )}
@@ -289,8 +309,11 @@ function ActiveList({
 
 function HistoryList({
   jobs,
+  disputes,
 }: {
   jobs: Awaited<ReturnType<typeof listMyCompletedJobs>>;
+  /** Any case already open on a job, keyed by job id — at most one per job. */
+  disputes: Map<string, DisputeStatus>;
 }) {
   if (jobs.length === 0) {
     return (
@@ -364,6 +387,19 @@ function HistoryList({
             >
               הודעות
             </Link>
+          </div>
+
+          {/*
+            Either side of a job may open a case (product-spec.md 5.4), and the
+            pro's is usually "הלקוח לא שילם" — which is exactly the second
+            dispute on design/screens/admin-7.4-disputes-control.png.
+          */}
+          <div className="mt-4">
+            <DisputeOpener
+              jobId={job.jobId}
+              existingStatus={disputes.get(job.jobId)}
+              tone="pro"
+            />
           </div>
         </li>
       ))}

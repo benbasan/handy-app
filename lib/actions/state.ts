@@ -97,3 +97,28 @@ export type SaveProState = {
 };
 
 export const EMPTY_SAVE_PRO_STATE: SaveProState = {};
+
+export type ResolveDisputeState = {
+  error?: string;
+  /** Keyed by the schema's field name, so a form can sit the message under the right control. */
+  fieldErrors?: Record<string, string>;
+  /** What the admin decided, so the card can confirm without a reload. */
+  decision?: string;
+};
+
+export const EMPTY_RESOLVE_DISPUTE_STATE: ResolveDisputeState = {};
+
+export type ProEnforcementActionState = {
+  error?: string;
+  /** The action that was applied, so the panel can say which. */
+  applied?: string;
+};
+
+export const EMPTY_PRO_ENFORCEMENT_STATE: ProEnforcementActionState = {};
+
+export type OpenDisputeState = {
+  error?: string;
+  opened?: boolean;
+};
+
+export const EMPTY_OPEN_DISPUTE_STATE: OpenDisputeState = {};

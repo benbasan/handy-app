@@ -114,7 +114,7 @@ update public.pro_profiles
 
 insert into public.jobs (
   id, customer_id, category_id, description, photo_urls, location, address_text,
-  preferred_time, search_radius_km, status
+  preferred_time, search_radius_km, status, created_at
 ) values
   (
     'd0000000-0000-4000-8000-000000000001',
@@ -129,7 +129,11 @@ insert into public.jobs (
     'רחוב דיזנגוף 100, תל אביב',
     'today',
     5,
-    'open'
+    'open',
+    -- Older than the bids below it. Obvious, and worth writing down: the
+    -- admin overview's "זמן להצעה ראשונה" averages (first bid − posting), and
+    -- a job seeded at now() with a bid backdated ten minutes makes it negative.
+    now() - interval '35 minutes'
   ),
   (
     'd0000000-0000-4000-8000-000000000002',
@@ -141,7 +145,8 @@ insert into public.jobs (
     'רחוב אלנבי 40, תל אביב',
     'tomorrow',
     5,
-    'open'
+    'open',
+    now() - interval '4 hours'
   );
 
 -- ---------------------------------------------------------------------------
@@ -356,7 +361,7 @@ insert into public.messages (job_id, pro_id, sender_id, body, created_at, read_a
 
 insert into public.jobs (
   id, customer_id, category_id, description, photo_urls, location, address_text,
-  preferred_time, search_radius_km, status
+  preferred_time, search_radius_km, status, created_at
 ) values (
   'd0000000-0000-4000-8000-000000000003',
   'a0000000-0000-4000-8000-000000000002',
@@ -367,7 +372,8 @@ insert into public.jobs (
   'רחוב אלנבי 40, תל אביב',
   'asap',
   5,
-  'open'
+  'open',
+  now() - interval '2 hours'
 );
 
 -- Inserted already 'selected': the seed is not a client, and status has no
@@ -523,3 +529,66 @@ insert into public.reviews (job_id, rating, comment, created_at) values
   ('d0000000-0000-4000-8000-000000000004', 5,
    'הגיע בזמן, הסביר כל שקל לפני שעשה אותו. ממליצה.', now() - interval '23 hours'),
   ('d0000000-0000-4000-8000-000000000005', 5, null, now() - interval '3 days');
+
+-- ---------------------------------------------------------------------------
+-- Phase 7 — what the admin dashboard is there to see
+--
+-- The four screens under design/screens/admin-* are all lists of trouble, and
+-- a fresh reset otherwise has none: no dispute has ever been opened, and every
+-- job in the seed has offers on it. Two rows fix that.
+--
+--  * One open call, three hours old, that nobody has bid on. It is the
+--    "קריאות ללא הצעות" alert on the overview and the ללא הצעות line in the
+--    jobs table — both of which are counted from real rows, so without one
+--    they would draw a zero that is not a state the product can reach.
+--  * Three disputes across the three closed jobs, in the states the design
+--    captures: two open (one of each side's kind) and one already decided
+--    with a partial credit.
+-- ---------------------------------------------------------------------------
+
+insert into public.jobs (
+  id, customer_id, category_id, description, photo_urls, location, address_text,
+  preferred_time, search_radius_km, status, created_at
+) values (
+  'd0000000-0000-4000-8000-000000000007',
+  'a0000000-0000-4000-8000-000000000002',
+  'c0000000-0000-4000-8000-000000000003',
+  'המזגן בסלון מקרר חלש ומטפטף מים על הרצפה.',
+  '{}',
+  extensions.st_point(34.8100, 32.1100)::extensions.geography,
+  'רחוב ז׳בוטינסקי 55, רמת גן',
+  'this_week', 5, 'open', now() - interval '3 hours'
+);
+
+-- Written directly, as everything else in this file is: through the app a
+-- participant may insert only (job_id, opened_by, reason), and status,
+-- credit_amount and resolved_at are resolve_dispute()'s alone.
+insert into public.disputes (
+  id, job_id, opened_by, reason, status, credit_amount, resolution_note,
+  resolved_by, resolved_at, created_at
+) values
+  (
+    'e0000000-0000-4000-8000-000000000001',
+    'd0000000-0000-4000-8000-000000000004',
+    'a0000000-0000-4000-8000-000000000001',
+    'המחיר עודכן ב-140 ₪ ואני לא בטוחה שהתמונה שצורפה היא של התקלה אצלי.',
+    'open', null, null, null, null, now() - interval '6 hours'
+  ),
+  (
+    'e0000000-0000-4000-8000-000000000002',
+    'd0000000-0000-4000-8000-000000000006',
+    'a0000000-0000-4000-8000-000000000003',
+    'הלקוח לא שילם בסיום העבודה ולא עונה לטלפון.',
+    'open', null, null, null, null, now() - interval '2 days'
+  ),
+  (
+    'e0000000-0000-4000-8000-000000000003',
+    'd0000000-0000-4000-8000-000000000005',
+    'a0000000-0000-4000-8000-000000000002',
+    'האיטום נעשה רק בחצי מהמרפסת.',
+    'resolved', 60,
+    'נבדק מול תיעוד הקריאה: התמונות מראות עבודה חלקית. זיכוי של 60 ₪ ללקוח.',
+    'a0000000-0000-4000-8000-000000000005',
+    now() - interval '4 days' + interval '19 hours',
+    now() - interval '5 days'
+  );

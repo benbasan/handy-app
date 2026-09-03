@@ -214,6 +214,10 @@ export type ProApplication = {
   radiusKm: number;
   verificationStatus: string;
   submittedAt: string | null;
+  /** Phase 7 enforcement: fresh documents were demanded, and when. */
+  documentsRequiredAt: string | null;
+  /** Phase 7 enforcement: this pro may not ask for a field price change. */
+  priceUpdatesBlocked: boolean;
   categoryNames: string[];
   docs: Array<{
     id: string;
@@ -224,9 +228,10 @@ export type ProApplication = {
 };
 
 /**
- * The approvals queue — design/screens/admin-7.2-pro-approvals.png, in the
- * minimal form Phase 3 needs so the pro flow can be walked end to end without
- * waiting for the full dashboard in Phase 7.
+ * The approvals queue — design/screens/admin-7.2-pro-approvals.png. It arrived
+ * in Phase 3 in a minimal form so the pro flow could be walked end to end;
+ * Phase 7 added the two enforcement flags to the projection and nothing else,
+ * because the query was already the right one.
  *
  * No `.eq("verification_status", …)` on the admin's behalf beyond the status
  * filter the screen asks for: what makes this readable at all is the
@@ -246,7 +251,7 @@ export async function listProApplications(
     // embed with HTTP 300 and no rows at all, which would render this queue
     // silently empty.
     .select(
-      "user_id, bio, radius_km, service_address_text, verification_status, submitted_at, profiles!pro_profiles_user_id_fkey(full_name, phone), pro_categories(categories(name_he)), verification_documents(id, doc_type, file_url, status)",
+      "user_id, bio, radius_km, service_address_text, verification_status, submitted_at, documents_required_at, price_updates_blocked, profiles!pro_profiles_user_id_fkey(full_name, phone), pro_categories(categories(name_he)), verification_documents(id, doc_type, file_url, status)",
     )
     .in("verification_status", [...statuses])
     .order("submitted_at", { ascending: true, nullsFirst: false });
@@ -260,6 +265,8 @@ export async function listProApplications(
     radiusKm: row.radius_km,
     verificationStatus: row.verification_status,
     submittedAt: row.submitted_at,
+    documentsRequiredAt: row.documents_required_at,
+    priceUpdatesBlocked: row.price_updates_blocked,
     categoryNames: (row.pro_categories ?? [])
       .map((link) => link.categories?.name_he)
       .filter((name): name is string => Boolean(name)),

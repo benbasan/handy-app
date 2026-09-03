@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { RatingForm } from "@/components/customer/RatingForm";
 import { SaveProButton } from "@/components/customer/SaveProButton";
+import { DisputeOpener } from "@/components/ui/DisputeOpener";
 import { BUTTON_CTA, BUTTON_QUIET, Card } from "@/components/ui/primitives";
 import { CUSTOMER_ROUTES, receiptPath } from "@/lib/routes";
+import { listJobDisputes } from "@/lib/supabase/disputes";
 import { getJobReceipt, hasSavedPro } from "@/lib/supabase/completion";
 import { getJob } from "@/lib/supabase/jobs";
 import { listPriceUpdates } from "@/lib/supabase/priceUpdates";
@@ -53,9 +55,10 @@ export default async function JobSummaryPage({
   // sending them there beats a page that explains why this one is empty.
   if (!receipt) redirect(CUSTOMER_ROUTES.track(jobId));
 
-  const [updates, saved] = await Promise.all([
+  const [updates, saved, disputes] = await Promise.all([
     listPriceUpdates(jobId),
     hasSavedPro(receipt.proId),
+    listJobDisputes(jobId),
   ]);
 
   const approved = updates.filter((update) => update.status === "approved");
@@ -207,6 +210,13 @@ export default async function JobSummaryPage({
             proName={receipt.proName}
             alreadySaved={saved}
           />
+
+          {/*
+            The gap between the payment chips above and what the customer
+            actually remembers is a dispute, not a button — Phase 6 said so and
+            left it to Phase 7. This is that door.
+          */}
+          <DisputeOpener jobId={jobId} existingStatus={disputes[0]?.status} />
 
           <Card>
             <h2 className="font-bold text-ink">מה שילמתם, ולמה</h2>
