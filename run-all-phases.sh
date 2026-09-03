@@ -130,6 +130,16 @@ phase_label() {
 
 # Pull one marked block out of the prompt file. Markers are matched exactly, so
 # the prose above them (which mentions the marker names) is not picked up.
+# Added lines of a diff, with comment-only lines dropped. A rule stated in a
+# comment ("never write ml-4", "a committed SUPABASE_SERVICE_ROLE_KEY= is the
+# thing we grep for") is not a violation of that rule — twice now the gate has
+# stopped a run over prose describing what it looks for.
+added_code_lines() {
+  git diff "$@" |
+    grep -E '^\+' | grep -Ev '^\+\+\+' | sed 's/^+//' |
+    grep -Ev '^[[:space:]]*(\{?/\*|\*/?|//|#|--)'
+}
+
 extract_block() {
   awk -v s="$1" -v e="$2" '
     $0 == s { inb = 1; next }
@@ -521,9 +531,10 @@ quality_gate() {
   local leaked
   leaked="$(git diff "main..$branch" --name-only | grep -E '^\.env(\.local|\.production)?$' || true)"
   local keyish
-  keyish="$(git diff "main..$branch" -- . ':(exclude).env.example' |
-    grep -E '^\+' | grep -Ev '^\+\+\+' |
-    grep -E '(AIza[0-9A-Za-z_-]{20,}|eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{10,}|sk-[A-Za-z0-9]{20,}|SUPABASE_SERVICE_ROLE_KEY *= *[^ ]+)' || true)"
+  # The value has to look like key material: a placeholder such as
+  # SUPABASE_SERVICE_ROLE_KEY=<something> asserts nothing and leaks nothing.
+  keyish="$(added_code_lines "main..$branch" -- . ':(exclude).env.example' |
+    grep -E '(AIza[0-9A-Za-z_-]{20,}|eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{10,}|sk-[A-Za-z0-9]{20,}|SUPABASE_SERVICE_ROLE_KEY *= *[A-Za-z0-9_.-]{20,})' || true)"
   if [ -n "$leaked" ] || [ -n "$keyish" ]; then
     log "    FAIL secret scan"
     GATE_HARD_FAIL="${GATE_HARD_FAIL}${GATE_HARD_FAIL:+, }possible secret in the diff"
@@ -538,6 +549,12 @@ quality_gate() {
 
   gate_run "npm run lint" npm run lint
   gate_run "npm run typecheck" npm run typecheck
+  # From Phase 9 on, the repo enforces the RTL and no-secrets rules itself, in
+  # its own test suite. Run it whenever it exists — it is a better instrument
+  # than the greps below.
+  if npm run 2>/dev/null | grep -qE '^  test$'; then
+    gate_run "npm run test" npm run test
+  fi
   gate_run "npm run build" npm run build
   gate_run "npm run db:reset" npm run db:reset
   gate_run "npm run db:test" npm run db:test
@@ -547,8 +564,9 @@ quality_gate() {
   # abort a multi-hour run. It still goes to the repair agent, which can read
   # the code and judge.
   local rtl
-  rtl="$(git diff "main..$branch" -- '*.tsx' '*.ts' '*.css' |
-    grep -E '^\+' | grep -Ev '^\+\+\+' |
+  # Scoped to the UI surface: a file whose job is to name the forbidden classes
+  # (tests/rtl.test.ts, e2e/rtl.spec.ts) is not violating the rule it enforces.
+  rtl="$(added_code_lines "main..$branch" -- 'app/**' 'components/**' '*.css' |
     grep -E '(^|[^a-zA-Z0-9_-])(ml|mr|pl|pr)-[0-9a-z[]|(^|[^a-zA-Z0-9_-])text-(left|right)([^a-zA-Z0-9_-]|$)|(^|[^a-zA-Z0-9_-])(left|right)-[0-9[]' || true)"
   if [ -n "$rtl" ]; then
     log "    WARN physical RTL utilities in added lines (advisory)"
