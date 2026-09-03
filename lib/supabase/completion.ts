@@ -59,9 +59,7 @@ export type JobReceipt = {
  * one the caller is a side of — the function raises, and a raise arrives here
  * as no row).
  */
-export async function getJobReceipt(
-  jobId: string,
-): Promise<JobReceipt | null> {
+export async function getJobReceipt(jobId: string): Promise<JobReceipt | null> {
   const supabase = await createClient();
 
   const { data } = await supabase.rpc("job_receipt", { p_job_id: jobId });

@@ -123,6 +123,11 @@ const styles = StyleSheet.create({
   footer: {
     position: "absolute",
     bottom: 28,
+    // Physical `left`/`right` rather than the logical utilities CLAUDE.md
+    // section 3 requires of the app: this is react-pdf's stylesheet, which has
+    // no logical properties, and a PDF page has no `dir`. Symmetric values, so
+    // there is nothing for a direction to flip. Same for `textAlign: "right"`
+    // throughout — the document is Hebrew, always.
     left: 48,
     right: 48,
     borderTopWidth: 1,
@@ -167,22 +172,21 @@ export function ReceiptDocument({
     audience === "pro" && receipt.commissionAmount !== null;
 
   return (
-    <Document
-      title={`קבלה ${reference} — Handy`}
-      author="Handy"
-      language="he"
-    >
+    <Document title={`קבלה ${reference} — Handy`} author="Handy" language="he">
       <Page size="A4" style={styles.page}>
         <View style={styles.row}>
           <View>
             <Text style={styles.title}>קבלה</Text>
-            <Text style={styles.meta}>
-              {`קריאה ${reference} · ${receipt.categoryName} · ${formatReceiptDate(receipt.chargedAt)}`}
-            </Text>
+            <Text style={styles.meta}>{`קריאה ${reference}`}</Text>
           </View>
           <Text style={styles.wordmark}>Handy</Text>
         </View>
 
+        {/* Label/value rows rather than one "קריאה X · תחום · תאריך" line.
+            A sentence that mixes Hebrew, a Latin reference and a date is three
+            bidi runs, and the reordering that produces is correct by the
+            Unicode algorithm and unreadable to a person. Short, single-fact
+            rows have no ambiguity to resolve. */}
         <View style={styles.section}>
           <Text style={styles.heading}>פרטי העבודה</Text>
 
@@ -195,8 +199,16 @@ export function ReceiptDocument({
             <Text>{receipt.proName ?? "—"}</Text>
           </View>
           <View style={[styles.row, styles.line]}>
+            <Text style={{ color: MUTED }}>תחום</Text>
+            <Text>{receipt.categoryName}</Text>
+          </View>
+          <View style={[styles.row, styles.line]}>
             <Text style={{ color: MUTED }}>כתובת</Text>
             <Text>{receipt.addressText}</Text>
+          </View>
+          <View style={[styles.row, styles.line]}>
+            <Text style={{ color: MUTED }}>נסגר בתאריך</Text>
+            <Text>{formatReceiptDate(receipt.chargedAt)}</Text>
           </View>
           <View style={[styles.row, styles.line]}>
             <Text style={{ color: MUTED }}>אמצעי תשלום</Text>
@@ -257,10 +269,16 @@ export function ReceiptDocument({
           </View>
         )}
 
+        {/* One sentence per line, for the reason the detail rows above give:
+            a Latin word in the middle of a wrapped Hebrew paragraph reorders
+            correctly and reads wrongly. */}
         <View style={styles.footer} fixed>
           <Text style={styles.note}>
-            התשלום מתבצע ישירות בין הלקוח לבעל המקצוע. Handy אינה מעבדת את
-            התשלום עצמו ואינה צד לו — היא מתעדת אותו לצורך הקבלה והעמלה.
+            התשלום מתבצע ישירות בין הלקוח לבעל המקצוע.
+          </Text>
+          <Text style={styles.note}>
+            Handy אינה מעבדת את התשלום ואינה צד לו — היא מתעדת אותו לצורך הקבלה
+            והעמלה.
           </Text>
         </View>
       </Page>

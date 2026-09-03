@@ -110,11 +110,7 @@ export function RatingForm({
           disabled={pending || chosen === null}
           className="rounded-xl bg-brand px-5 py-3 text-base font-bold text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {pending
-            ? "שומר…"
-            : saved !== null
-              ? "עדכון הדירוג"
-              : "שליחת הדירוג"}
+          {pending ? "שומר…" : saved !== null ? "עדכון הדירוג" : "שליחת הדירוג"}
         </button>
 
         {state.error && <ErrorText>{state.error}</ErrorText>}

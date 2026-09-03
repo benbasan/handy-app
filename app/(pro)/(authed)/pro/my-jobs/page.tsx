@@ -205,7 +205,10 @@ function ActiveList({
         <p className="mt-2 text-muted">
           עבודה מגיעה לכאן ברגע שלקוח בוחר בהצעה שלך.
         </p>
-        <Link href={PRO_ROUTES.jobs} className={`${BUTTON_PRO} mt-5 inline-flex`}>
+        <Link
+          href={PRO_ROUTES.jobs}
+          className={`${BUTTON_PRO} mt-5 inline-flex`}
+        >
           לפיד הקריאות
         </Link>
       </Card>
@@ -337,9 +340,12 @@ function HistoryList({
                 <span className="ltr-nums">{formatIls(job.netAmount)}</span> ₪
               </p>
               <p className="mt-1 text-xs text-muted">
-                מתוך <span className="ltr-nums">{formatIls(job.totalPrice)}</span>{" "}
-                ₪, עמלה{" "}
-                <span className="ltr-nums">{formatIls(job.commissionAmount)}</span>{" "}
+                מתוך{" "}
+                <span className="ltr-nums">{formatIls(job.totalPrice)}</span> ₪,
+                עמלה{" "}
+                <span className="ltr-nums">
+                  {formatIls(job.commissionAmount)}
+                </span>{" "}
                 ₪
               </p>
             </div>

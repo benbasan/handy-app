@@ -117,7 +117,10 @@ export default async function ProWalletPage({
             aria-label={`הכנסות לפי יום, ${EARNINGS_RANGE_LABEL[range]}`}
           >
             {bars.map((bar) => (
-              <div key={bar.day} className="flex flex-1 flex-col items-center gap-1">
+              <div
+                key={bar.day}
+                className="flex flex-1 flex-col items-center gap-1"
+              >
                 <span
                   className={`w-full rounded-md ${
                     bar.total > 0 ? "bg-cta" : "bg-white/15"
@@ -126,7 +129,9 @@ export default async function ProWalletPage({
                     height: `${Math.max(8, Math.round((bar.total / peak) * 72))}px`,
                   }}
                 />
-                <span className="text-[0.65rem] text-white/60">{bar.label}</span>
+                <span className="text-[0.65rem] text-white/60">
+                  {bar.label}
+                </span>
               </div>
             ))}
           </div>
@@ -136,7 +141,9 @@ export default async function ProWalletPage({
           <p className="text-sm text-muted">דירוג מאומת</p>
           {stats.ratingAvg === null ? (
             <>
-              <p className="mt-2 text-2xl font-bold text-ink">אין עדיין דירוג</p>
+              <p className="mt-2 text-2xl font-bold text-ink">
+                אין עדיין דירוג
+              </p>
               <p className="mt-1 text-sm text-muted">
                 הדירוג הראשון מגיע אחרי שלקוח מדרג עבודה שסגרתם.
               </p>

@@ -179,7 +179,9 @@ export default async function JobSummaryPage({
             <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-line pt-4">
               <p className="text-lg font-bold text-ink">סה״כ</p>
               <p className="text-2xl font-bold text-brand">
-                <span className="ltr-nums">{formatIls(receipt.totalPrice)}</span>{" "}
+                <span className="ltr-nums">
+                  {formatIls(receipt.totalPrice)}
+                </span>{" "}
                 ₪
               </p>
             </div>

@@ -105,7 +105,9 @@ export const EARNINGS_RANGE_HEADING: Record<EarningsRange, string> = {
   month: "הכנסות החודש",
 };
 
-export function isEarningsRange(value: string | undefined): value is EarningsRange {
+export function isEarningsRange(
+  value: string | undefined,
+): value is EarningsRange {
   return (EARNINGS_RANGES as readonly string[]).includes(value ?? "");
 }
 
@@ -231,13 +233,19 @@ export function receiptTimestamp(iso: string): string {
   return `${day}.${month}, ${time}`;
 }
 
-/** "3 בספטמבר 2026, 14:55" — the date line at the head of the PDF. */
+/**
+ * "3.9.2026, 14:55" — the date on the receipt.
+ *
+ * All digits and separators on purpose, rather than "3 בספטמבר 2026": a date
+ * that mixes a Hebrew month name with numbers on both sides is three bidi runs
+ * inside one line, and the reordering that produces is correct by the Unicode
+ * algorithm and unreadable to a person. Digits alone are a single run.
+ */
 export function formatReceiptDate(iso: string): string {
-  return new Date(iso).toLocaleString("he-IL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
+  const date = new Date(iso);
+  const time = date.toLocaleTimeString("he-IL", {
     hour: "2-digit",
     minute: "2-digit",
   });
+  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}, ${time}`;
 }

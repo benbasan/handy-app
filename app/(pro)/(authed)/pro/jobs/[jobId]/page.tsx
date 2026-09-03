@@ -61,14 +61,16 @@ export default async function ProManageJobPage({
   );
   if (!active) notFound();
 
-  const [job, contact, location, updates, threads, profile] = await Promise.all([
-    getJob(jobId),
-    getJobContact(jobId),
-    getJobLocation(jobId),
-    listPriceUpdates(jobId),
-    listMyThreads(),
-    getMyProProfile(),
-  ]);
+  const [job, contact, location, updates, threads, profile] = await Promise.all(
+    [
+      getJob(jobId),
+      getJobContact(jobId),
+      getJobLocation(jobId),
+      listPriceUpdates(jobId),
+      listMyThreads(),
+      getMyProProfile(),
+    ],
+  );
   if (!job) notFound();
 
   const pending = pendingUpdate(updates);

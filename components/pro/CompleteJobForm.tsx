@@ -53,7 +53,9 @@ export function CompleteJobForm({
   // something the pro did not tick, and a receipt that cannot say so would be
   // a receipt that lies.
   const ordered = [
-    ...PAYMENT_METHODS.filter((candidate) => acceptedMethods.includes(candidate)),
+    ...PAYMENT_METHODS.filter((candidate) =>
+      acceptedMethods.includes(candidate),
+    ),
     ...PAYMENT_METHODS.filter(
       (candidate) => !acceptedMethods.includes(candidate),
     ),
