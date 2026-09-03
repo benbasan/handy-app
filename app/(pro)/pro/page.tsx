@@ -66,7 +66,7 @@ export default async function ProLandingPage() {
         <section className="bg-ink text-white">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-2">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-full bg-cta/15 px-4 py-2 text-sm font-semibold text-cta">
+              <p className="inline-flex items-center gap-2 rounded-full bg-cta/15 px-4 py-2 text-sm font-semibold text-cta-bright">
                 ללא דמי מנוי · עמלה רק על עבודה שנסגרה
               </p>
 
@@ -104,7 +104,7 @@ export default async function ProLandingPage() {
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-white/5 p-8 sm:p-10">
-              <p className="text-sm font-semibold text-cta">
+              <p className="text-sm font-semibold text-cta-bright">
                 השקיפות עובדת גם לטובתך
               </p>
               <p className="mt-3 text-2xl leading-snug font-bold">
@@ -181,7 +181,9 @@ function Stat({ value, label }: { value: string; label: string }) {
     <div>
       <dt className="sr-only">{label}</dt>
       <dd>
-        <span className="block text-2xl font-bold text-cta">{value}</span>
+        <span className="block text-2xl font-bold text-cta-bright">
+          {value}
+        </span>
         <span className="mt-1 block text-xs text-white/60">{label}</span>
       </dd>
     </div>

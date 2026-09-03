@@ -84,7 +84,7 @@ export function SectionCard({
 const BADGE_TONES = {
   open: "bg-brand-soft text-brand",
   done: "bg-cta/15 text-cta-strong",
-  waiting: "bg-alert/15 text-alert",
+  waiting: "bg-alert/15 text-alert-strong",
   neutral: "bg-canvas text-muted",
   pro: "bg-pro-soft text-pro",
 } as const;

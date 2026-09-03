@@ -72,7 +72,9 @@ export default async function LandingPage() {
         </div>
 
         <div className="rounded-3xl bg-ink p-8 text-white sm:p-10">
-          <p className="text-sm font-semibold text-cta">כלל השקיפות של Handy</p>
+          <p className="text-sm font-semibold text-cta-bright">
+            כלל השקיפות של Handy
+          </p>
           <p className="mt-3 text-2xl leading-snug font-bold">
             שינוי מחיר בשטח מחייב תמונה של התקלה ואישור מפורש שלכם.
           </p>

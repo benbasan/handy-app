@@ -278,9 +278,7 @@ function SummaryRow({
   return (
     <div className="flex items-baseline justify-between gap-3 py-3">
       <dt className="text-muted">{label}</dt>
-      <dd
-        className={`text-end font-bold ${value ? "text-ink" : "text-muted/60"}`}
-      >
+      <dd className={`text-end font-bold ${value ? "text-ink" : "text-muted"}`}>
         {value ?? "—"}
       </dd>
     </div>
