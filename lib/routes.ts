@@ -91,9 +91,30 @@ export function receiptPath(jobId: string): string {
   return `/api/receipts/${jobId}`;
 }
 
+/**
+ * The four screens of design/screens/admin-*.png, in the order the admin
+ * header lists them. The design captures them at admin.handy.co.il/… — a
+ * separate host we do not have, so each one keeps the `/admin` prefix that
+ * lib/routes.ts gives every admin path (route groups add no segment of their
+ * own, so without it `(admin)/login` and `(customer)/login` would collide).
+ */
 export const ADMIN_ROUTES = {
+  /** 7.1 סקירה כללית. */
   home: "/admin",
+  /** 7.2 אישור בעלי מקצוע — captured at admin.handy.co.il/pros/pending. */
   pros: "/admin/pros",
+  /** 7.3 קריאות במערכת — captured at admin.handy.co.il/requests. */
+  jobs: "/admin/jobs",
+  /**
+   * The full documentation of one call: the offers, the media, every price
+   * update with its photo, the conversation and the receipt. This is what
+   * product-spec.md 5.4 means by "כל מחלוקת נבדקת מול תיעוד הקריאה המלא".
+   */
+  job: (jobId: string) => `/admin/jobs/${jobId}`,
+  /** 7.4 מחלוקות ובקרה — captured at admin.handy.co.il/disputes. */
+  disputes: "/admin/disputes",
+  /** "יצוא דוח" in the header: the filtered jobs table, as CSV. */
+  report: "/api/admin/report",
 } as const;
 
 export const SIGNUP_ROLE_LABEL: Record<SignupRole, string> = {
