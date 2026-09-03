@@ -64,6 +64,11 @@ export default async function JobTrackingPage({
   // where that happens.
   if (!chosen) redirect(CUSTOMER_ROUTES.offers(jobId));
 
+  // The pro pressed "סיימתי — עדכן גבייה". The `jobs` subscription below wakes
+  // this page the moment that lands, and there is nothing left to track: the
+  // summary, the receipt and the rating are where the call now lives.
+  if (job.status === "completed") redirect(CUSTOMER_ROUTES.summary(jobId));
+
   const [contact, location, updates, threads] = await Promise.all([
     getJobContact(jobId),
     getJobLocation(jobId),
@@ -154,7 +159,7 @@ export default async function JobTrackingPage({
             <ul className="mt-3 space-y-2 text-sm text-white/80">
               <li>· המסך מתעדכן מעצמו — אין צורך לרענן.</li>
               <li>· שינוי מחיר לא ייכנס לתוקף בלי אישור שלך.</li>
-              <li>· קבלה דיגיטלית תונפק בסיום העבודה.</li>
+              <li>· קבלה דיגיטלית תונפק ברגע שהעבודה תיסגר.</li>
             </ul>
           </Card>
         </aside>
