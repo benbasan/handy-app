@@ -70,3 +70,54 @@ jobs:
           npm run db:types
           git diff --exit-code -- lib/supabase/database.types.ts \
             || { echo "::error::lib/supabase/database.types.ts is stale — run 'npm run db:types' and commit the result"; exit 1; }
+
+  # The critical flow, end to end, in a browser: posting a call, bidding,
+  # choosing an offer, a field price update, completion and the receipt — plus
+  # axe and the RTL sweep over every screen at both viewports. Its own job
+  # because it needs Docker, browsers and a production build; roughly a minute
+  # of tests behind a few minutes of setup.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Supabase
+        run: npx supabase start
+
+      # The local stack mints these on start. Exporting them here is what the
+      # developer's .env.local does locally; playwright.config.ts builds the
+      # app itself, and NEXT_PUBLIC_* is inlined at build time, so they have to
+      # be in the environment before the suite runs.
+      - name: Export the stack's credentials
+        run: |
+          eval "$(npx supabase status -o env)"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+
+      # No NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: the address field falls back to
+      # manual entry without one (lib/maps/config.ts), which is the path CI
+      # exercises. Add the secret here when the key exists to cover the other.
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
