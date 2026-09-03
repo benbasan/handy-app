@@ -31,10 +31,15 @@ export type ProProfile = {
   payoutBankBranch: string | null;
   payoutAccountLast4: string | null;
   categoryIds: string[];
+  /** Phase 8 — what the public profile at /pro/<slug> is made of. */
+  publicSlug: string;
+  avatarPath: string | null;
+  galleryPaths: string[];
+  yearsExperience: number | null;
 };
 
 const PRO_COLUMNS =
-  "user_id, bio, radius_km, service_address_text, service_point, verification_status, rating_avg, jobs_completed_count, accepting_jobs, profile_strength_pct, work_days, work_start_time, work_end_time, onboarding_step, submitted_at, payment_methods, payout_bank_name, payout_bank_branch, payout_account_last4";
+  "user_id, bio, radius_km, service_address_text, service_point, verification_status, rating_avg, jobs_completed_count, accepting_jobs, profile_strength_pct, work_days, work_start_time, work_end_time, onboarding_step, submitted_at, payment_methods, payout_bank_name, payout_bank_branch, payout_account_last4, public_slug, avatar_path, gallery_paths, years_experience";
 
 /**
  * The signed-in pro's own profile plus their chosen trades.
@@ -75,6 +80,13 @@ export const getMyProProfile = cache(async (): Promise<ProProfile | null> => {
     payoutBankBranch: data.payout_bank_branch,
     payoutAccountLast4: data.payout_account_last4,
     categoryIds: (categories ?? []).map((row) => row.category_id),
+    // Never null in practice: a trigger gives every pro_profiles row a slug on
+    // insert. Coalesced anyway, because the column itself is nullable and a
+    // profile URL is not a place for `null` to reach a template.
+    publicSlug: data.public_slug ?? "",
+    avatarPath: data.avatar_path,
+    galleryPaths: data.gallery_paths ?? [],
+    yearsExperience: data.years_experience,
   };
 });
 

@@ -665,3 +665,53 @@ as $$
 $$;
 
 grant execute on function public.public_pro_slugs() to anon, authenticated;
+
+/*
+ * The pro's own reviews, for the editor on
+ * design/screens/pro-5.1-public-profile-edit.png.
+ *
+ * `reviews` already carries a "reviewed pro reads" policy, so the rows are not
+ * the problem — the reviewer's name is. `profiles` has no cross-user read
+ * policy, and the pro screen has to show who wrote each one in order for
+ * answering them to mean anything. The same shape `my_completed_jobs()` takes
+ * in Phase 6, and for the same reason: scoped to `auth.uid()` inside the
+ * function, so "a pro sees only their own" is not a filter a caller can drop.
+ *
+ * Unlike `pro_public_reviews()` this one carries the full customer name — the
+ * pro already knows it, they did the job — and the review's id, which is what
+ * `reply_to_review()` needs.
+ */
+create function public.my_reviews()
+returns table (
+  id uuid,
+  job_id uuid,
+  rating int,
+  comment text,
+  pro_reply text,
+  pro_replied_at timestamptz,
+  customer_name text,
+  category_name text,
+  created_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    r.id, r.job_id, r.rating, r.comment, r.pro_reply, r.pro_replied_at,
+    p.full_name, c.name_he, r.created_at
+  from public.reviews r
+  join public.jobs j on j.id = r.job_id
+  join public.bids b on b.id = j.selected_bid_id
+  join public.profiles p on p.id = j.customer_id
+  join public.categories c on c.id = j.category_id
+  where b.pro_id = (select auth.uid())
+  order by r.created_at desc;
+$$;
+
+comment on function public.my_reviews() is
+  'The calling pro''s own reviews, with the reviewer''s name and the answer they gave. Scoped to auth.uid() inside the function.';
+
+revoke execute on function public.my_reviews() from public, anon;
+grant execute on function public.my_reviews() to authenticated;

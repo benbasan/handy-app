@@ -1084,6 +1084,20 @@ export type Database = {
           unread_count: number
         }[]
       }
+      my_reviews: {
+        Args: never
+        Returns: {
+          category_name: string
+          comment: string
+          created_at: string
+          customer_name: string
+          id: string
+          job_id: string
+          pro_replied_at: string
+          pro_reply: string
+          rating: number
+        }[]
+      }
       my_saved_pros: {
         Args: never
         Returns: {

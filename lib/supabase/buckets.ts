@@ -21,3 +21,12 @@ export const VERIFICATION_DOCS_BUCKET = "verification-docs";
  * higher price on.
  */
 export const PRICE_UPDATE_PHOTOS_BUCKET = "price-update-photos";
+
+/**
+ * The pro's published portrait and work gallery (Phase 8). The one **public**
+ * bucket in the project: the public profile is read by people with no account,
+ * and a signed URL is minted under a reader's RLS — there is no reader to sign
+ * for. Everything in here is content a pro chose to publish; their identity
+ * documents stay in the private `verification-docs` bucket.
+ */
+export const PRO_MEDIA_BUCKET = "pro-media";
