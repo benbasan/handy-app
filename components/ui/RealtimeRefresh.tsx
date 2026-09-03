@@ -9,7 +9,9 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
 /**
  * Supabase Realtime, as docs/architecture.md section 5 specifies it: Postgres
  * Changes on `bids` filtered to one job, on `messages` filtered to one job,
- * and on `jobs` for the pro feed.
+ * on `jobs` for the pro feed, and — since Phase 5 — on `price_updates` (the
+ * customer's screen has to raise the approval card the moment the pro sends
+ * it) and `job_locations` (the pin on the live map).
  *
  * The subscription carries no data into the page. It only tells the router the
  * server's answer is stale, and the server re-renders under the caller's own
@@ -41,7 +43,7 @@ export function RealtimeRefresh({
   filter,
   label,
 }: {
-  table: "bids" | "messages" | "jobs";
+  table: "bids" | "messages" | "jobs" | "price_updates" | "job_locations";
   /** PostgREST filter syntax, e.g. `job_id=eq.<uuid>`. Omit to watch the table. */
   filter?: string;
   /**

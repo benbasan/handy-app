@@ -12,11 +12,11 @@ import type { ProProfile } from "@/lib/supabase/pros";
  * the Handy Pro wordmark on the leading edge, navigation beside it, and the
  * availability switch plus the feed button on the trailing edge.
  *
- * The design's nav also lists העבודות שלי / ארנק. Those screens are Phase 5
- * and Phase 6, and CLAUDE.md's one-phase-at-a-time rule says not to build them
- * early — a link to a 404 is worse than no link, so they are left out rather
- * than stubbed. הצעות and הודעות joined the row in Phase 4, when the screens
- * behind them became real.
+ * The design's nav also lists ארנק, which is Phase 6, and CLAUDE.md's
+ * one-phase-at-a-time rule says not to build it early — a link to a 404 is
+ * worse than no link, so it is left out rather than stubbed. הצעות and הודעות
+ * joined the row in Phase 4 and העבודות שלי in Phase 5, each when the screen
+ * behind it became real.
  */
 export function ProShell({
   profile,
@@ -43,6 +43,9 @@ export function ProShell({
             </Link>
             <Link href={PRO_ROUTES.offers} className="hover:text-pro">
               ההצעות שלי
+            </Link>
+            <Link href={PRO_ROUTES.myJobs} className="hover:text-pro">
+              העבודות שלי
             </Link>
             <Link
               href={PRO_ROUTES.messages}

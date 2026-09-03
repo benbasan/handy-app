@@ -110,6 +110,15 @@ export function MyBidRow({
             >
               {editing ? "סגירה" : "עדכן הצעה"}
             </button>
+          ) : bid.status === "selected" ? (
+            /* The offer that won leads to the job itself — the route, the
+               progress bar and the price-update card (Phase 5). */
+            <Link
+              href={PRO_ROUTES.manageJob(bid.jobId)}
+              className={`${BUTTON_QUIET} border-pro/30 px-4 py-2 text-sm text-pro`}
+            >
+              ניהול העבודה
+            </Link>
           ) : (
             <span className="px-4 py-2 text-sm text-muted">
               אין פעולה נדרשת

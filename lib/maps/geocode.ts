@@ -232,3 +232,32 @@ export async function geocodeAddress(
 export function toEwkt(lat: number, lng: number): string {
   return `SRID=4326;POINT(${lng} ${lat})`;
 }
+
+/**
+ * Straight-line distance in kilometres.
+ *
+ * Used by the tracking screens to say how far the pro still is. Deliberately
+ * not a Distance Matrix call: this number is rendered beside a live pin that
+ * moves every fifteen seconds, and a billed round trip per ping to turn "1.2
+ * km away" into "4 minutes by road" is not a trade worth making. The pro's own
+ * ETA, which they report from their device, is the number that carries that
+ * meaning.
+ */
+export function haversineKm(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+): number {
+  const EARTH_RADIUS_KM = 6371;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+
+  const dLat = toRad(to.lat - from.lat);
+  const dLng = toRad(to.lng - from.lng);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(from.lat)) *
+      Math.cos(toRad(to.lat)) *
+      Math.sin(dLng / 2) ** 2;
+
+  return EARTH_RADIUS_KM * 2 * Math.asin(Math.sqrt(a));
+}
