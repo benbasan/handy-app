@@ -131,8 +131,9 @@ export function LocationReporter({
           <span className="sr-only">
             {sharing ? "הפסקת שידור מיקום" : "התחלת שידור מיקום"}
           </span>
-          {/* start-1 / end-1, never left-1 / right-1: the knob has to sit on
-              the trailing edge in Hebrew too (CLAUDE.md section 3). */}
+          {/* Logical insets only, so the offset flips with the writing
+              direction: the knob has to sit on the trailing edge of the switch
+              in Hebrew too (CLAUDE.md section 3). */}
           <span
             aria-hidden
             className={`absolute size-7 rounded-full bg-surface shadow transition-all ${

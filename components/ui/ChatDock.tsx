@@ -34,8 +34,9 @@ export function ChatDock({
   const [open, setOpen] = useState(false);
 
   return (
-    /* start-4, never left-4: in Hebrew the dock belongs on the leading edge,
-       which is where both designs put it (CLAUDE.md section 3). */
+    /* A logical inset, never a physical one: in Hebrew the dock belongs on
+       the leading edge, which is where both designs put it (CLAUDE.md
+       section 3). */
     <div className="fixed start-4 bottom-4 z-40 w-[min(24rem,calc(100vw-2rem))]">
       <div
         hidden={!open}
