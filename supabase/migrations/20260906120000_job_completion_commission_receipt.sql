@@ -74,6 +74,29 @@ comment on function public.commission_rate() is
 grant execute on function public.commission_rate() to authenticated, anon;
 
 -- ---------------------------------------------------------------------------
+-- 1b. One vocabulary for "how the money changed hands"
+--
+-- Phase 1 wrote `commission_charges.payment_method` as
+-- cash / bit / paybox / **bank_transfer**; Phase 3 wrote
+-- `pro_profiles.payment_methods` as cash / bit / paybox / **transfer**. Two
+-- spellings of the same four options, which nothing noticed until this phase
+-- needed to put "which methods do you accept" and "how were you paid" on the
+-- same screen. Phase 1's spelling wins, because it is the one that ends up on
+-- a receipt.
+-- ---------------------------------------------------------------------------
+
+alter table public.pro_profiles
+  drop constraint pro_profiles_payment_methods_check;
+
+update public.pro_profiles
+   set payment_methods = array_replace(payment_methods, 'transfer', 'bank_transfer')
+ where 'transfer' = any (payment_methods);
+
+alter table public.pro_profiles
+  add constraint pro_profiles_payment_methods_check
+  check (payment_methods <@ array['cash', 'bit', 'paybox', 'bank_transfer']);
+
+-- ---------------------------------------------------------------------------
 -- 2. Completing a job
 -- ---------------------------------------------------------------------------
 

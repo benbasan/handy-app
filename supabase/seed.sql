@@ -159,7 +159,7 @@ update public.pro_profiles
        work_end_time = '19:00',
        onboarding_step = 5,
        submitted_at = now() - interval '30 days',
-       payment_methods = array['cash', 'bit', 'transfer'],
+       payment_methods = array['cash', 'bit', 'bank_transfer'],
        payout_bank_name = 'בנק לאומי',
        payout_bank_branch = '800',
        payout_account_last4 = '4417'
@@ -267,7 +267,7 @@ update public.pro_profiles
        profile_strength_pct = 75,
        onboarding_step = 5,
        submitted_at = now() - interval '45 days',
-       payment_methods = array['cash', 'paybox', 'transfer'],
+       payment_methods = array['cash', 'paybox', 'bank_transfer'],
        payout_bank_name = 'בנק מזרחי',
        payout_bank_branch = '415',
        payout_account_last4 = '8801'

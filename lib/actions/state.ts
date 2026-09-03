@@ -76,3 +76,24 @@ export type JobProgressState = {
 };
 
 export const EMPTY_JOB_PROGRESS_STATE: JobProgressState = {};
+
+export type CompleteJobState = {
+  error?: string;
+};
+
+export const EMPTY_COMPLETE_JOB_STATE: CompleteJobState = {};
+
+export type ReviewFormState = {
+  error?: string;
+  /** The stars that were saved, so the form can confirm without a reload. */
+  rating?: number;
+};
+
+export const EMPTY_REVIEW_FORM_STATE: ReviewFormState = {};
+
+export type SaveProState = {
+  error?: string;
+  saved?: boolean;
+};
+
+export const EMPTY_SAVE_PRO_STATE: SaveProState = {};
