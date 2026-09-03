@@ -38,6 +38,21 @@
   --color-alert: #f97316;
   --color-alert-soft: #fff1e6;
 
+  /* The admin console (Phase 7). The four design/screens/admin-*.png captures
+     use one accent of their own — the amber behind "יצוא דוח" and the pending
+     pill — deliberately neither the customer's blue nor the pro's indigo, so
+     it is visible at a glance which side of the marketplace a screen belongs
+     to. Sampled from the PNGs, like every token above it. */
+  --color-admin: #b45309;
+  --color-admin-strong: #92400e;
+  --color-admin-soft: #fdf1e3;
+
+  /* Something is wrong, rather than merely urgent: the red "בדוק עכשיו" card
+     on the overview and the ללא הצעות row in the jobs table. */
+  --color-danger: #e0334e;
+  --color-danger-strong: #be2440;
+  --color-danger-soft: #fdeaed;
+
   --color-background: var(--color-canvas);
   --color-foreground: var(--color-ink);
   --font-sans: var(--font-heebo), system-ui, sans-serif;
