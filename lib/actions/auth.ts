@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { describeSendError, describeVerifyError } from "@/lib/auth/otpErrors";
 import { ROLE_HOME, ROLE_LOGIN } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/session";
@@ -54,7 +55,14 @@ export async function requestOtp(
   });
 
   if (error) {
-    return { error: describeAuthError(error.message) };
+    // The developer-facing detail never reaches the browser, and without it a
+    // provider misconfiguration is invisible in the server log too.
+    console.error("[auth] signInWithOtp failed", {
+      code: error.code,
+      status: error.status,
+      message: error.message,
+    });
+    return { error: describeSendError(error) };
   }
 
   return { sentTo: phone };
@@ -89,7 +97,7 @@ export async function verifyOtp(
   });
 
   if (error) {
-    return { error: describeAuthError(error.message) };
+    return { error: describeVerifyError(error) };
   }
 
   const user = await getCurrentUser();
@@ -107,29 +115,4 @@ export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect(ROLE_LOGIN.customer);
-}
-
-/**
- * Supabase returns English strings aimed at developers. Map the handful users
- * actually hit into Hebrew, and pass anything unrecognised through rather than
- * swallowing it — a generic "something went wrong" makes real faults
- * undebuggable.
- */
-function describeAuthError(message: string): string {
-  const normalized = message.toLowerCase();
-
-  if (normalized.includes("expired")) {
-    return "הקוד פג תוקף. בקשו קוד חדש.";
-  }
-  if (normalized.includes("invalid") || normalized.includes("token")) {
-    return "הקוד שהוזן שגוי. בדקו ונסו שוב.";
-  }
-  if (normalized.includes("rate") || normalized.includes("too many")) {
-    return "נשלחו יותר מדי בקשות. המתינו דקה ונסו שוב.";
-  }
-  if (normalized.includes("sms") || normalized.includes("provider")) {
-    return "שליחת ה-SMS נכשלה. ודאו שספק ה-SMS מוגדר (ראו README).";
-  }
-
-  return message;
 }
