@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(104);
+select plan(149);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -1070,6 +1070,482 @@ select is(
 );
 
 reset role;
+
+-- ===========================================================================
+-- 12. Phase 5 — the transparency rule, live tracking, and the price that is
+-- not a column
+--
+-- Section 11 left job A assigned to the verified pro at 390 ₪ (it repriced its
+-- own bid on the way past), so everything below runs against a real job that
+-- is actually under way.
+--
+-- The roadmap's definition of done for this phase is two sentences, and both
+-- are proven here: changing a price without an approved `price_updates` row
+-- fails *in the database*, and a customer who refuses one leaves the job at
+-- the original price.
+-- ===========================================================================
+
+reset role;
+
+\set job_c '''d0000000-0000-4000-8000-000000000003'''
+
+-- The photo objects the two requests below will name. The bucket is private
+-- and these rows are what the storage policies at the end of the section get
+-- to decide about.
+insert into storage.objects (bucket_id, name, owner, metadata) values
+  ('price-update-photos',
+   'a0000000-0000-4000-8000-000000000003/d0000000-0000-4000-8000-000000000001/fault-1.jpg',
+   :pro_verified, '{}'),
+  ('price-update-photos',
+   'a0000000-0000-4000-8000-000000000003/d0000000-0000-4000-8000-000000000001/fault-2.jpg',
+   :pro_verified, '{}'),
+  ('price-update-photos',
+   'a0000000-0000-4000-8000-000000000006/d0000000-0000-4000-8000-000000000001/not-mine.jpg',
+   :pro_second, '{}');
+
+select is(
+  public.job_effective_price(:job_a),
+  390::numeric,
+  'the live price of an assigned job is the bid the customer chose — there is no price column anywhere'
+);
+
+-- ---------------------------------------------------------------------------
+-- Nobody writes the table by hand any more
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.price_updates
+       (job_id, pro_id, original_price, new_price, photo_url)
+     values ('d0000000-0000-4000-8000-000000000001',
+             'a0000000-0000-4000-8000-000000000003', 100, 900, 'x/y/z.jpg') $$,
+  '42501',
+  null,
+  'a pro cannot insert a price update directly — original_price is a money field and would be theirs to assert'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.request_price_update(
+       'd0000000-0000-4000-8000-000000000001', 500,
+       'a0000000-0000-4000-8000-000000000006/d0000000-0000-4000-8000-000000000001/not-mine.jpg') $$,
+  '42501',
+  null,
+  'a pro who merely bid on the job cannot ask to change its price — only the one who won it'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.request_price_update(
+       'd0000000-0000-4000-8000-000000000001', 500,
+       'a0000000-0000-4000-8000-000000000006/d0000000-0000-4000-8000-000000000001/not-mine.jpg') $$,
+  '22023',
+  null,
+  'nor point the request at a photo sitting in another pro''s folder'
+);
+
+select throws_ok(
+  $$ select public.request_price_update(
+       'd0000000-0000-4000-8000-000000000001', 500,
+       'a0000000-0000-4000-8000-000000000003/d0000000-0000-4000-8000-000000000002/fault-1.jpg') $$,
+  '22023',
+  null,
+  'nor re-use a photo uploaded against a different job as evidence for this one'
+);
+
+select ok(
+  public.request_price_update(
+    :job_a, 520,
+    'a0000000-0000-4000-8000-000000000003/d0000000-0000-4000-8000-000000000001/fault-1.jpg',
+    'צינור סדוק בקיר') is not null,
+  'the assigned pro does send a request, with a photo from the field'
+);
+
+select set_config(
+  'handy.test_price_update',
+  (select id::text from public.price_updates
+    where job_id = :job_a and status = 'pending'),
+  true
+);
+
+select is(
+  (select original_price from public.price_updates
+    where id = current_setting('handy.test_price_update')::uuid),
+  390::numeric,
+  'and its original_price is read from the agreed price, never accepted from the caller'
+);
+
+select is(
+  public.job_effective_price(:job_a),
+  390::numeric,
+  'a request that is merely pending moves nothing — the price is still the one that was agreed'
+);
+
+select throws_ok(
+  $$ select public.request_price_update(
+       'd0000000-0000-4000-8000-000000000001', 600,
+       'a0000000-0000-4000-8000-000000000003/d0000000-0000-4000-8000-000000000001/fault-2.jpg') $$,
+  '22023',
+  null,
+  'and a second request cannot queue behind it — the customer''s screen has two buttons, not a backlog'
+);
+
+select throws_ok(
+  $$ select public.decide_price_update(
+       current_setting('handy.test_price_update')::uuid, true) $$,
+  '42501',
+  null,
+  'the pro cannot approve their own price change'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.decide_price_update(
+       current_setting('handy.test_price_update')::uuid, true) $$,
+  '42501',
+  null,
+  'and neither can a customer who has nothing to do with the job'
+);
+
+select is(
+  (select count(*) from public.price_updates
+    where job_id = 'd0000000-0000-4000-8000-000000000001'),
+  0::bigint,
+  'who cannot even read the request — price_updates is scoped to the two sides of the job'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ update public.price_updates set status = 'approved'
+      where id = current_setting('handy.test_price_update')::uuid $$,
+  '42501',
+  null,
+  'the customer holds no UPDATE grant on price_updates either — approving is a checked function, not a column'
+);
+
+-- ---------------------------------------------------------------------------
+-- The rule itself: refusing leaves the job at the price that was agreed
+-- ---------------------------------------------------------------------------
+
+select is(
+  public.decide_price_update(
+    current_setting('handy.test_price_update')::uuid, false),
+  'rejected',
+  'the customer refuses the change'
+);
+
+select is(
+  public.job_effective_price(:job_a),
+  390::numeric,
+  'and the job carries on at the original price — product-spec.md 3.5, proven rather than promised'
+);
+
+select throws_ok(
+  $$ select public.decide_price_update(
+       current_setting('handy.test_price_update')::uuid, true) $$,
+  '22023',
+  null,
+  'a decision is final: a refused request cannot be approved afterwards'
+);
+
+reset role;
+
+-- No role at all, not even the one running this suite, can edit a settled row:
+-- the guard is a trigger, so it holds below RLS as well as above it.
+select throws_ok(
+  $$ update public.price_updates set new_price = 900
+      where id = current_setting('handy.test_price_update')::uuid $$,
+  '22023',
+  null,
+  'and the amounts on a decided request are frozen even for a caller that bypasses RLS entirely'
+);
+
+-- ---------------------------------------------------------------------------
+-- An approved one, which is the only thing that may move the price
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select ok(
+  public.request_price_update(
+    :job_a, 520,
+    'a0000000-0000-4000-8000-000000000003/d0000000-0000-4000-8000-000000000001/fault-2.jpg') is not null,
+  'the pro asks again, with the second photo'
+);
+
+select set_config(
+  'handy.test_price_update',
+  (select id::text from public.price_updates
+    where job_id = :job_a and status = 'pending'),
+  true
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  public.decide_price_update(
+    current_setting('handy.test_price_update')::uuid, true),
+  'approved',
+  'this time the customer approves'
+);
+
+select is(
+  public.job_effective_price(:job_a),
+  520::numeric,
+  'and only now does the price of the job move'
+);
+
+-- ---------------------------------------------------------------------------
+-- Live location
+-- ---------------------------------------------------------------------------
+
+select throws_ok(
+  $$ insert into public.job_locations (job_id, pro_id, location)
+     values ('d0000000-0000-4000-8000-000000000001',
+             'a0000000-0000-4000-8000-000000000003',
+             extensions.st_point(34.78, 32.08)::extensions.geography) $$,
+  '42501',
+  null,
+  'no client role can write job_locations directly — a position a customer could type is not a position'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.report_job_location(
+       'd0000000-0000-4000-8000-000000000001', 32.08, 34.78) $$,
+  '42501',
+  null,
+  'a pro cannot report themselves as being on their way to somebody else''s job'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.report_job_location(
+       'd0000000-0000-4000-8000-000000000001', 51.5, -0.12) $$,
+  '22023',
+  null,
+  'and a coordinate outside the service area is refused rather than drawn on the map'
+);
+
+select ok(
+  public.report_job_location(:job_a, 32.0790, 34.7830, 20, 9) is not null,
+  'the assigned pro reports where they are'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.job_locations where job_id = :job_a),
+  1::bigint,
+  'the customer whose job it is watches the pro arrive'
+);
+
+select is(
+  (select eta_minutes from public.job_locations where job_id = :job_a),
+  9,
+  'including the ETA the pro''s own device reported'
+);
+
+select throws_ok(
+  $$ update public.job_locations set eta_minutes = 1
+      where job_id = 'd0000000-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'but cannot edit it — job_locations has no UPDATE grant for anyone'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.job_locations),
+  1::bigint,
+  'another customer sees only the pro coming to their own job, never anyone else''s'
+);
+
+select is(
+  (select count(*) from public.job_locations where job_id = :job_a),
+  0::bigint,
+  'and specifically not the live position on customer A''s job'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.job_locations where job_id = :job_a),
+  0::bigint,
+  'nor can a rival pro who bid on the same job follow the one who won it'
+);
+
+-- ---------------------------------------------------------------------------
+-- The one status transition this phase owns
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.mark_job_in_progress('d0000000-0000-4000-8000-000000000001') $$,
+  '42501',
+  null,
+  'a customer cannot declare that the work has started'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  public.mark_job_in_progress(:job_a),
+  'in_progress',
+  '"הגעתי ללקוח" moves the job, and only the assigned pro may press it'
+);
+
+select is(
+  (select status from public.jobs where id = :job_a),
+  'in_progress',
+  'which actually lands on the row'
+);
+
+select is(
+  public.mark_job_in_progress(:job_a),
+  'in_progress',
+  'and pressing it twice is not an error — a retried request must not be one'
+);
+
+select is(
+  (select current_price from public.my_active_jobs() where job_id = :job_a),
+  520::numeric,
+  'העבודות שלי lists the job at its live price, approved update included'
+);
+
+select is(
+  (select agreed_price from public.my_active_jobs() where job_id = :job_a),
+  390::numeric,
+  'beside the price that was originally agreed'
+);
+
+-- ---------------------------------------------------------------------------
+-- The phone numbers behind the two "חיוג" buttons
+-- ---------------------------------------------------------------------------
+
+select is(
+  (select counterpart_phone from public.job_contact(:job_a)),
+  '972500000001',
+  'the pro on the way can call the customer'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select counterpart_phone from public.job_contact(:job_a)),
+  '972500000003',
+  'and the customer can call the pro — a phone number profiles itself would never hand over'
+);
+
+select is(
+  (select count(*) from public.profiles),
+  1::bigint,
+  'without opening profiles: the customer still reads exactly one row there, their own'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select * from public.job_contact('d0000000-0000-4000-8000-000000000001') $$,
+  '42501',
+  null,
+  'and a stranger to the job is told nothing about either side of it'
+);
+
+-- ---------------------------------------------------------------------------
+-- The price-update photo, which is the evidence the whole rule rests on
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select count(*) from storage.objects
+    where bucket_id = 'price-update-photos'
+      and name like 'a0000000-0000-4000-8000-000000000003/%'),
+  2::bigint,
+  'a pro reads the photos in their own folder'
+);
+
+select is(
+  (select count(*) from storage.objects
+    where bucket_id = 'price-update-photos'
+      and name like 'a0000000-0000-4000-8000-000000000006/%'),
+  0::bigint,
+  'and none of another pro''s'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select count(*) from storage.objects where bucket_id = 'price-update-photos'),
+  2::bigint,
+  'the customer sees exactly the photos attached to a price update on their own job'
+);
+
+select throws_ok(
+  $$ delete from storage.objects
+      where bucket_id = 'price-update-photos'
+        and name = 'a0000000-0000-4000-8000-000000000003/d0000000-0000-4000-8000-000000000001/fault-2.jpg' $$,
+  '42501',
+  null,
+  'and nobody can delete one: an approval whose photo can vanish afterwards is not evidence'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select is(
+  (select count(*) from storage.objects where bucket_id = 'price-update-photos'),
+  0::bigint,
+  'a customer with no price update of their own sees nothing in the bucket at all'
+);
+
+reset role;
+
 
 select * from finish();
 
