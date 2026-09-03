@@ -525,10 +525,11 @@ values
 -- Two of the three are rated. The third is deliberately not: "ממתין לדירוג" is
 -- a real state on the wallet's table and the history tab, and an empty column
 -- is how it is meant to look.
-insert into public.reviews (job_id, rating, comment, created_at) values
-  ('d0000000-0000-4000-8000-000000000004', 5,
+insert into public.reviews (id, job_id, rating, comment, created_at) values
+  ('f0000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000004', 5,
    'הגיע בזמן, הסביר כל שקל לפני שעשה אותו. ממליצה.', now() - interval '23 hours'),
-  ('d0000000-0000-4000-8000-000000000005', 5, null, now() - interval '3 days');
+  ('f0000000-0000-4000-8000-000000000002', 'd0000000-0000-4000-8000-000000000005', 5,
+   null, now() - interval '3 days');
 
 -- ---------------------------------------------------------------------------
 -- Phase 7 — what the admin dashboard is there to see
@@ -592,3 +593,36 @@ insert into public.disputes (
     now() - interval '4 days' + interval '19 hours',
     now() - interval '5 days'
   );
+
+-- ---------------------------------------------------------------------------
+-- Phase 8 — what the public pages read
+--
+-- The category+city pages and the pro profiles are the first screens in this
+-- product that render for somebody with no account, and they render from the
+-- same rows everything else does. What they additionally need is the handful
+-- of self-description fields Phase 8 added: a URL, a years-of-experience
+-- claim, and one answered review.
+--
+-- No avatar or gallery paths are seeded. Those are objects in the public
+-- pro-media bucket and SQL cannot upload bytes; a path with no file behind it
+-- would render as a broken image on a public page, which is worse than the
+-- initials the profile falls back to.
+-- ---------------------------------------------------------------------------
+
+update public.pro_profiles set public_slug = 'david-mizrahi', years_experience = 12
+ where user_id = 'a0000000-0000-4000-8000-000000000003';
+update public.pro_profiles set public_slug = 'avi-peretz'
+ where user_id = 'a0000000-0000-4000-8000-000000000004';
+update public.pro_profiles set public_slug = 'musa-hadad', years_experience = 8
+ where user_id = 'a0000000-0000-4000-8000-000000000006';
+update public.pro_profiles set public_slug = 'alex-fridman', years_experience = 9
+ where user_id = 'a0000000-0000-4000-8000-000000000007';
+
+-- One answered review, so "מענה לביקורות" (product-spec.md 4.8) has a rendered
+-- state on both the pro's editor and the public profile. Written directly for
+-- the reason everything else here is: through the app the only path into this
+-- column is reply_to_review().
+update public.reviews
+   set pro_reply = 'תודה רבה דנה! שמח שהכול עובד. אם יחזור טפטוף — תתקשרי, זה תחת אחריות.',
+       pro_replied_at = now() - interval '22 hours'
+ where job_id = 'd0000000-0000-4000-8000-000000000004';

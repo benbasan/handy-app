@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(244);
+select plan(282);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -2376,6 +2376,365 @@ select lives_ok(
      values ('d0000000-0000-4000-8000-000000000002',
              'a0000000-0000-4000-8000-000000000003', 400, 30) $$,
   'after which the same offer they were refused a moment ago is accepted'
+);
+
+reset role;
+
+-- ===========================================================================
+-- 15. Phase 8 — the public half: content pages, category+city, pro profiles
+--
+-- This is the first phase whose audience is `anon`, and the first table an
+-- anonymous visitor may write to. Both are here.
+-- ===========================================================================
+
+\set pro_third '''a0000000-0000-4000-8000-000000000007'''
+\set review_a '''f0000000-0000-4000-8000-000000000001'''
+
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- The public read functions, called by somebody with no account at all
+-- ---------------------------------------------------------------------------
+
+select set_config('request.jwt.claims', '', true);
+set local role anon;
+
+select is(
+  (select count(*)::int from public.pro_public_profile('david-mizrahi')),
+  1,
+  'an anonymous visitor can read the public profile of a verified pro'
+);
+
+select throws_ok(
+  $$ select count(*) from public.pro_profiles $$,
+  '42501',
+  null,
+  'while the table itself stays exactly as shut as it was: the profile is a function, not a widened policy'
+);
+
+select ok(
+  pg_get_function_result('public.pro_public_profile(text)'::regprocedure) not like '%payout%'
+    and pg_get_function_result('public.pro_public_profile(text)'::regprocedure) not like '%phone%'
+    and pg_get_function_result('public.pro_public_profile(text)'::regprocedure) not like '%service_point%',
+  'and the columns it does name carry no payout account, no phone and no service point'
+);
+
+-- Three, not the seed's two: section 13 closes another of this pro's jobs and
+-- rates it. The number is the point — every review here hangs off a job this
+-- pro actually finished, so it moves when the marketplace does.
+select is(
+  (select count(*)::int from public.pro_public_reviews('david-mizrahi')),
+  3,
+  'the reviews on that page are the ones attached to jobs this pro actually closed'
+);
+
+select is(
+  (select reviewer_name from public.pro_public_reviews('david-mizrahi') limit 1),
+  'דנה ל.',
+  'and a reviewer is a given name and an initial — the page is indexed by search engines'
+);
+
+select is(
+  (select count(*)::int from public.category_pros('plumbing', 32.0853, 34.7818)),
+  3,
+  'the category+city page lists the verified pros whose own radius covers that city'
+);
+
+select is(
+  (select pros_count from public.category_stats('plumbing', 32.0853, 34.7818)),
+  3,
+  'and its headline figure is counted from the same rows, not written into the page'
+);
+
+select is(
+  (select count(*)::int from public.category_pros('plumbing', 31.2518, 34.7913)),
+  0,
+  'a city nobody covers gets an honest empty list rather than the nearest pro'
+);
+
+select is(
+  (select count(*)::int from public.pricing_guide()),
+  10,
+  'the cost guide has a row per category, including the ones with nothing closed yet'
+);
+
+select is(
+  (select jobs_closed from public.pricing_guide() where category_slug = 'plumbing'),
+  4,
+  'and its numbers come from commission_charges — real closed jobs, including the ones this file closed'
+);
+
+select is(
+  (select count(*)::int from public.public_pro_slugs()),
+  4,
+  'the sitemap can enumerate exactly the pros who have a public page'
+);
+
+-- A public page belongs to `verified` and to nothing else. Proven by taking it
+-- away and putting it back, rather than by finding a pro who happens to be in
+-- another state — earlier sections in this file move pros between states.
+select is(
+  (select count(*)::int from public.pro_public_profile('musa-hadad')),
+  1,
+  'a second verified pro has a page too'
+);
+
+reset role;
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  public.set_pro_verification(:pro_second, 'suspended'),
+  'suspended',
+  'an admin suspends them'
+);
+
+reset role;
+set local role anon;
+
+select is(
+  (select count(*)::int from public.pro_public_profile('musa-hadad')),
+  0,
+  'and the public page is simply gone — a suspension is not a badge on a page that stays up'
+);
+
+reset role;
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  public.set_pro_verification(:pro_second, 'verified'),
+  'verified',
+  'and comes back when the suspension is lifted'
+);
+
+reset role;
+set local role anon;
+
+-- ---------------------------------------------------------------------------
+-- support_tickets — the contact form, which has no login on it
+-- ---------------------------------------------------------------------------
+
+select lives_ok(
+  $$ insert into public.support_tickets (full_name, phone, topic, body)
+     values ('אורח', '0500000000', 'other', 'שאלה כללית על השירות שלכם.') $$,
+  'an anonymous visitor can open a support ticket — the page works before anyone has an account'
+);
+
+select throws_ok(
+  $$ insert into public.support_tickets (created_by, full_name, phone, topic, body)
+     values ('a0000000-0000-4000-8000-000000000001', 'מתחזה', '0500000000',
+             'other', 'פנייה בשם מישהו אחר.') $$,
+  '42501',
+  null,
+  'but cannot sign one with somebody else''s name'
+);
+
+select throws_ok(
+  $$ select count(*) from public.support_tickets $$,
+  '42501',
+  null,
+  'and holds no privilege to read any of them back'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select lives_ok(
+  $$ insert into public.support_tickets (created_by, full_name, phone, topic, body)
+     values ('a0000000-0000-4000-8000-000000000001', 'דנה לוי', '0500000001',
+             'active_job', 'הקריאה שלי עדיין ללא הצעות אחרי שעתיים.') $$,
+  'a signed-in visitor opens one as themselves'
+);
+
+select throws_ok(
+  $$ insert into public.support_tickets (created_by, full_name, phone, topic, body)
+     values ('a0000000-0000-4000-8000-000000000002', 'דנה לוי', '0500000001',
+             'other', 'פנייה בשם לקוח אחר.') $$,
+  '42501',
+  null,
+  'and cannot open one in another customer''s name either'
+);
+
+select is(
+  (select count(*)::int from public.support_tickets),
+  1,
+  'customer A sees their own ticket and nothing else — not the anonymous one, not anyone else''s'
+);
+
+select throws_ok(
+  $$ update public.support_tickets set status = 'closed' $$,
+  '42501',
+  null,
+  'and cannot close their own case: the status is the support team''s answer to it'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select is(
+  (select count(*)::int from public.support_tickets),
+  0,
+  'customer B cannot read customer A''s support ticket'
+);
+
+reset role;
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  (select count(*)::int from public.support_tickets),
+  2,
+  'the admin reads both — the attributed one and the anonymous one'
+);
+
+-- ---------------------------------------------------------------------------
+-- The public slug: a pro's own description of themselves, shape-checked
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select lives_ok(
+  $$ update public.pro_profiles set public_slug = 'david-the-plumber'
+      where user_id = 'a0000000-0000-4000-8000-000000000003' $$,
+  'a pro may choose their own public URL, the way they choose their own bio'
+);
+
+select throws_ok(
+  $$ update public.pro_profiles set public_slug = 'help'
+      where user_id = 'a0000000-0000-4000-8000-000000000003' $$,
+  '23514',
+  null,
+  'but not one of the app''s own /pro/... paths — a check constraint, so it holds through any client'
+);
+
+select throws_ok(
+  $$ update public.pro_profiles set public_slug = 'musa-hadad'
+      where user_id = 'a0000000-0000-4000-8000-000000000003' $$,
+  '23505',
+  null,
+  'and not one somebody else is already using'
+);
+
+select lives_ok(
+  $$ update public.pro_profiles set public_slug = 'stolen-address'
+      where user_id = 'a0000000-0000-4000-8000-000000000006' $$,
+  'an update aimed at another pro''s row matches nothing rather than erroring'
+);
+
+reset role;
+
+select is(
+  (select public_slug from public.pro_profiles
+    where user_id = 'a0000000-0000-4000-8000-000000000006'),
+  'musa-hadad',
+  'and that pro''s address is untouched — the row policy never let it through'
+);
+
+-- ---------------------------------------------------------------------------
+-- מענה לביקורות — product-spec.md 4.8
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  public.reply_to_review(:review_a, 'תודה! כל טוב.'),
+  :review_a::uuid,
+  'the pro who did the job answers the review of it'
+);
+
+select throws_ok(
+  $$ update public.reviews set pro_reply = 'כתיבה ישירה'
+      where job_id = 'd0000000-0000-4000-8000-000000000004' $$,
+  '42501',
+  null,
+  'and cannot write the column directly — a review is a public reputation, so there is no grant on either half of it'
+);
+
+reset role;
+select pg_temp.act_as(:pro_third);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.reply_to_review(
+       'f0000000-0000-4000-8000-000000000001',
+       'זו לא העבודה שלי אבל אענה בכל זאת.') $$,
+  '42501',
+  null,
+  'a different pro cannot answer a review of somebody else''s work'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.reply_to_review(
+       'f0000000-0000-4000-8000-000000000001',
+       'אני אענה לעצמי.') $$,
+  '42501',
+  null,
+  'and neither can the customer who wrote it'
+);
+
+-- ---------------------------------------------------------------------------
+-- pro-media — the project's first public bucket
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select lives_ok(
+  $$ insert into storage.objects (bucket_id, name, owner, metadata)
+     values ('pro-media',
+             'a0000000-0000-4000-8000-000000000003/avatar.jpg',
+             'a0000000-0000-4000-8000-000000000003', '{}') $$,
+  'a pro publishes a portrait into their own folder'
+);
+
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name, owner, metadata)
+     values ('pro-media',
+             'a0000000-0000-4000-8000-000000000006/avatar.jpg',
+             'a0000000-0000-4000-8000-000000000003', '{}') $$,
+  '42501',
+  null,
+  'and cannot publish into another pro''s'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name, owner, metadata)
+     values ('pro-media',
+             'a0000000-0000-4000-8000-000000000001/avatar.jpg',
+             'a0000000-0000-4000-8000-000000000001', '{}') $$,
+  '42501',
+  null,
+  'a customer cannot upload to pro-media at all — that bucket belongs to pros'
+);
+
+reset role;
+set local role anon;
+
+select is(
+  (select count(*)::int from storage.objects where bucket_id = 'pro-media'),
+  1,
+  'and an anonymous visitor can read it, which is the whole reason this bucket is public'
+);
+
+select is(
+  (select count(*)::int from storage.objects where bucket_id = 'verification-docs'),
+  0,
+  'while the identity documents beside it stay invisible — a public bucket was added, not opened'
 );
 
 reset role;

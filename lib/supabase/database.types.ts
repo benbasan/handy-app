@@ -517,9 +517,11 @@ export type Database = {
       pro_profiles: {
         Row: {
           accepting_jobs: boolean
+          avatar_path: string | null
           bio: string | null
           created_at: string
           documents_required_at: string | null
+          gallery_paths: string[]
           jobs_completed_count: number
           onboarding_step: number
           payment_methods: string[]
@@ -528,6 +530,7 @@ export type Database = {
           payout_bank_name: string | null
           price_updates_blocked: boolean
           profile_strength_pct: number
+          public_slug: string | null
           radius_km: number
           rating_avg: number | null
           service_address_text: string | null
@@ -538,12 +541,15 @@ export type Database = {
           work_days: number[]
           work_end_time: string
           work_start_time: string
+          years_experience: number | null
         }
         Insert: {
           accepting_jobs?: boolean
+          avatar_path?: string | null
           bio?: string | null
           created_at?: string
           documents_required_at?: string | null
+          gallery_paths?: string[]
           jobs_completed_count?: number
           onboarding_step?: number
           payment_methods?: string[]
@@ -552,6 +558,7 @@ export type Database = {
           payout_bank_name?: string | null
           price_updates_blocked?: boolean
           profile_strength_pct?: number
+          public_slug?: string | null
           radius_km?: number
           rating_avg?: number | null
           service_address_text?: string | null
@@ -562,12 +569,15 @@ export type Database = {
           work_days?: number[]
           work_end_time?: string
           work_start_time?: string
+          years_experience?: number | null
         }
         Update: {
           accepting_jobs?: boolean
+          avatar_path?: string | null
           bio?: string | null
           created_at?: string
           documents_required_at?: string | null
+          gallery_paths?: string[]
           jobs_completed_count?: number
           onboarding_step?: number
           payment_methods?: string[]
@@ -576,6 +586,7 @@ export type Database = {
           payout_bank_name?: string | null
           price_updates_blocked?: boolean
           profile_strength_pct?: number
+          public_slug?: string | null
           radius_km?: number
           rating_avg?: number | null
           service_address_text?: string | null
@@ -586,6 +597,7 @@ export type Database = {
           work_days?: number[]
           work_end_time?: string
           work_start_time?: string
+          years_experience?: number | null
         }
         Relationships: [
           {
@@ -627,6 +639,8 @@ export type Database = {
           created_at: string
           id: string
           job_id: string
+          pro_replied_at: string | null
+          pro_reply: string | null
           rating: number
         }
         Insert: {
@@ -634,6 +648,8 @@ export type Database = {
           created_at?: string
           id?: string
           job_id: string
+          pro_replied_at?: string | null
+          pro_reply?: string | null
           rating: number
         }
         Update: {
@@ -641,6 +657,8 @@ export type Database = {
           created_at?: string
           id?: string
           job_id?: string
+          pro_replied_at?: string | null
+          pro_reply?: string | null
           rating?: number
         }
         Relationships: [
@@ -683,6 +701,50 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pro_profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          full_name: string
+          id: string
+          job_reference: string | null
+          phone: string
+          status: string
+          topic: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          full_name: string
+          id?: string
+          job_reference?: string | null
+          phone: string
+          status?: string
+          topic: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          full_name?: string
+          id?: string
+          job_reference?: string | null
+          phone?: string
+          status?: string
+          topic?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -847,6 +909,37 @@ export type Database = {
       can_read_price_update_photo: {
         Args: { p_object_name: string }
         Returns: boolean
+      }
+      category_pros: {
+        Args: {
+          p_category_slug: string
+          p_lat?: number
+          p_limit?: number
+          p_lng?: number
+        }
+        Returns: {
+          accepting_jobs: boolean
+          avatar_path: string
+          full_name: string
+          jobs_completed_count: number
+          min_price: number
+          rating_avg: number
+          reviews_count: number
+          service_city: string
+          slug: string
+          years_experience: number
+        }[]
+      }
+      category_stats: {
+        Args: { p_category_slug: string; p_lat?: number; p_lng?: number }
+        Returns: {
+          avg_first_bid_minutes: number
+          jobs_closed: number
+          price_high: number
+          price_low: number
+          price_typical: number
+          pros_count: number
+        }[]
       }
       commission_rate: { Args: never; Returns: number }
       complete_job: {
@@ -1023,15 +1116,75 @@ export type Database = {
           status: string
         }[]
       }
+      pricing_guide: {
+        Args: never
+        Returns: {
+          category_name: string
+          category_slug: string
+          jobs_closed: number
+          price_high: number
+          price_low: number
+          price_typical: number
+        }[]
+      }
       pro_has_bid: {
         Args: { p_job_id: string; p_pro_id: string }
         Returns: boolean
+      }
+      pro_public_profile: {
+        Args: { p_slug: string }
+        Returns: {
+          accepting_jobs: boolean
+          avatar_path: string
+          avg_response_minutes: number
+          bio: string
+          category_names: string[]
+          category_slugs: string[]
+          full_name: string
+          gallery_paths: string[]
+          has_id_card: boolean
+          has_insurance: boolean
+          has_license: boolean
+          jobs_completed_count: number
+          min_price: number
+          payment_methods: string[]
+          radius_km: number
+          rating_avg: number
+          reviews_count: number
+          service_city: string
+          slug: string
+          work_days: number[]
+          work_end_time: string
+          work_start_time: string
+          years_experience: number
+        }[]
+      }
+      pro_public_reviews: {
+        Args: { p_limit?: number; p_slug: string }
+        Returns: {
+          category_name: string
+          comment: string
+          created_at: string
+          pro_reply: string
+          rating: number
+          reviewer_name: string
+        }[]
       }
       pro_serves_job: {
         Args: { p_point: unknown; p_search_radius_km: number }
         Returns: boolean
       }
       pros_in_range: { Args: { p_job_id: string }; Returns: number }
+      public_pro_slugs: {
+        Args: never
+        Returns: {
+          slug: string
+        }[]
+      }
+      reply_to_review: {
+        Args: { p_reply: string; p_review_id: string }
+        Returns: string
+      }
       report_job_location: {
         Args: {
           p_accuracy_m?: number
