@@ -79,8 +79,11 @@ export function ChatPanel({
               >
                 <p className="whitespace-pre-line">{message.body}</p>
                 <p
+                  /* /85 rather than /70: on the pro's indigo bubble the
+                     lighter one measured 3.9:1, under WCAG AA. The timestamp
+                     is small text and this is the darkest ground it lands on. */
                   className={`mt-1 text-xs ${
-                    message.mine ? "text-white/70" : "text-muted"
+                    message.mine ? "text-white/85" : "text-muted"
                   }`}
                 >
                   <span className="ltr-nums">
