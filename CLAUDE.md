@@ -66,6 +66,12 @@ Do not introduce an alternative to any of these without discussing it with the u
 - **An admin's *aggregate* is a function; an admin's *record* is RLS.** These are the same decision seen twice. A policy picks rows, so "who may read this job" is expressible as one and "how many jobs were posted today" is not. Every function behind the console (`admin_overview()`, `admin_jobs()`, `admin_disputes()`, `admin_trust_metrics()`, …) therefore asks `is_admin()` at its own front door. The dossier at `/admin/jobs/[jobId]` adds no function at all: `jobs`, `bids`, `price_updates`, `messages`, `commission_charges` and `reviews` have each carried an "admin reads all" policy since the phase that created them, and it reads them through the very modules the customer and the pro use. **There is no admin-only projection of a job in this repo**, which is what makes "the admin sees what happened" and "the two sides see what happened" one sentence rather than two.
 - **Neither side of a job may close their own complaint.** `disputes` has never had an UPDATE grant, and since Phase 7 its INSERT grant covers three columns — `job_id`, `opened_by`, `reason`. Phase 1's table-wide grant would have let a complainant open a case already marked `resolved` with a `credit_amount` of their own choosing. Deciding one is `resolve_dispute()`, which checks `is_admin()`, refuses a second decision, and writes the customer's credit in the same statement that closes the case. One live case per job, enforced by a partial unique index.
 - **Enforcement is checked where the thing happens, never by hiding a button.** `pro_profiles.price_updates_blocked` is read inside `request_price_update()` — the only function that can write the table — and `documents_required_at` accompanies a move back to `pending`, which `is_verified_pro()` answers false to, so demanding fresh papers actually stops the pro taking new work. Neither column has a client grant, for the same reason `verification_status` never did: a pro who could clear their own block is not being enforced against.
+- **A public page is a `security definer` function, never a widened policy.** RLS picks rows and cannot hide a column, and `pro_profiles` carries a payout account, a phone and a service point beside the bio. So `pro_public_profile()`, `pro_public_reviews()`, `category_pros()`, `category_stats()` and `pricing_guide()` each name the columns they return, one by one, and are granted to `anon`. `pro_profiles` kept exactly the grants it had in Phase 1 — Phase 8 added no `select` policy for anybody.
+- **A pro's `/pro/<slug>` is a column grant, because it is their own description of themselves** — the same family as `bio`, not the family as `verification_status`. What has to hold is the *shape* of the value, so the rules are a check constraint (never one of the app's own `/pro/…` segments, never a doubled hyphen) and a partial unique index. `lib/validation/publicProfile.ts` keeps the same reserved list for the message under the field, and a Vitest assertion reads the migration to keep the two copies identical.
+- **`pro-media` is the one public bucket, and it holds only what a pro chose to publish.** A customer comparing pros before they have an account cannot be handed a signed URL — signing runs under a reader's RLS and there is no reader. Portrait and work gallery live there; identity documents stay in the private `verification-docs` bucket, and the two are never the same file.
+- **No invented figure on a public page.** Every number on the category+city pages, the cost guide and a pro profile is counted from rows by one of the functions above; where there is nothing to count, the page says so. The design's "97% אחריות" and its per-task duration column are absent because nothing in this product measures either — these are the pages whose whole job is to be trusted.
+- **`support_tickets` is the only table an anonymous visitor may write to, and nobody may update it.** The INSERT policy pins `created_by` to whoever the caller actually is (`auth.uid()`, or null for `anon`); a ticket's `status` is the support team's answer to it, so no client role holds an UPDATE grant.
+- **A review has two halves and two owners.** The customer wrote the row (`submit_job_review()`); the pro answers it (`reply_to_review()`, which checks `is_assigned_pro()`). Neither holds a column grant on the other's half — and since Phase 8 the whole row is served to anonymous visitors, with the reviewer shortened to a given name and an initial.
 - **RTL: logical properties only.** The UI is Hebrew and the app renders `dir="rtl"`. Always use Tailwind's logical utilities — `ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`/`text-end`, `border-s`/`border-e` — and **never** the physical `ml-`/`mr-`, `pl-`/`pr-`, `left-`/`right-`, `text-left`/`text-right`. A physical utility looks correct in a Latin-language preview and silently breaks the layout in Hebrew. The one exception is `lib/pdf/`: react-pdf's stylesheet has no logical properties and a PDF page has no `dir`, so it uses symmetric physical values and an explicit `textAlign: "right"` — the document is always Hebrew.
 - **Bidi is a layout problem, not a font problem, and it is only ever verified by looking.** In a Hebrew line, a Latin word, a reference like `H-00004` and a date are separate bidi runs; the Unicode algorithm reorders them correctly and the result can still read in the wrong order to a person. Keep such a line to **one fact** — a label/value row, one sentence per line, an all-digit date — rather than a sentence that mixes three runs. In the browser this is usually forgiving; in a PDF it is not.
 - **No secrets in code.** All API keys (Google Maps, Twilio, Supabase service role) go in environment variables, never committed. Maintain `.env.example` with every required key, kept in sync.
@@ -123,6 +129,14 @@ The product is Hebrew-facing, but all code (tables, variables, routes, types) is
 | סקירה כללית | `admin_overview()` | Every figure on the console's front page, in one row and one instant |
 | מדדי אמון | `admin_trust_metrics()` | Disputes per 1,000 jobs, the share of field price updates approved, average time to decide |
 | עיר | `job_city()` | Derived from the last comma-separated part of `address_text`. Never a column |
+| דף תחום + עיר | `/services/[category]/[city]` | The SEO pages. Cities are a curated list in `lib/content/cities.ts` — a marketing decision, not an entity |
+| פרופיל ציבורי | `pro_public_profile()` · `/pro/[slug]` | One verified pro, as a stranger sees them. A definer function naming every column; `pro_profiles` gained no read policy |
+| כתובת הפרופיל | `pro_profiles.public_slug` | Self-chosen, format-checked, unique, and never one of the app's own `/pro/…` paths |
+| תמונת פרופיל וגלריה | `pro-media` | The **public** Storage bucket, `<pro_id>/<filename>`. Only what a pro publishes on purpose |
+| מענה לביקורת | `reply_to_review()` | The pro's half of a review. No client role holds a grant on `reviews.pro_reply` |
+| מדריך עלויות | `pricing_guide()` | Per-category price statistics from `commission_charges`. A category with no closed job says so |
+| פנייה לתמיכה | `support_tickets` | The contact form. The one table `anon` may INSERT into; no client role may UPDATE one |
+| מדריכי תחזוקה | `lib/content/guides.ts` | Articles in code, not a table: a guide restates rules that live in migrations |
 
 Add new rows here whenever a new domain concept appears — do not let this glossary drift out of date.
 
@@ -137,7 +151,12 @@ Add new rows here whenever a new domain concept appears — do not let this glos
                             landing page and /pro/login the door; the signed-in
                             home is /pro/dashboard (see docs/architecture.md)
   /(admin)               → admin dashboard routes, prefixed: /admin/login, /admin
-  /(marketing)            → public pages: the landing page at /, plus the SEO/content pages (Phase 8)
+  /(marketing)            → public pages, no session on any of them: the landing
+                            page at /, plus (Phase 8) /how-it-works, /pricing,
+                            /help, /contact, /terms, /privacy, /cancellation,
+                            /guides[/slug], /services[/category[/city]] and
+                            /pro/[slug] — the public profile. `robots.ts` and
+                            `sitemap.ts` sit at the app root, where Next looks
   /api                    → route handlers only where a server action doesn't fit.
                             Two exist, both because what comes back is a file:
                             /api/receipts/[jobId] (Phase 6) and
@@ -150,6 +169,11 @@ Add new rows here whenever a new domain concept appears — do not let this glos
 /lib
   /routes.ts              → role → home/login path maps (importable from proxy.ts)
   /supabase               → client factory, generated DB types, session DAL
+  /content                 → editorial copy in code (Phase 8): cities, category
+                             copy, FAQ, guides, legal text. Not a table — an
+                             answer here restates a rule that lives in a
+                             migration, and the two are reviewed in one diff
+  /seo.tsx                 → canonical URLs, page metadata, JSON-LD helpers
   /validation              → Zod schemas, one file per entity
   /actions                 → server actions, grouped by entity
   /pdf                     → the receipt document (Phase 6). Server-only: it
@@ -223,7 +247,8 @@ adding a column, decide explicitly whether a client may write it.
 - [ ] **What actually debits the commission.** `commission_charges` is a ledger with no settlement behind it — nothing sweeps it, nothing marks a charge paid, and the onboarding copy's "סליקה כל שני וחמישי" has no code. That is money movement and is deliberately the user's call (section 8). When it arrives it wants a status on the row and, probably, a payout run
 - [ ] **Who a customer's dispute credit is actually paid by, and how.** Phase 7 records it: `disputes.credit_amount` is written by `resolve_dispute()` in the same statement that upholds the complaint. Nothing pays it out — like `commission_charges`, it is a ledger with no settlement behind it, and settlement is real money movement (section 8). It is also entangled with the commission question above: a job whose price is credited back has already been charged 12% on the full amount.
 - [ ] **Cancelling an assigned job.** The design's "העבודות שלי" summary counts ביטולים and nothing in the product can produce one: `jobs.status` has a `cancelled` value with no transition into it. Phase 6 left the counter off the screen rather than draw a permanent zero. Who may cancel, until when, and what it does to a bid that was already accepted are product questions
-- [ ] A public bucket for pro profile photos. Phase 3 files the profile photo in the private `verification-docs` bucket as `doc_type = 'profile_photo'`; the customer-facing public profile (Phase 8) is what will need a photo customers can actually load
+- [ ] **Legal review of the three public documents.** `/terms`, `/privacy` and `/cancellation` (Phase 8) are a plain-language description of what the code actually does, clause by clause, so a lawyer has something concrete to correct. Every page says so on itself, through `DRAFT_NOTICE` in `lib/content/legal.ts` — that line comes off in the same commit the review lands. Section 8 keeps legal text with the user
+- [ ] **Who reads `support_tickets`.** Phase 8 built the contact form and the table behind it; an admin holds a read policy and there is no screen for it, because the console's four screens are Phase 7's list and "one phase at a time" is section 3's first rule. Until there is one, the support inbox is read out of band
 
 *(Keep this list current — remove items once decided and folded into section 2, add new ones as they come up.)*
 

@@ -43,13 +43,17 @@ Next **16.3.4** · React **19.2.8** · Tailwind **4.3.3** · TypeScript 5 · `@s
   /(customer)/...           נתיבי לקוח: פרסום קריאה, מעקב, אזור אישי
   /(pro)/...                 נתיבי בעל מקצוע: פיד קריאות, הצעות, הכנסות
   /(admin)/...                לוח ניהול
-  /(marketing)/...            עמודי SEO/תוכן ציבוריים
+  /(marketing)/...            עמודי SEO/תוכן ציבוריים (Phase 8) — כולם ללא סשן
+  /robots.ts, /sitemap.ts     מה שסורק מנוע חיפוש מקבל (Phase 8)
   /api/...                    Route Handlers (webhooks בלבד, ברירת מחדל היא Server Actions)
 /components
   /ui                          קומפוננטות עיצוב גנריות
   /customer, /pro, /admin      קומפוננטות ספציפיות לתפקיד
 /lib
   /supabase                    יצירת קליינט + טיפוסים מיוצרים אוטומטית מה-DB
+  /content                     תוכן עריכתי בקוד (Phase 8): ערים, קופי לתחומים,
+                               שאלות נפוצות, מדריכים, טקסטים משפטיים
+  /seo.tsx                     canonical, מטא-תגיות ו-JSON-LD
   /validation                  סכמות Zod, קובץ אחד לכל ישות
   /actions                     Server Actions, מקובצים לפי ישות (jobs, bids, price-updates...)
   /maps                        עטיפות ל-Google Maps API (גיאוקוד, חישוב מרחק)
@@ -329,6 +333,27 @@ erDiagram
 
 **מה שלא נבנה ב-Phase 7 בכוונה:** `disputes.credit_amount` נרשם ואינו משולם. כמו `commission_charges`, זה פנקס בלי סליקה מאחוריו — ותשלום בפועל הוא תנועת כסף, שלפי `CLAUDE.md` סעיף 8 היא הכרעה של המשתמש. שתי השאלות גם קשורות: קריאה שזוכתה כבר חויבה ב-12% על הסכום המלא.
 
+### מה נוסף ב-Phase 8 (`supabase/migrations/20260908120000_public_content_seo.sql`)
+
+השלב הראשון שהקהל שלו הוא `anon`, וזה משנה את **צורת** התשובה ולא רק את מי ששואל.
+
+| שינוי | למה |
+|---|---|
+| **חמש פונקציות קריאה ציבוריות** — `pro_public_profile()`, `pro_public_reviews()`, `category_pros()`, `category_stats()`, `pricing_guide()` (ועוד `public_pro_slugs()` ל-sitemap) — כולן `security definer` ומוענקות ל-`anon` | Phase 1 כתבה במפורש שהפרופיל הציבורי יהיה "מבט בטוח לציבור, לא חור בטבלה", וזו הסיבה: מדיניות RLS בוחרת **שורות** ולא עמודות, ו-`pro_profiles` מחזיקה חשבון בנק, טלפון ו-`service_point` ליד ה-bio. כל פונקציה מונה את העמודות שהיא מחזירה, אחת-אחת. `pro_profiles` לא קיבלה שום מדיניות `select` חדשה |
+| **רק `verification_status = 'verified'` מקבל עמוד** | בעל מקצוע ב-pending, rejected או suspended מקבל 404 ולא עמוד ריק. נבדק ב-pgTAP על ידי השעיה והחזרה, ולא על ידי מציאת מישהו שבמקרה נמצא במצב אחר |
+| **`pro_profiles.public_slug`** — grant עמודה, עם check constraint ואינדקס ייחודי חלקי | זו ההגדרה של בעל המקצוע את עצמו, כמו `bio` — לא כמו `verification_status`. מה שחייב להתקיים הוא **הצורה** של הערך: לעולם לא אחת מהמילים שהאפליקציה עצמה מגישה תחת `/pro/`, ולעולם לא כזו שכבר תפוסה. הרשימה קיימת גם ב-`lib/validation/publicProfile.ts` (בשביל המשפט מתחת לשדה), וטסט Vitest קורא את המיגרציה ומוודא ששתי העותקים זהים |
+| **`pro_profiles.avatar_path`, `gallery_paths`, `years_experience`** | ממה שהעמוד הציבורי מורכב. `years_experience` מוצג כטענה של בעל המקצוע על עצמו, כי זה מה שהיא |
+| **`reviews.pro_reply` + `reply_to_review()`** — בלי שום grant עמודה | לביקורת שני חצאים ושני בעלים: הלקוח כתב את השורה, בעל המקצוע עונה. אף אחד מהם לא נוגע בחצי של השני. מאז השלב הזה כל השורה מוגשת למבקרים אנונימיים, ולכן שם המבקר מקוצר לשם פרטי ואות |
+| **`support_tickets`** — הטבלה היחידה ש-`anon` רשאי לכתוב אליה | טופס הפנייה יושב על עמוד בלי כניסה, וטופס תמיכה מאחורי התחברות אינו תמיכה. המדיניות מצמידה את `created_by` למי שהקורא באמת (`auth.uid()`, או null ל-anon), ואין UPDATE לאף תפקיד קליינט: ה-`status` הוא התשובה של הצוות לפנייה |
+| **bucket ציבורי `pro-media`** | ראו סעיף 6. ההכרעה שנפתחה ב-`CLAUDE.md` סעיף 9 |
+| **`my_reviews()`** | הביקורות של בעל המקצוע עצמו, למסך העריכה. `reviews` כבר נושאת מדיניות קריאה עבורו — מה שחסר הוא שם המבקר, ול-`profiles` אין מדיניות קריאה בין משתמשים. אותו הסדר בדיוק כמו `my_completed_jobs()` ב-Phase 6 |
+
+**אין מספר מומצא בשום עמוד ציבורי.** כל נתון בעמוד תחום+עיר, במדריך העלויות ובפרופיל נספר משורות; איפה שאין מה לספור, העמוד אומר את זה. שני מספרים מהעיצוב חסרים במכוון — "97% אחריות על העבודה" ועמודת "זמן ביצוע" בטבלת המחירים — כי המוצר לא מודד אף אחד מהם. אלה בדיוק העמודים שכל תפקידם הוא להיות אמינים.
+
+**עיר היא רשימה ב-`lib/content/cities.ts`, לא טבלה.** אף שורה בשום מקום לא מפנה לעיר: קריאה שומרת כתובת וגוזרת עיר עם `job_city()`, ובעל מקצוע שומר נקודה. מה שהרשימה מכריעה הוא אילו כתובות URL קיימות ולאיזו נקודה נשאלת השאלה "מי מכסה את המקום הזה" — הכרעת פרסום, ושייכת ל-diff.
+
+**תוכן עריכתי יושב ב-`lib/content/` ולא בטבלה.** תשובה בשאלות הנפוצות מנסחת מחדש כלל שחי במיגרציה, מדריך מסביר איך נראית הצעת מחיר הוגנת, וטקסט משפטי מתאר מה הקוד עושה בפועל. שלושתם צריכים לזוז באותו commit שבו הכלל זז — CMS היה מאפשר להם להתרחק ממנו בלי שאף אחד ישים לב.
+
 ### שינוי נתיבים ב-Phase 3: `/pro` הפך לעמוד נחיתה ציבורי
 
 עמוד הנחיתה לבעלי מקצוע (`design/screens/pro-1.1-landing.png`) צולם ב-`handy.co.il/pro`, ומבקר אנונימי חייב להגיע אליו. route group לא מוסיף segment, ולכן `/pro` לא יכול להיות גם עמוד שיווקי פתוח וגם בית מוגן. ההכרעה: `/pro` ציבורי, והבית של בעל המקצוע ירד ל-`/pro/dashboard` — גם זה ה-URL שבעיצוב עצמו.
@@ -337,10 +362,12 @@ erDiagram
 
 | תפקיד | כניסה | בית | נתיבים נוספים |
 |---|---|---|---|
-| ציבורי | — | `/` · `/pro` | |
+| ציבורי | — | `/` · `/pro` | Phase 8: `/how-it-works`, `/pricing`, `/help`, `/contact`, `/terms`, `/privacy`, `/cancellation`, `/guides`, `/guides/[slug]`, `/services`, `/services/[category]`, `/services/[category]/[city]`, `/pro/[slug]`, `/robots.txt`, `/sitemap.xml` |
 | `customer` | `/login` | `/account` | `/new-request`, `/new-request/published/[jobId]`, `/requests/[jobId]/offers`, `/requests/[jobId]/chat`, `/requests/[jobId]/track`, `/requests/[jobId]/summary` |
-| `pro` | `/pro/login` | `/pro/dashboard` | `/pro/join`, `/pro/onboarding`, `/pro/jobs`, `/pro/jobs/[jobId]`, `/pro/jobs/[jobId]/quote`, `/pro/offers`, `/pro/my-jobs`, `/pro/wallet`, `/pro/messages`, `/pro/settings` |
+| `pro` | `/pro/login` | `/pro/dashboard` | `/pro/join`, `/pro/onboarding`, `/pro/jobs`, `/pro/jobs/[jobId]`, `/pro/jobs/[jobId]/quote`, `/pro/offers`, `/pro/my-jobs`, `/pro/wallet`, `/pro/messages`, `/pro/settings`, `/pro/profile`, `/pro/help` |
 | `admin` | `/admin/login` | `/admin` | `/admin/pros` |
+
+**`/pro/<slug>` יושב באותו prefix של אזור בעל המקצוע המחובר, וזה בכוונה:** העיצוב מצלם את הפרופיל הציבורי ב-`handy.co.il/pro/david-levi`. Next פותר segment סטטי לפני דינמי, ולכן `/pro/wallet` עדיין מגיע לארנק — ומה שמונע את הדו-משמעות לגמרי הוא check constraint על `pro_profiles.public_slug` שפוסל כל אחת מהמילים האלה כ-slug. `/pro/profile` ו-`/pro/help` נוספו ל-`PROTECTED_AREAS` אחת-אחת, כמו שאר נתיבי בעל המקצוע.
 
 `/api/receipts/[jobId]` הוא ה-Route Handler היחיד באפליקציה, והוא אינו ב-`PROTECTED_AREAS`: הוא מזהה את הקורא בעצמו ומחזיר 401, כי תשובה לבקשת קובץ אינה הפניה למסך כניסה.
 
@@ -403,13 +430,15 @@ Supabase Realtime על גבי Postgres Changes + Broadcast:
   **שני מפתחות, ולא אחד** (הוחלט ב-Phase 2): `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` נשלח לדפדפן ומוגבל ב-referrer — ולכן חסר תועלת מהשרת; `GOOGLE_MAPS_SERVER_API_KEY` מוגבל ב-IP והוא זה שמריץ את הגיאוקוד. הקואורדינטות מ-Places Autocomplete הן רמז בלבד: `lib/maps/geocode.ts` בודק אותן מול תיבה סביב ישראל לפני שמשהו מגיע ל-`jobs.location`.
   **בלי מפתח בכלל** המוצר עדיין עובד: הכתובת מוקלדת ידנית ומוצבת מול gazetteer מובנה של ערי ישראל. זה מקורב מעצם הגדרתו, ולכן כל תוצאה נושאת את ה-`source` שלה ומסך יכול לומר זאת. המצב הזה הוא opt-in דרך `ALLOW_NO_MAPS_KEY` — אחרת דיפלוי שפשוט שכח את המפתח היה מתייק בשקט כל קריאה למרכז תל אביב.
 - **Twilio** (דרך Supabase Auth Phone Provider): שליחת קוד OTP. דורש הקמת חשבון Twilio + מספר שולח (לבדוק אילו מגבלות חלות על שליחת SMS לישראל דרך Twilio בזמן ההקמה).
-- **Supabase Storage**: buckets נפרדים ל-`job-media` (Phase 2), `verification-docs` (Phase 3), `price-update-photos` (Phase 5) ו-`profile-photos` (טרם נוצר — ראו `CLAUDE.md` סעיף 9). כולם פרטיים, מדיניות גישה per-bucket תואמת ל-RLS, וכל צפייה עוברת signed URL שנחתם בשרת תחת ה-RLS של הקורא.
+- **Supabase Storage**: buckets נפרדים ל-`job-media` (Phase 2), `verification-docs` (Phase 3), `price-update-photos` (Phase 5) ו-`pro-media` (Phase 8). שלושת הראשונים פרטיים, מדיניות גישה per-bucket תואמת ל-RLS, וכל צפייה עוברת signed URL שנחתם בשרת תחת ה-RLS של הקורא.
+  **`pro-media` הוא הראשון והיחיד שהוא ציבורי**, וזו ההכרעה שנפתחה ב-`CLAUDE.md` סעיף 9 ונסגרה ב-Phase 8. הנימוק אינו נוחות: חתימת URL רצה תחת ה-RLS של קורא, ולעמוד פרופיל ציבורי אין קורא — לקוח שמשווה בעלי מקצוע לפני שיש לו חשבון בכלל. מה שיושב שם הוא בדיוק מה שבעל המקצוע בחר לפרסם (תמונת פרופיל וגלריית עבודות), במסלול `<pro_id>/<filename>`; מסמכי האימות נשארים ב-`verification-docs` הפרטי, ואף פעם לא אותו קובץ. השם השתנה מ-`profile-photos` שנרשם כאן בטיוטה, כי הוא מחזיק גם את הגלריה.
 
 ## 7. משתני סביבה (יעודכן בפועל ב-`.env.example` בריפו)
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SITE_URL=             # מקור הפריסה. נכנס לכל canonical, og ו-sitemap (Phase 8)
 SUPABASE_SERVICE_ROLE_KEY=        # שרת בלבד, לעולם לא בצד קליינט
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=  # דפדפן: Maps JS + Places, מוגבל ב-referrer
 GOOGLE_MAPS_SERVER_API_KEY=       # שרת: Geocoding, מוגבל ב-IP. נופל חזרה למפתח הדפדפן
