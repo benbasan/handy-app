@@ -162,7 +162,9 @@ export type Database = {
           job_id: string
           opened_by: string
           reason: string
+          resolution_note: string | null
           resolved_at: string | null
+          resolved_by: string | null
           status: string
         }
         Insert: {
@@ -172,7 +174,9 @@ export type Database = {
           job_id: string
           opened_by: string
           reason: string
+          resolution_note?: string | null
           resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
         }
         Update: {
@@ -182,7 +186,9 @@ export type Database = {
           job_id?: string
           opened_by?: string
           reason?: string
+          resolution_note?: string | null
           resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
         }
         Relationships: [
@@ -196,6 +202,13 @@ export type Database = {
           {
             foreignKeyName: "disputes_opened_by_fkey"
             columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_resolved_by_fkey"
+            columns: ["resolved_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -506,12 +519,14 @@ export type Database = {
           accepting_jobs: boolean
           bio: string | null
           created_at: string
+          documents_required_at: string | null
           jobs_completed_count: number
           onboarding_step: number
           payment_methods: string[]
           payout_account_last4: string | null
           payout_bank_branch: string | null
           payout_bank_name: string | null
+          price_updates_blocked: boolean
           profile_strength_pct: number
           radius_km: number
           rating_avg: number | null
@@ -528,12 +543,14 @@ export type Database = {
           accepting_jobs?: boolean
           bio?: string | null
           created_at?: string
+          documents_required_at?: string | null
           jobs_completed_count?: number
           onboarding_step?: number
           payment_methods?: string[]
           payout_account_last4?: string | null
           payout_bank_branch?: string | null
           payout_bank_name?: string | null
+          price_updates_blocked?: boolean
           profile_strength_pct?: number
           radius_km?: number
           rating_avg?: number | null
@@ -550,12 +567,14 @@ export type Database = {
           accepting_jobs?: boolean
           bio?: string | null
           created_at?: string
+          documents_required_at?: string | null
           jobs_completed_count?: number
           onboarding_step?: number
           payment_methods?: string[]
           payout_account_last4?: string | null
           payout_bank_branch?: string | null
           payout_bank_name?: string | null
+          price_updates_blocked?: boolean
           profile_strength_pct?: number
           radius_km?: number
           rating_avg?: number | null
@@ -710,6 +729,100 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_category_mix: {
+        Args: { p_days?: number }
+        Returns: {
+          category_name_he: string
+          category_slug: string
+          jobs_count: number
+          share_pct: number
+        }[]
+      }
+      admin_disputes: {
+        Args: { p_status?: string }
+        Returns: {
+          category_name_he: string
+          created_at: string
+          credit_amount: number
+          customer_name: string
+          dispute_id: string
+          job_id: string
+          job_status: string
+          opened_by: string
+          opened_by_name: string
+          opened_by_role: string
+          pro_name: string
+          reason: string
+          resolution_note: string
+          resolved_at: string
+          status: string
+        }[]
+      }
+      admin_job_cities: {
+        Args: never
+        Returns: {
+          city: string
+          jobs_count: number
+        }[]
+      }
+      admin_jobs: {
+        Args: {
+          p_category_slug?: string
+          p_city?: string
+          p_days?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: {
+          address_text: string
+          amount: number
+          bids_count: number
+          category_name_he: string
+          category_slug: string
+          city: string
+          created_at: string
+          customer_name: string
+          description: string
+          job_id: string
+          pro_name: string
+          status: string
+        }[]
+      }
+      admin_jobs_by_day: {
+        Args: { p_days?: number }
+        Returns: {
+          day: string
+          jobs_count: number
+        }[]
+      }
+      admin_overview: {
+        Args: never
+        Returns: {
+          closed_rate_pct: number
+          commission_month: number
+          commission_month_jobs: number
+          commission_prev_month: number
+          jobs_24h: number
+          jobs_prev_24h: number
+          jobs_without_bids: number
+          minutes_to_first_bid: number
+          open_disputes: number
+          pending_pros: number
+          pros_with_many_price_updates: number
+          unreviewed_docs: number
+        }[]
+      }
+      admin_trust_metrics: {
+        Args: { p_days?: number }
+        Returns: {
+          avg_resolution_hours: number
+          disputes_count: number
+          disputes_per_1000: number
+          jobs_count: number
+          price_updates_approved_pct: number
+          price_updates_decided: number
+        }[]
+      }
       auth_role: { Args: never; Returns: string }
       bids_for_job: {
         Args: { p_job_id: string }
@@ -751,6 +864,7 @@ export type Database = {
       is_job_owner: { Args: { p_job_id: string }; Returns: boolean }
       is_verified_pro: { Args: never; Returns: boolean }
       job_bid_count: { Args: { p_job_id: string }; Returns: number }
+      job_city: { Args: { p_address: string }; Returns: string }
       job_contact: {
         Args: { p_job_id: string }
         Returns: {
@@ -937,7 +1051,20 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_dispute: {
+        Args: {
+          p_credit_amount?: number
+          p_id: string
+          p_note?: string
+          p_status: string
+        }
+        Returns: string
+      }
       select_bid: { Args: { p_bid_id: string }; Returns: string }
+      set_pro_enforcement: {
+        Args: { p_action: string; p_pro_id: string }
+        Returns: string
+      }
       set_pro_verification: {
         Args: { p_pro_id: string; p_status: string }
         Returns: string
