@@ -339,3 +339,76 @@ insert into public.messages (job_id, pro_id, sender_id, body, created_at, read_a
     now() - interval '3 minutes',
     null
   );
+
+-- ---------------------------------------------------------------------------
+-- Phase 5 — one job that is already under way
+--
+-- The tracking screens (design/screens/customer-3.1-tracking-chat.png and
+-- pro-3.1-manage-job-price-update.png) only exist once a bid has been chosen,
+-- and a fresh reset otherwise has no assigned job at all. This is customer B's
+-- call, taken by the pro who bid 340 on job A — deliberately a different pair
+-- from the fixtures the pgTAP suite counts, so the seed can grow without
+-- rewriting Phase 1–4's assertions.
+--
+-- It ships with a live position and one price update waiting for a decision,
+-- which is exactly the state both designs are captured in.
+-- ---------------------------------------------------------------------------
+
+insert into public.jobs (
+  id, customer_id, category_id, description, photo_urls, location, address_text,
+  preferred_time, search_radius_km, status
+) values (
+  'd0000000-0000-4000-8000-000000000003',
+  'a0000000-0000-4000-8000-000000000002',
+  'c0000000-0000-4000-8000-000000000001',
+  'דוד השמש מטפטף על הגג ויש כתם רטיבות בתקרת חדר השינה.',
+  '{}',
+  extensions.st_point(34.7745, 32.0700)::extensions.geography,
+  'רחוב אלנבי 40, תל אביב',
+  'asap',
+  5,
+  'open'
+);
+
+-- Inserted already 'selected': the seed is not a client, and status has no
+-- INSERT grant through PostgREST. A real bid can only reach this state through
+-- select_bid().
+insert into public.bids (
+  id, job_id, pro_id, price, eta_minutes, note, status, expires_at, created_at
+) values (
+  'b0000000-0000-4000-8000-000000000005',
+  'd0000000-0000-4000-8000-000000000003',
+  'a0000000-0000-4000-8000-000000000006',
+  320, 25, 'מגיע עם צנרת חלופית. אחריות שנה.',
+  'selected', now() + interval '40 minutes', now() - interval '90 minutes'
+);
+
+update public.jobs
+   set status = 'assigned',
+       selected_bid_id = 'b0000000-0000-4000-8000-000000000005'
+ where id = 'd0000000-0000-4000-8000-000000000003';
+
+-- Roughly a kilometre out, moving in. `updated_at` is recent on purpose: the
+-- customer's screen calls a position older than a few minutes stale rather
+-- than drawing a pin somebody may have left an hour ago.
+insert into public.job_locations
+  (job_id, pro_id, location, accuracy_m, eta_minutes, updated_at)
+values (
+  'd0000000-0000-4000-8000-000000000003',
+  'a0000000-0000-4000-8000-000000000006',
+  extensions.st_point(34.7790, 32.0755)::extensions.geography,
+  22, 12, now() - interval '20 seconds'
+);
+
+-- The field price update, waiting for the customer. original_price is the
+-- agreed 320 — through the app it is never accepted from the pro at all, it is
+-- read by request_price_update() from job_effective_price().
+insert into public.price_updates
+  (job_id, pro_id, original_price, new_price, photo_url, note)
+values (
+  'd0000000-0000-4000-8000-000000000003',
+  'a0000000-0000-4000-8000-000000000006',
+  320, 440,
+  'a0000000-0000-4000-8000-000000000006/d0000000-0000-4000-8000-000000000003/fault.jpg',
+  'צינור סדוק בקיר מאחורי הדוד — נדרשת החלפת קטע צינור ואיטום מחדש.'
+);

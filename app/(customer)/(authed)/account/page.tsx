@@ -146,20 +146,25 @@ function JobRow({ job }: { job: JobSummary }) {
 
       <Badge tone={status.tone}>{status.text}</Badge>
 
-      {/* A published call's home is its offers screen — that is where the
-          bids arrive and where one gets chosen. The publish confirmation is
-          only interesting on the way out of the form. */}
+      {/* Where a call lives depends on how far along it is: the offers
+          screen while it is collecting bids, the tracking screen once
+          somebody is on the way. The publish confirmation is only
+          interesting on the way out of the form. */}
       <Link
         href={
           job.status === "draft"
             ? CUSTOMER_ROUTES.published(job.id)
-            : CUSTOMER_ROUTES.offers(job.id)
+            : job.status === "assigned" || job.status === "in_progress"
+              ? CUSTOMER_ROUTES.track(job.id)
+              : CUSTOMER_ROUTES.offers(job.id)
         }
         className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
       >
         {job.status === "open" || job.status === "bidding"
           ? "צפייה בהצעות"
-          : "פתח"}
+          : job.status === "assigned" || job.status === "in_progress"
+            ? "מעקב חי"
+            : "פתח"}
       </Link>
     </li>
   );

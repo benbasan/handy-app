@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BidCard } from "@/components/customer/BidCard";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
-import { BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import { BUTTON_CTA, BUTTON_QUIET, Card } from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
@@ -191,13 +191,21 @@ export default async function JobOffersPage({
           </div>
 
           {chosen ? (
-            <p className="rounded-2xl border border-cta bg-cta/10 p-4 text-sm font-semibold text-cta-strong">
-              ✓ ההצעה של {chosen.proName ?? "בעל המקצוע"} על סך{" "}
-              <span className="ltr-nums">
-                {chosen.price.toLocaleString("he-IL")}
-              </span>{" "}
-              ₪ אושרה. המחיר נעול — כל שינוי בשטח יחייב תמונה ואישור שלכם.
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cta bg-cta/10 p-4">
+              <p className="text-sm font-semibold text-cta-strong">
+                ✓ ההצעה של {chosen.proName ?? "בעל המקצוע"} על סך{" "}
+                <span className="ltr-nums">
+                  {chosen.price.toLocaleString("he-IL")}
+                </span>{" "}
+                ₪ אושרה. המחיר נעול — כל שינוי בשטח יחייב תמונה ואישור שלכם.
+              </p>
+              <Link
+                href={CUSTOMER_ROUTES.track(jobId)}
+                className={`${BUTTON_CTA} px-4 py-2 text-sm`}
+              >
+                מעקב חי
+              </Link>
+            </div>
           ) : (
             liveCount > 0 && (
               <p className="text-sm text-muted">

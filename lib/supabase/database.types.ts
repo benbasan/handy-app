@@ -235,6 +235,54 @@ export type Database = {
           },
         ]
       }
+      job_locations: {
+        Row: {
+          accuracy_m: number | null
+          eta_minutes: number | null
+          job_id: string
+          latitude: number | null
+          location: unknown
+          longitude: number | null
+          pro_id: string
+          updated_at: string
+        }
+        Insert: {
+          accuracy_m?: number | null
+          eta_minutes?: number | null
+          job_id: string
+          latitude?: number | null
+          location: unknown
+          longitude?: number | null
+          pro_id: string
+          updated_at?: string
+        }
+        Update: {
+          accuracy_m?: number | null
+          eta_minutes?: number | null
+          job_id?: string
+          latitude?: number | null
+          location?: unknown
+          longitude?: number | null
+          pro_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_locations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_locations_pro_id_fkey"
+            columns: ["pro_id"]
+            isOneToOne: false
+            referencedRelation: "pro_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           address_text: string
@@ -683,6 +731,14 @@ export type Database = {
       }
       can_bid_on_job: { Args: { p_job_id: string }; Returns: boolean }
       can_read_job_media: { Args: { p_object_name: string }; Returns: boolean }
+      can_read_price_update_photo: {
+        Args: { p_object_name: string }
+        Returns: boolean
+      }
+      decide_price_update: {
+        Args: { p_approve: boolean; p_id: string }
+        Returns: string
+      }
       expire_stale_bids: { Args: never; Returns: number }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_pro: { Args: { p_job_id: string }; Returns: boolean }
@@ -690,6 +746,34 @@ export type Database = {
       is_job_owner: { Args: { p_job_id: string }; Returns: boolean }
       is_verified_pro: { Args: never; Returns: boolean }
       job_bid_count: { Args: { p_job_id: string }; Returns: number }
+      job_contact: {
+        Args: { p_job_id: string }
+        Returns: {
+          counterpart_id: string
+          counterpart_name: string
+          counterpart_phone: string
+          counterpart_role: string
+        }[]
+      }
+      job_effective_price: { Args: { p_job_id: string }; Returns: number }
+      mark_job_in_progress: { Args: { p_job_id: string }; Returns: string }
+      my_active_jobs: {
+        Args: never
+        Returns: {
+          address_text: string
+          agreed_price: number
+          assigned_at: string
+          category_name_he: string
+          current_price: number
+          customer_name: string
+          description: string
+          eta_minutes: number
+          job_id: string
+          pending_update_count: number
+          status: string
+          unread_count: number
+        }[]
+      }
       my_bid_stats: {
         Args: never
         Returns: {
@@ -765,6 +849,25 @@ export type Database = {
         Returns: boolean
       }
       pros_in_range: { Args: { p_job_id: string }; Returns: number }
+      report_job_location: {
+        Args: {
+          p_accuracy_m?: number
+          p_eta_minutes?: number
+          p_job_id: string
+          p_lat: number
+          p_lng: number
+        }
+        Returns: string
+      }
+      request_price_update: {
+        Args: {
+          p_job_id: string
+          p_new_price: number
+          p_note?: string
+          p_photo_url: string
+        }
+        Returns: string
+      }
       select_bid: { Args: { p_bid_id: string }; Returns: string }
       set_pro_verification: {
         Args: { p_pro_id: string; p_status: string }
