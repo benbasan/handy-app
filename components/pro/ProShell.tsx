@@ -14,7 +14,7 @@ import type { ProProfile } from "@/lib/supabase/pros";
  *
  * Each link joined the row when the screen behind it became real — a link to
  * a 404 is worse than no link: הצעות and הודעות in Phase 4, העבודות שלי in
- * Phase 5, and ארנק in Phase 6, once a closed job had earnings to show.
+ * Phase 5, ארנק in Phase 6, and הפרופיל שלי plus מרכז העזרה in Phase 8.
  */
 export function ProShell({
   profile,
@@ -32,7 +32,7 @@ export function ProShell({
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
           <ProLogo href={PRO_ROUTES.dashboard} />
 
-          <nav className="order-3 flex w-full items-center gap-5 text-sm font-medium text-ink sm:order-none sm:w-auto">
+          <nav className="order-3 flex w-full flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium text-ink sm:order-none sm:w-auto">
             <Link href={PRO_ROUTES.dashboard} className="hover:text-pro">
               דשבורד
             </Link>
@@ -59,8 +59,14 @@ export function ProShell({
                 </span>
               )}
             </Link>
+            <Link href={PRO_ROUTES.profile} className="hover:text-pro">
+              הפרופיל שלי
+            </Link>
             <Link href={PRO_ROUTES.settings} className="hover:text-pro">
               זמינות והגדרות
+            </Link>
+            <Link href={PRO_ROUTES.help} className="hover:text-pro">
+              עזרה
             </Link>
           </nav>
 

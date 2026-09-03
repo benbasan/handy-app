@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SiteFooter } from "@/components/ui/SiteFooter";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import type { CurrentUser } from "@/lib/supabase/session";
 
@@ -20,12 +21,7 @@ export function AppShell({
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
         {children}
       </main>
-      <footer className="border-t border-line bg-surface">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm text-muted sm:px-6">
-          <p>Handy · בעל מקצוע אמין ליד הבית, היום.</p>
-          <p>כל שינוי מחיר בשטח מחייב תמונה ואישור שלכם.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

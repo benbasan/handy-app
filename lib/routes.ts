@@ -50,6 +50,38 @@ export const PRO_ROUTES = {
   manageJob: (jobId: string) => `/pro/jobs/${jobId}`,
   /** ארנק, הכנסות ועמלות — design/screens/pro-4.1-earnings-wallet.png, at /pro/wallet. */
   wallet: "/pro/wallet",
+  /** הפרופיל הציבורי שלי — design/screens/pro-5.1-public-profile-edit.png, at /pro/profile. */
+  profile: "/pro/profile",
+  /** מרכז עזרה לבעלי מקצוע — design/screens/pro-5.5-help-center.png, at /pro/help. */
+  help: "/pro/help",
+} as const;
+
+/**
+ * The public pages — the ones with no session behind them at all (Phase 8).
+ *
+ * `proProfile` is the odd one: it lives under `/pro/`, which is otherwise the
+ * signed-in pro's area, because that is where the design captures it
+ * (handy.co.il/pro/david-levi). Next resolves a static segment before a
+ * dynamic one, so `/pro/wallet` still reaches the wallet — and a check
+ * constraint on `pro_profiles.public_slug` refuses every one of those words as
+ * a slug, so the two meanings of `/pro/x` can never be the same string.
+ */
+export const MARKETING_ROUTES = {
+  home: "/",
+  howItWorks: "/how-it-works",
+  pricing: "/pricing",
+  help: "/help",
+  contact: "/contact",
+  terms: "/terms",
+  privacy: "/privacy",
+  cancellation: "/cancellation",
+  guides: "/guides",
+  guide: (slug: string) => `/guides/${slug}`,
+  services: "/services",
+  category: (categorySlug: string) => `/services/${categorySlug}`,
+  categoryInCity: (categorySlug: string, citySlug: string) =>
+    `/services/${categorySlug}/${citySlug}`,
+  proProfile: (slug: string) => `/pro/${slug}`,
 } as const;
 
 /**
@@ -147,6 +179,8 @@ const PROTECTED_AREAS: ReadonlyArray<{ prefix: string; login: string }> = [
   { prefix: PRO_ROUTES.messages, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.settings, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.wallet, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.profile, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.help, login: ROLE_LOGIN.pro },
   { prefix: ROLE_HOME.admin, login: ROLE_LOGIN.admin },
 ];
 

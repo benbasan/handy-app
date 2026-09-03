@@ -122,3 +122,20 @@ export type OpenDisputeState = {
 };
 
 export const EMPTY_OPEN_DISPUTE_STATE: OpenDisputeState = {};
+
+export type SupportTicketState = {
+  error?: string;
+  /** Keyed by the schema's field name, so a form can sit the message under the right control. */
+  fieldErrors?: Record<string, string>;
+  sent?: boolean;
+};
+
+export const EMPTY_SUPPORT_TICKET_STATE: SupportTicketState = {};
+
+export type ReviewReplyState = {
+  error?: string;
+  /** The review that was just answered, so the card can confirm without a reload. */
+  repliedTo?: string;
+};
+
+export const EMPTY_REVIEW_REPLY_STATE: ReviewReplyState = {};
