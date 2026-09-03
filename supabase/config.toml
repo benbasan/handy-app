@@ -273,10 +273,17 @@ template = "קוד האימות שלך ל-Handy: {{ .Code }}"
 # SMS bill on someone else's account.
 max_frequency = "60s"
 
-# Fixed OTP codes for local development, so the whole phone login flow is
-# testable with no SMS provider attached. These numbers are the demo users in
-# supabase/seed.sql — keep the two lists in step. Local only: this block has no
-# effect on the hosted project.
+# Fixed OTP codes, so the whole phone login flow is testable with no SMS
+# provider attached. These numbers are the demo users in supabase/seed.sql —
+# keep the two lists in step.
+#
+# NOT local-only, whatever this comment used to claim. `supabase config push`
+# sends this block to the linked project and the hosted API accepts it, along
+# with the placeholder Twilio credentials below, which it does not validate.
+# That is what makes the deployed demo signable-in without an SMS account —
+# and it means these seven codes are live credentials on the deployed site,
+# not a development convenience. Changing one here and pushing changes who can
+# sign in to production. See CLAUDE.md section 9, "the demo codes are live".
 [auth.sms.test_otp]
 972500000001 = "123456" # דנה לוי — customer
 972500000002 = "123456" # יוסי כהן — customer
