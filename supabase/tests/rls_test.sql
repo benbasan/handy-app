@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(282);
+select plan(300);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -2735,6 +2735,288 @@ select is(
   (select count(*)::int from storage.objects where bucket_id = 'verification-docs'),
   0,
   'while the identity documents beside it stay invisible — a public bucket was added, not opened'
+);
+
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- Phase 9 — the security checklist, as assertions
+--
+-- Everything above this line proves one policy at a time: this customer
+-- cannot read that customer's job. The block below proves the *shape* of the
+-- schema instead — that no table was ever added without RLS, that no
+-- `security definer` function was ever added without a pinned search_path,
+-- that the set of functions an anonymous visitor may call is exactly the set
+-- Phase 8 meant to publish, and that no client role holds a grant on a column
+-- CLAUDE.md section 3 says is not theirs to write.
+--
+-- These are the assertions that fail in a *later* phase, on a table nobody has
+-- written a specific test for yet. That is the point of them.
+-- ---------------------------------------------------------------------------
+
+reset role;
+
+select is_empty(
+  $$ select c.relname
+       from pg_class c
+       join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r'
+        and not c.relrowsecurity $$,
+  'every table in public has row level security enabled'
+);
+
+select is_empty(
+  $$ select c.relname
+       from pg_class c
+       join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r'
+        and not exists (select 1 from pg_policy p where p.polrelid = c.oid) $$,
+  'and at least one policy on it — RLS with no policy denies everything, which reads as "working" until it does not'
+);
+
+-- A `security definer` function runs as its owner. With an unpinned
+-- search_path, anyone who can create a schema on the search path can shadow a
+-- table it names and have it run their code as that owner. Every function in
+-- this repo pins `search_path = ''`; this is what keeps the next one honest.
+select is_empty(
+  $$ select p.proname
+       from pg_proc p
+       join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.prosecdef
+        and coalesce(array_to_string(p.proconfig, ','), '') not like '%search_path%' $$,
+  'every security definer function in public pins its search_path'
+);
+
+-- The functions an anonymous visitor may execute. Phase 8 published five
+-- (`pro_public_profile`, `pro_public_reviews`, `category_pros`,
+-- `category_stats`, `pricing_guide`, plus `public_pro_slugs` behind the
+-- sitemap); the rest are RLS helper predicates, which answer false for a
+-- caller with no session and are reachable from a policy either way.
+--
+-- Trigger functions are excluded: PostgREST cannot call one, and their
+-- privileges say nothing about what a visitor can reach.
+create temporary table pg_temp_anon_expected (signature text primary key) on commit drop;
+
+insert into pg_temp_anon_expected (signature) values
+  ('auth_role()'),
+  ('can_bid_on_job(p_job_id uuid)'),
+  ('can_read_job_media(p_object_name text)'),
+  ('can_read_price_update_photo(p_object_name text)'),
+  ('category_pros(p_category_slug text, p_lat double precision, p_lng double precision, p_limit integer)'),
+  ('category_stats(p_category_slug text, p_lat double precision, p_lng double precision)'),
+  ('commission_rate()'),
+  ('is_admin()'),
+  ('is_assigned_pro(p_job_id uuid)'),
+  ('is_bidding_pro(p_job_id uuid)'),
+  ('is_job_owner(p_job_id uuid)'),
+  ('is_verified_pro()'),
+  ('job_city(p_address text)'),
+  ('pricing_guide()'),
+  ('pro_has_bid(p_job_id uuid, p_pro_id uuid)'),
+  ('pro_public_profile(p_slug text)'),
+  ('pro_public_reviews(p_slug text, p_limit integer)'),
+  ('pro_serves_job(p_point geography, p_search_radius_km integer)'),
+  ('public_pro_slugs()');
+
+create temporary view pg_temp_anon_actual as
+  select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' as signature
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public'
+     and p.prorettype <> 'trigger'::regtype
+     and has_function_privilege('anon', p.oid, 'execute');
+
+select is_empty(
+  $$ select signature from pg_temp_anon_actual
+     except select signature from pg_temp_anon_expected $$,
+  'no function is reachable by an anonymous caller that this list does not name'
+);
+
+select is_empty(
+  $$ select signature from pg_temp_anon_expected
+     except select signature from pg_temp_anon_actual $$,
+  'and every public page function is still reachable without a session'
+);
+
+-- The columns CLAUDE.md section 3 says no client writes, swept in one place.
+-- INSERT counts as writing: a row that arrives with the value already set
+-- never needs an update to carry it.
+create temporary table pg_temp_protected (tbl text, col text) on commit drop;
+
+insert into pg_temp_protected (tbl, col) values
+  ('profiles',               'role'),
+  ('pro_profiles',           'verification_status'),
+  ('pro_profiles',           'price_updates_blocked'),
+  ('pro_profiles',           'documents_required_at'),
+  ('pro_profiles',           'rating_avg'),
+  ('pro_profiles',           'jobs_completed_count'),
+  ('jobs',                   'status'),
+  ('jobs',                   'selected_bid_id'),
+  ('bids',                   'status'),
+  ('bids',                   'expires_at'),
+  ('price_updates',          'status'),
+  ('price_updates',          'original_price'),
+  ('price_updates',          'decided_at'),
+  ('commission_charges',     'base_price'),
+  ('commission_charges',     'total_price'),
+  ('commission_charges',     'commission_amount'),
+  ('disputes',               'status'),
+  ('disputes',               'credit_amount'),
+  ('disputes',               'resolved_at'),
+  ('disputes',               'resolved_by'),
+  ('reviews',                'rating'),
+  ('reviews',                'pro_reply'),
+  ('reviews',                'pro_replied_at'),
+  ('verification_documents', 'status'),
+  ('verification_documents', 'reviewed_at'),
+  ('support_tickets',        'status');
+
+select is_empty(
+  $$ select cp.table_name || '.' || cp.column_name || ' -> ' || cp.grantee || ' ' || cp.privilege_type
+       from information_schema.column_privileges cp
+       join pg_temp_protected p
+         on p.tbl = cp.table_name and p.col = cp.column_name
+      where cp.table_schema = 'public'
+        and cp.grantee in ('anon', 'authenticated')
+        and cp.privilege_type in ('INSERT', 'UPDATE') $$,
+  'no client role may write any column whose value is the system''s answer rather than the user''s claim'
+);
+
+-- `messages.read_at` is deliberately absent from that list: the recipient
+-- genuinely does hold an UPDATE grant on it, narrowed by a policy to messages
+-- somebody else sent. What must not exist is the INSERT half — a sender
+-- stamping their own message as already read.
+select is_empty(
+  $$ select cp.table_name || '.' || cp.column_name
+       from information_schema.column_privileges cp
+      where cp.table_schema = 'public' and cp.table_name = 'messages'
+        and cp.column_name = 'read_at'
+        and cp.grantee in ('anon', 'authenticated')
+        and cp.privilege_type = 'INSERT' $$,
+  'a sender cannot stamp their own message as already read'
+);
+
+-- ---------------------------------------------------------------------------
+-- …and the four holes the sweep found, each attempted the way an attacker
+-- would: straight at the table, as the user who benefits.
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.jobs
+       (customer_id, category_id, description, location, address_text,
+        preferred_time, search_radius_km, status)
+     values ('a0000000-0000-4000-8000-000000000001',
+             'c0000000-0000-4000-8000-000000000001',
+             'קריאה שנולדה גמורה', extensions.st_point(34.78, 32.08)::extensions.geography,
+             'רחוב הרצל 1, תל אביב', 'asap', 5, 'completed') $$,
+  '42501',
+  null,
+  'a customer cannot post a job that is already completed'
+);
+
+select throws_ok(
+  $$ insert into public.jobs
+       (customer_id, category_id, description, location, address_text,
+        preferred_time, search_radius_km, selected_bid_id)
+     values ('a0000000-0000-4000-8000-000000000001',
+             'c0000000-0000-4000-8000-000000000001',
+             'קריאה ששובצה מראש', extensions.st_point(34.78, 32.08)::extensions.geography,
+             'רחוב הרצל 1, תל אביב', 'asap', 5,
+             'b0000000-0000-4000-8000-000000000001') $$,
+  '42501',
+  null,
+  'nor one already assigned to a pro who never saw it — which is what would have made a fabricated review land on a stranger'
+);
+
+select lives_ok(
+  $$ insert into public.jobs
+       (customer_id, category_id, description, location, address_text,
+        preferred_time, search_radius_km)
+     values ('a0000000-0000-4000-8000-000000000001',
+             'c0000000-0000-4000-8000-000000000001',
+             'נזילה חדשה', extensions.st_point(34.78, 32.08)::extensions.geography,
+             'רחוב הרצל 1, תל אביב', 'asap', 5) $$,
+  'while posting an ordinary job still works, and the status default does the rest'
+);
+
+select is(
+  (select status from public.jobs where description = 'נזילה חדשה'),
+  'open',
+  'the job the database opened, not the one the client asked for'
+);
+
+reset role;
+select pg_temp.act_as(:pro_pending);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.verification_documents (pro_id, doc_type, file_url, status)
+     values ('a0000000-0000-4000-8000-000000000004', 'license',
+             'a0000000-0000-4000-8000-000000000004/license.pdf', 'approved') $$,
+  '42501',
+  null,
+  'a pro cannot file their own licence already approved — that badge is on a public profile'
+);
+
+select lives_ok(
+  $$ insert into public.verification_documents (pro_id, doc_type, file_url)
+     values ('a0000000-0000-4000-8000-000000000004', 'insurance',
+             'a0000000-0000-4000-8000-000000000004/insurance.pdf') $$,
+  'while filing one still works'
+);
+
+select is(
+  (select status from public.verification_documents
+    where file_url = 'a0000000-0000-4000-8000-000000000004/insurance.pdf'),
+  'pending',
+  'and it lands in the admin queue, where it belongs'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.messages (job_id, pro_id, sender_id, body, read_at)
+     values ('d0000000-0000-4000-8000-000000000001',
+             'a0000000-0000-4000-8000-000000000003',
+             'a0000000-0000-4000-8000-000000000003',
+             'נקראה מיד', now()) $$,
+  '42501',
+  null,
+  'a sender cannot insert a message already marked read'
+);
+
+select throws_ok(
+  $$ insert into public.messages (job_id, pro_id, sender_id, body, created_at)
+     values ('d0000000-0000-4000-8000-000000000001',
+             'a0000000-0000-4000-8000-000000000003',
+             'a0000000-0000-4000-8000-000000000003',
+             'נשלחה אתמול', now() - interval '1 day') $$,
+  '42501',
+  null,
+  'nor backdate one — the thread is the record a dispute is judged against'
+);
+
+reset role;
+set local role anon;
+
+select throws_ok(
+  $$ insert into public.support_tickets (full_name, phone, topic, body, status)
+     values ('אלמוני', '+972501111111', 'other', 'פנייה שנסגרה מראש', 'closed') $$,
+  '42501',
+  null,
+  'an anonymous visitor cannot open a support ticket that is already closed'
+);
+
+select lives_ok(
+  $$ insert into public.support_tickets (full_name, phone, topic, body)
+     values ('אלמוני', '+972501111111', 'other', 'פנייה רגילה') $$,
+  'while opening an ordinary one still works — this is the only table anon may write to'
 );
 
 reset role;

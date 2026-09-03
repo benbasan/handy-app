@@ -152,10 +152,17 @@ export function PublicProfileForm({
         </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span dir="ltr" className="text-sm text-muted">
+          {/* The origin is not part of the field, so the label cannot simply
+              be the heading above: on its own, this input reads as an unnamed
+              text box. */}
+          <label htmlFor="publicSlug" className="sr-only">
+            כתובת הפרופיל הציבורי שלך
+          </label>
+          <span dir="ltr" aria-hidden className="text-sm text-muted">
             {SITE_URL}/pro/
           </span>
           <input
+            id="publicSlug"
             name="publicSlug"
             dir="ltr"
             defaultValue={initial.publicSlug}

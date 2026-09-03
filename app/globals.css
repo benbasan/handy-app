@@ -29,13 +29,33 @@
   --color-pro-strong: #4338ca;
   --color-pro-soft: #eef0fe;
 
-  /* Primary action. Every "פרסם קריאה" button in the design is this green. */
-  --color-cta: #10b981;
-  --color-cta-strong: #059669;
+  /* Primary action. Every "פרסם קריאה" button in the design is this green.
+
+     Darkened in Phase 9 from the #10b981 / #059669 sampled off the design
+     PNGs. White on that emerald measured 2.5:1 and the emerald as text on
+     white 3.8:1, both well under WCAG AA's 4.5:1, on the single most-pressed
+     button in the product. Same hue, four steps down the ramp: white on this
+     is 5.5:1, and it clears 4.5:1 as text on every tint of itself the UI
+     draws. */
+  --color-cta: #047857;
+  --color-cta-strong: #065f46;
+  /* The same accent on a dark panel, where the dark emerald above would be
+     the one that fails. `text-cta` on `bg-ink` measured 3.3:1; this is 9.3:1.
+     A palette that has to work on both grounds needs two values, and naming
+     the second one is better than picking whichever happens to pass. */
+  --color-cta-bright: #34d399;
 
   /* The field price-update flow (Phase 5), and — as the design uses it on the
-     feed — the "just arrived" ribbon on a brand-new job. */
-  --color-alert: #f97316;
+     feed — the "just arrived" ribbon on a brand-new job.
+
+     Darkened in Phase 9 for the same reason as --color-cta: the sampled
+     #f97316 gave 2.8:1 against white either way round, and this is the colour
+     the price-update card is drawn in — the one screen a customer has to read
+     carefully before agreeing to pay more. */
+  --color-alert: #c2410c;
+  /* For text on a tint of itself — the waiting badge is alert on alert/15,
+     which the fill colour clears at only 4.1:1. */
+  --color-alert-strong: #9a3412;
   --color-alert-soft: #fff1e6;
 
   /* The admin console (Phase 7). The four design/screens/admin-*.png captures
@@ -48,8 +68,9 @@
   --color-admin-soft: #fdf1e3;
 
   /* Something is wrong, rather than merely urgent: the red "בדוק עכשיו" card
-     on the overview and the ללא הצעות row in the jobs table. */
-  --color-danger: #e0334e;
+     on the overview and the ללא הצעות row in the jobs table. Nudged down in
+     Phase 9: #e0334e measured 4.4:1 against white, just under the line. */
+  --color-danger: #cf1f3d;
   --color-danger-strong: #be2440;
   --color-danger-soft: #fdeaed;
 

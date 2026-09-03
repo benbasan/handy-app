@@ -109,8 +109,11 @@ export function RealtimeRefresh({
     <p
       role="status"
       aria-live="polite"
-      className={`text-sm font-semibold transition-opacity ${
-        flash ? "text-cta-strong opacity-100" : "text-muted opacity-70"
+      /* Colour alone carries the flash. The idle state used to be dimmed to
+         70% opacity, which put the muted grey at 2.6:1 against the canvas —
+         a status line nobody with low vision could read. */
+      className={`text-sm font-semibold transition-colors ${
+        flash ? "text-cta-strong" : "text-muted"
       }`}
     >
       <span

@@ -119,7 +119,10 @@ export async function createJob(
       address_text: point.formattedAddress ?? input.addressText,
       preferred_time: input.preferredTime,
       search_radius_km: input.searchRadiusKm,
-      status: "open",
+      // `status` is deliberately absent: Phase 9 revoked the INSERT grant on
+      // it, so a posted job takes its 'open' default the same way a bid takes
+      // its 45-minute `expires_at`. A status the client may not change is a
+      // status the client may not assert either.
     })
     .select("id")
     .single();
