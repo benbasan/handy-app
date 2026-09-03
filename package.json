@@ -17,6 +17,7 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
+    "perf:postgis": "node scripts/postgis-load-check.mjs",
     "prepare": "husky"
   },
   "lint-staged": {

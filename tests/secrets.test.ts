@@ -152,16 +152,21 @@ describe(".env.example is in step with the code", () => {
   /**
    * Every environment variable the application actually reads.
    *
-   * NODE_ENV, CI and the E2E harness's own knobs are excluded: they are set by
-   * the runtime, not by whoever is filling in a fresh `.env.local`, which is
-   * the only question this file answers.
+   * Excluded here: the ones the runtime sets for itself (NODE_ENV, CI, PORT,
+   * VERCEL_URL) and the knobs the test harnesses accept (E2E_PORT, and the
+   * PERF_* dials on scripts/postgis-load-check.mjs). `.env.example` answers
+   * one question — what does a fresh clone have to be told before it can run —
+   * and none of these belong in that answer.
    */
   const RUNTIME_PROVIDED = new Set([
     "NODE_ENV",
     "CI",
-    "E2E_PORT",
     "PORT",
     "VERCEL_URL",
+    "E2E_PORT",
+    "PERF_JOBS",
+    "PERF_PROS",
+    "PERF_BUDGET_SCALE",
   ]);
 
   it("documents every variable the code reads", () => {
