@@ -5,6 +5,7 @@ import type {
   PriceDecisionState,
   PriceUpdateFormState,
 } from "@/lib/actions/state";
+import { logServerError } from "@/lib/observability";
 import { CUSTOMER_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
@@ -84,6 +85,12 @@ export async function requestPriceUpdate(
   });
 
   if (error) {
+    // request_price_update() also refuses a pro whose field updates an admin
+    // has blocked (`price_updates_blocked`). The Hebrew cannot say so without
+    // telling a blocked pro how to work around it; the log can.
+    logServerError("priceUpdates.requestPriceUpdate", error, {
+      jobId: parsed.data.jobId,
+    });
     return {
       error:
         "לא ניתן לשלוח את הבקשה: ייתכן שכבר יש בקשה שממתינה לאישור הלקוח, או שהעבודה כבר אינה פעילה.",
@@ -126,6 +133,10 @@ export async function decidePriceUpdate(
   });
 
   if (error) {
+    logServerError("priceUpdates.decidePriceUpdate", error, {
+      priceUpdateId: parsed.data.priceUpdateId,
+      decision: parsed.data.decision,
+    });
     return {
       error:
         "לא ניתן להשיב לבקשה הזו: ייתכן שכבר הוכרעה, או שהיא אינה שייכת לקריאה שלך.",

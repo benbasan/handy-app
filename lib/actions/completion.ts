@@ -7,6 +7,7 @@ import type {
   SaveProState,
   ReviewFormState,
 } from "@/lib/actions/state";
+import { logServerError } from "@/lib/observability";
 import { CUSTOMER_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
@@ -65,6 +66,12 @@ export async function completeJob(
   });
 
   if (error) {
+    // The one that cost the most to be missing: this is the last thing a pro
+    // does on a job, usually on a phone, and it writes the commission row.
+    logServerError("completion.completeJob", error, {
+      jobId: parsed.data.jobId,
+      paymentMethod: parsed.data.paymentMethod,
+    });
     return {
       error:
         "לא ניתן לסגור את העבודה: ייתכן שהיא כבר נסגרה, או שהיא אינה משובצת אליך.",
@@ -110,6 +117,9 @@ export async function submitJobReview(
   });
 
   if (error) {
+    logServerError("completion.submitReview", error, {
+      jobId: parsed.data.jobId,
+    });
     return {
       error: "לא ניתן לשמור את הדירוג: ניתן לדרג רק קריאה שלכם שכבר הסתיימה.",
     };
@@ -156,6 +166,10 @@ export async function saveProForNextTime(
     );
 
   if (error) {
+    logServerError("completion.saveProForLater", error, {
+      proId: parsed.data.proId,
+      jobId: parsed.data.jobId,
+    });
     return { error: "לא הצלחנו לשמור את בעל המקצוע. נסו שוב." };
   }
 

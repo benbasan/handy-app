@@ -6,6 +6,7 @@ import type {
   ProEnforcementActionState,
   ResolveDisputeState,
 } from "@/lib/actions/state";
+import { logServerError } from "@/lib/observability";
 import { ADMIN_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
@@ -48,6 +49,10 @@ export async function decideProVerification(
   });
 
   if (error) {
+    logServerError("admin.setProVerification", error, {
+      proId: parsed.data.proId,
+      status: parsed.data.status,
+    });
     return { error: "עדכון הסטטוס נכשל. רעננו את הדף ונסו שוב." };
   }
 
@@ -100,6 +105,10 @@ export async function resolveDispute(
   });
 
   if (error) {
+    logServerError("admin.resolveDispute", error, {
+      disputeId: parsed.data.disputeId,
+      decision: parsed.data.decision,
+    });
     return {
       error: "ההכרעה לא נשמרה: ייתכן שהמחלוקת כבר הוכרעה. רעננו את הדף.",
     };
@@ -144,6 +153,10 @@ export async function applyProEnforcement(
   });
 
   if (error) {
+    logServerError("admin.setProEnforcement", error, {
+      proId: parsed.data.proId,
+      action: parsed.data.action,
+    });
     return { error: "הפעולה נכשלה. רעננו את הדף ונסו שוב." };
   }
 

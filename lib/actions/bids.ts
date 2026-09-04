@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { BidFormState, SelectBidState } from "@/lib/actions/state";
+import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { CUSTOMER_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
@@ -87,11 +88,21 @@ export async function submitBid(
     // 23505 is the unique (job_id, pro_id) constraint: one offer per pro per
     // call, and the honest fix is to edit the one already sent.
     if (error.code === "23505") {
+      logExpectedRefusal("bids.submitBid", error, {
+        jobId: parsed.data.jobId,
+        proId: user.id,
+      });
       return {
         error: "כבר הגשתם הצעה לקריאה הזו. אפשר לעדכן אותה במסך ״ההצעות שלי״.",
       };
     }
 
+    // Everything else is the insert policy refusing — `can_bid_on_job()` said
+    // no, and which of its four tests failed is only in the error.
+    logServerError("bids.submitBid", error, {
+      jobId: parsed.data.jobId,
+      proId: user.id,
+    });
     return {
       error:
         "לא ניתן להגיש הצעה לקריאה הזו: ייתכן שהיא כבר נסגרה, או שהיא מחוץ לרדיוס שהלקוח ביקש.",
@@ -140,6 +151,7 @@ export async function updateBid(
     .eq("id", parsed.data.bidId);
 
   if (error) {
+    logServerError("bids.updateBid", error, { bidId: parsed.data.bidId });
     return {
       error:
         "לא ניתן לעדכן את ההצעה: היא כבר נסגרה, פג תוקפה, או שהלקוח כבר בחר.",
@@ -177,6 +189,12 @@ export async function selectBid(
   });
 
   if (error) {
+    // select_bid() is what fixes a job's price, so a refusal here is worth the
+    // line even when it is the ordinary "somebody was faster" race.
+    logServerError("bids.selectBid", error, {
+      bidId: parsed.data.bidId,
+      jobId,
+    });
     return {
       error:
         "לא ניתן לבחור את ההצעה הזו: ייתכן שפג תוקפה, או שכבר נבחרה הצעה אחרת לקריאה.",

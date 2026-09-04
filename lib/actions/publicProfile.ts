@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { ProFormState, ReviewReplyState } from "@/lib/actions/state";
+import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { MARKETING_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
@@ -68,17 +69,29 @@ export async function savePublicProfile(
     // 23505 is the unique index on public_slug, 23514 the check constraint
     // that keeps a slug from colliding with one of the app's own /pro/ paths.
     if (error.code === "23505") {
+      logExpectedRefusal("publicProfile.saveProfile", error, {
+        proId: user.id,
+        reason: "slug-taken",
+      });
       return {
         fieldErrors: { publicSlug: "הכתובת הזו כבר תפוסה. נסו וריאציה." },
         error: "הכתובת הזו כבר תפוסה.",
       };
     }
     if (error.code === "23514") {
+      // The check constraint refused a slug that lib/validation/publicProfile
+      // accepted — which means the two copies of the rule have drifted, and
+      // that is a fault rather than a user mistake.
+      logServerError("publicProfile.saveProfile", error, {
+        proId: user.id,
+        reason: "slug-constraint",
+      });
       return {
         fieldErrors: { publicSlug: "הכתובת הזו אינה חוקית." },
         error: "הכתובת הזו אינה חוקית.",
       };
     }
+    logServerError("publicProfile.saveProfile", error, { proId: user.id });
     return { error: "שמירת הפרופיל נכשלה. נסו שוב." };
   }
 
@@ -99,7 +112,7 @@ export async function replyToReview(
   _prevState: ReviewReplyState,
   formData: FormData,
 ): Promise<ReviewReplyState> {
-  await requireRole("pro");
+  const user = await requireRole("pro");
 
   const parsed = reviewReplySchema.safeParse({
     reviewId: formData.get("reviewId"),
@@ -118,6 +131,10 @@ export async function replyToReview(
   });
 
   if (error) {
+    logServerError("publicProfile.replyToReview", error, {
+      reviewId: parsed.data.reviewId,
+      proId: user.id,
+    });
     return { error: "לא ניתן להגיב על הביקורת הזו." };
   }
 

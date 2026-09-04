@@ -1,6 +1,7 @@
 "use server";
 
 import type { SupportTicketState } from "@/lib/actions/state";
+import { logServerError } from "@/lib/observability";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/session";
 import { supportTicketSchema } from "@/lib/validation/support";
@@ -52,6 +53,12 @@ export async function submitSupportTicket(
   });
 
   if (error) {
+    // Name, phone and body stay out of the line — this is a contact form, so
+    // its payload is entirely the things that may not be logged.
+    logServerError("support.submitTicket", error, {
+      createdBy: user?.id ?? null,
+      topic: parsed.data.topic,
+    });
     return { error: "שליחת הפנייה נכשלה. נסו שוב, או פנו אלינו בוואטסאפ." };
   }
 

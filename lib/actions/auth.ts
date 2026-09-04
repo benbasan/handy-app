@@ -1,7 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { describeSendError, describeVerifyError } from "@/lib/auth/otpErrors";
+import {
+  describeSendError,
+  describeVerifyError,
+  isExpectedVerifyFailure,
+} from "@/lib/auth/otpErrors";
+import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { ROLE_HOME, ROLE_LOGIN } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/session";
@@ -56,12 +61,13 @@ export async function requestOtp(
 
   if (error) {
     // The developer-facing detail never reaches the browser, and without it a
-    // provider misconfiguration is invisible in the server log too.
-    console.error("[auth] signInWithOtp failed", {
-      code: error.code,
-      status: error.status,
-      message: error.message,
-    });
+    // provider misconfiguration is invisible in the server log too. Always an
+    // error rather than a refusal: a code that could not be sent is never the
+    // person's doing.
+    //
+    // No phone number in the line. It is the one field this action handles,
+    // and it identifies a human being.
+    logServerError("auth.requestOtp", error, { role });
     return { error: describeSendError(error) };
   }
 
@@ -97,6 +103,13 @@ export async function verifyOtp(
   });
 
   if (error) {
+    // A wrong or expired code is the overwhelming majority of failures here
+    // and is not a fault; anything GoTrue answers with that this app does not
+    // recognise is.
+    const record = isExpectedVerifyFailure(error)
+      ? logExpectedRefusal
+      : logServerError;
+    record("auth.verifyOtp", error, {});
     return { error: describeVerifyError(error) };
   }
 

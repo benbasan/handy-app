@@ -94,3 +94,23 @@ export function describeVerifyError(error: SupabaseAuthFailure): string {
   }
   return error.message;
 }
+
+/**
+ * Whether a failed verification is the person at the keyboard rather than the
+ * system: a mistyped code, an expired one, six digits that were not six
+ * digits, a rate limit.
+ *
+ * Derived from `describeVerifyError` rather than restating its list, because a
+ * second copy of that list is a second thing to keep in step. The function
+ * above answers with Hebrew for every failure it recognises, and falls through
+ * to the raw `error.message` for every one it does not — so "did it recognise
+ * this?" is exactly "is the answer something other than the message it was
+ * given?".
+ *
+ * The sign-in action uses this to decide whether a failure deserves an error
+ * line. Without the distinction, every wrong digit a customer types would land
+ * in the log at the same weight as an auth provider that has stopped working.
+ */
+export function isExpectedVerifyFailure(error: SupabaseAuthFailure): boolean {
+  return describeVerifyError(error) !== error.message;
+}
