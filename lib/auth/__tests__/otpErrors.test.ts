@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { describeSendError, describeVerifyError } from "../otpErrors";
+import {
+  describeSendError,
+  describeVerifyError,
+  isExpectedVerifyFailure,
+} from "../otpErrors";
 
 /**
  * The two failures below are copied verbatim from the local stack, captured
@@ -85,5 +89,61 @@ describe("describeVerifyError", () => {
     expect(describeVerifyError({ message: "Something entirely new" })).toBe(
       "Something entirely new",
     );
+  });
+});
+
+/**
+ * The predicate the sign-in action uses to decide whether a failed
+ * verification is worth an error line or only a warning.
+ *
+ * The point of these assertions is the invariant, not the individual cases:
+ * "expected" must mean exactly "describeVerifyError had an answer of its own".
+ * Were the two ever to disagree, either a wrong digit would be logged as a
+ * fault or a genuinely broken auth provider would be filed as a typo — and
+ * both failures are silent.
+ */
+describe("isExpectedVerifyFailure", () => {
+  const RECOGNISED = [
+    WRONG_CODE,
+    { code: "otp_expired", message: "Token has expired or is invalid" },
+    { code: "over_request_rate_limit", message: "Request rate limit reached" },
+    { code: "validation_failed", message: "Invalid phone or token" },
+    // No code at all, matched on the message — the older-stack path.
+    { code: null, message: "Token has expired or is invalid" },
+    { code: null, message: "Too many requests" },
+  ];
+
+  const UNRECOGNISED = [
+    { code: "unexpected_failure", message: "Database error finding user" },
+    { code: null, message: "upstream connect error" },
+  ];
+
+  it("calls a mistyped or expired code the person, not the system", () => {
+    for (const failure of RECOGNISED) {
+      expect(isExpectedVerifyFailure(failure)).toBe(true);
+    }
+  });
+
+  it("calls anything it does not recognise a fault", () => {
+    for (const failure of UNRECOGNISED) {
+      expect(isExpectedVerifyFailure(failure)).toBe(false);
+    }
+  });
+
+  it("agrees with describeVerifyError on every input, by construction", () => {
+    for (const failure of [...RECOGNISED, ...UNRECOGNISED]) {
+      expect(isExpectedVerifyFailure(failure)).toBe(
+        describeVerifyError(failure) !== failure.message,
+      );
+    }
+  });
+
+  it("does not hand a raw English message to a Hebrew screen unnoticed", () => {
+    // The two halves of the same rule: when the predicate says "fault", the
+    // message shown is the provider's own English. That is acceptable only
+    // because the fault is now recorded — before, it was neither.
+    for (const failure of UNRECOGNISED) {
+      expect(describeVerifyError(failure)).toBe(failure.message);
+    }
   });
 });

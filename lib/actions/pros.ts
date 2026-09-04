@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { geocodeAddress, toEwkt } from "@/lib/maps/geocode";
 import type { ProFormState } from "@/lib/actions/state";
+import { logServerError } from "@/lib/observability";
 import { PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
@@ -86,7 +87,9 @@ async function writeProfile(
         ? { lat: input.lat, lng: input.lng }
         : null,
     );
-  } catch {
+  } catch (cause) {
+    // As in jobs.postJob: a dead Maps key and a bad address fail identically.
+    logServerError("pros.writeProfile.geocode", cause, { proId: userId });
     return {
       error: "לא הצלחנו לאתר את הכתובת על המפה. נסו כתובת מלאה יותר.",
       fieldErrors: { addressText: "כתובת שלא ניתן לאתר" },
@@ -110,6 +113,11 @@ async function writeProfile(
     .eq("user_id", userId);
 
   if (nameError || profileError) {
+    logServerError("pros.writeProfile", nameError ?? profileError, {
+      proId: userId,
+      // Which of the two statements failed; neither value goes in the line.
+      table: nameError ? "profiles" : "pro_profiles",
+    });
     return { error: "שמירת הפרופיל נכשלה. נסו שוב בעוד רגע." };
   }
 
@@ -126,6 +134,10 @@ async function writeProfile(
   );
 
   if (categoryError) {
+    logServerError("pros.writeProfile.categories", categoryError, {
+      proId: userId,
+      categoryCount: input.categoryIds.length,
+    });
     return {
       error: "אחד התחומים שנבחרו אינו קיים.",
       fieldErrors: { categoryIds: "יש לבחור תחום קיים" },
@@ -171,6 +183,10 @@ async function writeDocuments(
   const { error } = await supabase.from("verification_documents").insert(rows);
 
   if (error) {
+    logServerError("pros.saveDocuments", error, {
+      proId: userId,
+      documentCount: rows.length,
+    });
     return { error: "שמירת המסמכים נכשלה. נסו שוב בעוד רגע." };
   }
 
@@ -341,6 +357,9 @@ export async function submitProProfile(
     .eq("user_id", user.id);
 
   if (payoutError) {
+    // Bank name, branch and the last four digits are all absent on purpose:
+    // this is the one write in the app whose payload is a payout account.
+    logServerError("pros.savePayout", payoutError, { proId: user.id });
     return { error: "שמירת פרטי הגבייה נכשלה. נסו שוב בעוד רגע." };
   }
 
@@ -349,6 +368,9 @@ export async function submitProProfile(
   if (error) {
     // The database's own completeness check. It is the authority, so its
     // refusal is reported as the missing piece rather than as a generic fault.
+    // Logged all the same: the Hebrew names three things that could be
+    // missing, and only the error says which one it actually was.
+    logServerError("pros.submitForApproval", error, { proId: user.id });
     return {
       error:
         "לא ניתן לשלוח את הפרופיל לאישור עדיין: דרושים תחום התמחות אחד לפחות, כתובת בסיס, ומסמך זיהוי. חזרו לשלבים הקודמים והשלימו אותם.",
@@ -415,6 +437,7 @@ export async function saveAvailability(
     .eq("user_id", user.id);
 
   if (error) {
+    logServerError("pros.saveAvailability", error, { proId: user.id });
     return { error: "שמירת ההגדרות נכשלה. נסו שוב בעוד רגע." };
   }
 
@@ -427,6 +450,10 @@ export async function saveAvailability(
   );
 
   if (categoryError) {
+    logServerError("pros.saveAvailability.categories", categoryError, {
+      proId: user.id,
+      categoryCount: parsed.data.categoryIds.length,
+    });
     return {
       error: "אחד התחומים שנבחרו אינו קיים.",
       fieldErrors: { categoryIds: "יש לבחור תחום קיים" },

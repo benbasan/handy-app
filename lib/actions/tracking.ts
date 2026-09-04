@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { JobProgressState } from "@/lib/actions/state";
+import { logServerError } from "@/lib/observability";
 import { PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
@@ -50,6 +51,16 @@ export async function reportJobLocation(input: {
     p_eta_minutes: parsed.data.etaMinutes ?? undefined,
   });
 
+  if (error) {
+    // A dropped ping is still corrected by the next one fifteen seconds later,
+    // so this stays a boolean and the caller keeps going. But a ping that has
+    // been failing for an hour looks identical from here without the line, and
+    // the customer watching the map is told nothing either way.
+    logServerError("tracking.reportJobLocation", error, {
+      jobId: parsed.data.jobId,
+    });
+  }
+
   // Deliberately no revalidatePath: the customer's screen is woken by the
   // Realtime subscription on `job_locations`, and re-rendering the pro's own
   // page every fifteen seconds would be work nobody asked for.
@@ -84,6 +95,9 @@ export async function markJobInProgress(
   });
 
   if (error) {
+    logServerError("tracking.markJobInProgress", error, {
+      jobId: parsed.data.jobId,
+    });
     return {
       error: "לא ניתן לעדכן את סטטוס העבודה: ייתכן שהיא כבר אינה משובצת אליך.",
     };

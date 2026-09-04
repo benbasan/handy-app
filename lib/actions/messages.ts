@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { SendMessageState } from "@/lib/actions/state";
+import { logServerError } from "@/lib/observability";
 import { CUSTOMER_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/session";
@@ -44,6 +45,13 @@ export async function sendMessage(
   });
 
   if (error) {
+    // The body is deliberately absent: a thread is the one place two people
+    // talk privately, and the ids are enough to find the row.
+    logServerError("messages.sendMessage", error, {
+      jobId: parsed.data.jobId,
+      proId: parsed.data.proId,
+      senderId: user.id,
+    });
     return { error: "שליחת ההודעה נכשלה. נסו שוב בעוד רגע." };
   }
 

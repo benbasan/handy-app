@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { OpenDisputeState } from "@/lib/actions/state";
+import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { CUSTOMER_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/session";
@@ -51,11 +52,16 @@ export async function openDispute(
   if (error) {
     // 23505 is the partial unique index: one live case per job. Anything else
     // is the policy refusing a job the caller is not a side of.
+    const expected = error.code === "23505";
+    const record = expected ? logExpectedRefusal : logServerError;
+    record("disputes.openDispute", error, {
+      jobId: parsed.data.jobId,
+      openedBy: user.id,
+    });
     return {
-      error:
-        error.code === "23505"
-          ? "כבר קיימת פנייה פתוחה על הקריאה הזו. צוות Handy יחזור אליכם."
-          : "לא ניתן לפתוח פנייה על הקריאה הזו.",
+      error: expected
+        ? "כבר קיימת פנייה פתוחה על הקריאה הזו. צוות Handy יחזור אליכם."
+        : "לא ניתן לפתוח פנייה על הקריאה הזו.",
     };
   }
 

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { geocodeAddress, toEwkt } from "@/lib/maps/geocode";
+import { logServerError } from "@/lib/observability";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
 import { createJobSchema } from "@/lib/validation/jobs";
@@ -97,7 +98,13 @@ export async function createJob(
         ? { lat: input.lat, lng: input.lng }
         : null,
     );
-  } catch {
+  } catch (cause) {
+    // A Google Maps key that has expired, been rate-limited or lost its IP
+    // restriction fails exactly like a bad address, and only this line tells
+    // the two apart.
+    logServerError("jobs.postJob.geocode", cause, {
+      categoryId: input.categoryId,
+    });
     return {
       error:
         "לא הצלחנו לאתר את הכתובת על המפה. נסו כתובת מלאה יותר, או פנו לתמיכה.",
@@ -128,6 +135,14 @@ export async function createJob(
     .single();
 
   if (error || !job) {
+    logServerError(
+      "jobs.postJob",
+      error ?? new Error("insert returned no row"),
+      {
+        customerId: user.id,
+        categoryId: input.categoryId,
+      },
+    );
     return {
       error: "פרסום הקריאה נכשל. נסו שוב בעוד רגע.",
     };
