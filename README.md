@@ -28,9 +28,9 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000 — the temporary home page reports whether the build,
-RTL rendering, and the Supabase connection are all working, and links to both
-login screens.
+Open http://localhost:3000 — the customer landing page, with the category strip
+read from the `categories` table. `/pro` is the pro landing page and `/admin`
+the console; each has its own login screen (see the demo numbers below).
 
 ## Signing in locally
 
@@ -112,19 +112,36 @@ clash. Configured in [supabase/config.toml](supabase/config.toml).
 
 ## Scripts
 
-| Command             | What it does                                  |
-| ------------------- | --------------------------------------------- |
-| `npm run dev`       | Dev server                                    |
-| `npm run build`     | Production build                              |
-| `npm run lint`      | ESLint                                        |
-| `npm run typecheck` | `tsc --noEmit`                                |
-| `npm run test`      | Vitest unit tests                             |
-| `npm run format`    | Prettier write                                |
-| `npm run db:start`  | Start local Supabase                          |
-| `npm run db:stop`   | Stop local Supabase                           |
-| `npm run db:reset`  | Re-apply all migrations + `supabase/seed.sql` |
-| `npm run db:test`   | pgTAP suite — RLS policy assertions           |
-| `npm run db:types`  | Regenerate `lib/supabase/database.types.ts`   |
+| Command                 | What it does                                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| `npm run dev`           | Dev server                                                                                               |
+| `npm run build`         | Production build                                                                                         |
+| `npm run start`         | Serve the production build (what `test:e2e` runs against)                                                |
+| `npm run lint`          | ESLint                                                                                                   |
+| `npm run typecheck`     | `next typegen && tsc --noEmit`                                                                           |
+| `npm run test`          | Vitest unit tests                                                                                        |
+| `npm run test:watch`    | The same, in watch mode                                                                                  |
+| `npm run test:coverage` | Unit tests with coverage thresholds (see below)                                                          |
+| `npm run test:e2e`      | Playwright — the critical flow, axe and the RTL sweep. Builds the app and needs the local stack up       |
+| `npm run test:e2e:ui`   | The same suite in Playwright's UI mode                                                                   |
+| `npm run format`        | Prettier write                                                                                           |
+| `npm run format:check`  | Prettier check — what CI runs                                                                            |
+| `npm run db:start`      | Start local Supabase                                                                                     |
+| `npm run db:stop`       | Stop local Supabase                                                                                      |
+| `npm run db:reset`      | Re-apply all migrations + `supabase/seed.sql`                                                            |
+| `npm run db:test`       | pgTAP suite — RLS policy assertions                                                                      |
+| `npm run db:types`      | Regenerate `lib/supabase/database.types.ts`                                                              |
+| `npm run perf:postgis`  | PostGIS load check — spatial indexes and the pro feed against generated load, held to wall-clock budgets |
+
+`npm run test:e2e` and `npm run db:test` both need Docker running and the local
+Supabase stack up. The rest run against nothing.
+
+**Coverage** is measured over the modules that are meant to be unit tested —
+`lib/validation`, `lib/maps`, `lib/auth` and `lib/actions/formData.ts` — and not
+over `lib/**`. Everything under `lib/supabase` and the rest of `lib/actions`
+carries rules that live in RLS and in `security definer` functions, and those
+are proved in pgTAP where they actually run. A number spanning both would
+describe neither.
 
 ## Google Maps
 
@@ -163,6 +180,36 @@ at all.
 
 Never commit real keys. `.env.local` is git-ignored; `.env.example` lists every
 required variable and must be updated whenever a new one is introduced.
+
+## Deployment
+
+Vercel (Next.js) + Supabase Cloud (database, auth, storage). Both are connected
+to the repository; a push to `main` deploys.
+
+[vercel.json](vercel.json) pins serverless functions to `fra1` (Frankfurt) —
+the closest region to Israel, and the one the Supabase project should also be
+in. A function in Washington talking to a database in Frankfurt pays the
+round trip on every query, and the screens here run four to nine of them.
+
+Environment variables that must be set on the Vercel project:
+
+| Variable                          | Why it matters in production                                                                                                                                                                                                                                           |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`        | The cloud project, not the local stack                                                                                                                                                                                                                                 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`   | Same                                                                                                                                                                                                                                                                   |
+| `SUPABASE_SERVICE_ROLE_KEY`       | Server only. Never prefix with `NEXT_PUBLIC_`                                                                                                                                                                                                                          |
+| `NEXT_PUBLIC_SITE_URL`            | **Inlined at build time.** Every canonical URL, Open Graph tag and `sitemap.xml` entry is built from it — unset, they all point at `localhost:3000` and search engines index that                                                                                      |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional. Without it the address field is a plain text input                                                                                                                                                                                                           |
+| `GOOGLE_MAPS_SERVER_API_KEY`      | Optional. Falls back to the browser key                                                                                                                                                                                                                                |
+| `ALLOW_NO_MAPS_KEY`               | Set to `1` **only** if you accept the built-in gazetteer in production. Without a Maps key and without this flag, a production build fails on purpose — so a deploy that merely forgot the key is loud rather than silently filing every job in the middle of Tel Aviv |
+
+`NEXT_PUBLIC_*` values are baked into the bundle at build time, so changing one
+needs a redeploy, not a restart.
+
+Two things about the deployment that are known gaps rather than settings — both
+are written up in [CLAUDE.md](CLAUDE.md) section 9, and neither has been closed:
+the seeded demo phone numbers still accept `123456` on the deployed site, and
+the hosted project's `site_url` still points at `http://127.0.0.1:3000`.
 
 ## Connecting to the cloud Supabase project
 
