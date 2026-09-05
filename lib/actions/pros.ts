@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { geocodeAddress, toEwkt } from "@/lib/maps/geocode";
+import { fieldErrorsOf, optional } from "@/lib/actions/formData";
 import type { ProFormState } from "@/lib/actions/state";
 import { logServerError } from "@/lib/observability";
 import { PRO_ROUTES } from "@/lib/routes";
@@ -34,20 +35,6 @@ import type { z } from "zod";
  *    functions `submit_pro_for_approval()` and `set_pro_verification()`, which
  *    check the caller inside the database.
  */
-
-function optional(value: FormDataEntryValue | null): string | undefined {
-  const text = typeof value === "string" ? value.trim() : "";
-  return text === "" ? undefined : text;
-}
-
-function fieldErrorsOf(error: z.ZodError): Record<string, string> {
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = String(issue.path[0] ?? "form");
-    fieldErrors[key] ??= issue.message;
-  }
-  return fieldErrors;
-}
 
 const INVALID: ProFormState = {
   error: "יש למלא את כל השדות המסומנים לפני ההמשך.",

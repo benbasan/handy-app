@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { fieldErrorsOf } from "@/lib/actions/formData";
 import type {
   PriceDecisionState,
   PriceUpdateFormState,
@@ -13,7 +14,6 @@ import {
   decidePriceUpdateSchema,
   requestPriceUpdateSchema,
 } from "@/lib/validation/priceUpdates";
-import type { z } from "zod";
 
 /**
  * The write paths for עדכון מחיר בשטח — product-spec.md 3.5 and 4.5, the rule
@@ -35,15 +35,6 @@ import type { z } from "zod";
  * What is validated here is the shape of what the browser sent, so a broken
  * form produces a Hebrew sentence instead of a database error code.
  */
-
-function fieldErrorsOf(error: z.ZodError): Record<string, string> {
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = String(issue.path[0] ?? "form");
-    fieldErrors[key] ??= issue.message;
-  }
-  return fieldErrors;
-}
 
 /**
  * "שלח בקשת אישור ללקוח" — design/screens/pro-3.1-manage-job-price-update.png.
