@@ -76,6 +76,8 @@ Do not introduce an alternative to any of these without discussing it with the u
 - **Bidi is a layout problem, not a font problem, and it is only ever verified by looking.** In a Hebrew line, a Latin word, a reference like `H-00004` and a date are separate bidi runs; the Unicode algorithm reorders them correctly and the result can still read in the wrong order to a person. Keep such a line to **one fact** — a label/value row, one sentence per line, an all-digit date — rather than a sentence that mixes three runs. In the browser this is usually forgiving; in a PDF it is not.
 - **A failed write says why, to a log, in every single branch.** Every rule that matters is enforced in the database, so a refused write arrives carrying a Postgres code and a constraint name that name the cause exactly — and for nine phases every server action turned that into one sentence of Hebrew and discarded the rest, which left a pro reporting "לא הצלחתי לסגור עבודה" with nothing behind it to read. `lib/observability.ts` has two entry points because the failures are two kinds: `logServerError` for a write that was supposed to work, `logExpectedRefusal` for one the product has a sentence for (a second offer on the same call, a slug already taken). Keeping them apart is what stops the first kind being buried under the second. **Identifiers only** — never a phone, a name, an address, a message body or a payout detail: a log sits outside every RLS policy that protects those. `tests/errorBoundaries.test.ts` fails on any branch that goes back to returning Hebrew alone.
 - **An uncaught error reaches a person and a log, and the `digest` is what ties the two together.** `app/error.tsx` is at the root of `app/` rather than inside each area, because an `error.tsx` does not wrap the `layout.tsx` beside it — and the layouts most likely to throw are the four `(authed)` ones where `requireRole()` runs, so a boundary inside an area would miss its own gate. In production Next replaces a server error's message before it reaches the browser, so the digest is the only string both sides share: it is printed on the screen and written by `onRequestError` in `instrumentation.ts`. That hook is also the one seam a monitoring vendor plugs into (section 9) — not thirty call sites. The prop is **`retry`**; Next 16 renamed it from `reset`, and the old name still typechecks while the button silently does nothing.
+- **A value that has a name in `primitives.tsx` is used by that name.** The module opens by promising that a re-skin is one edit there rather than a sweep through every component; for `BUTTON_CTA` and `INPUT_CLASS` that was true, and for the card it was not — `CARD_CLASS` was imported by nobody while the three utilities that make a card look like a card were written out inline fifty-five times across thirty-five files. `CARD_BASE` is the card without its padding, because the app draws it at four different insets and which inset a card takes is a judgement against `design/screens/`, not something to unify from outside. `tests/designTokens.test.ts` fails on any of the named literals reappearing outside that module.
+- **Coverage is measured over the plain logic, not over `lib/**`.** Pointed at everything the number is 27%, because `lib/supabase/**` and most of `lib/actions/**` are deliberately not unit-tested — what they carry lives in RLS and in `security definer` functions and is proved in pgTAP, where it runs. Over the Zod schemas, the gazetteer, the OTP mapping and the form helpers it is 91%, and the thresholds in `vitest.config.ts` sit just under that so they fail for a real reason. A gate at 27% would say nothing and would be met by testing whatever was cheapest.
 - **No secrets in code.** All API keys (Google Maps, Twilio, Supabase service role) go in environment variables, never committed. Maintain `.env.example` with every required key, kept in sync.
 - **Small, reviewable commits.** See Git Workflow below — do not batch an entire phase into one commit.
 
@@ -172,7 +174,10 @@ Add new rows here whenever a new domain concept appears — do not let this glos
                             A route handler sits OUTSIDE the (authed) layout, so
                             it does its own role check
 /components
-  /ui                     → generic design-system components (buttons, inputs, cards)
+  /ui                     → generic design-system components (buttons, inputs, cards).
+                            primitives.tsx is the single source of the card, the
+                            page title and the field label; Skeleton.tsx is what
+                            every loading.tsx is built from
   /customer, /pro, /admin → role-specific components
 /lib
   /routes.ts              → role → home/login path maps (importable from proxy.ts,
@@ -180,6 +185,12 @@ Add new rows here whenever a new domain concept appears — do not let this glos
                             tells `/pro/dashboard` from a public `/pro/<slug>`)
   /observability.ts       → logServerError / logExpectedRefusal. Server-only.
                             Identifiers in the context argument, never a person
+  /actions/formData.ts    → optional() and fieldErrorsOf(), the two things every
+                            form action does before Zod sees a FormData. Its own
+                            module because a "use server" file may export only
+                            async functions
+  /actions/proOnboarding.ts → the five-step wizard, split out of actions/pros.ts
+                            along with the five helpers that serve only it
   /supabase               → client factory, generated DB types, session DAL
   /content                 → editorial copy in code (Phase 8): cities, category
                              copy, FAQ, guides, legal text. Not a table — an
