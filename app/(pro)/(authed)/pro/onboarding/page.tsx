@@ -4,7 +4,7 @@ import { OnboardingPayoutStep } from "@/components/pro/OnboardingPayoutStep";
 import { OnboardingPracticeStep } from "@/components/pro/OnboardingPracticeStep";
 import { OnboardingProfileStep } from "@/components/pro/OnboardingProfileStep";
 import { BUTTON_PRO, Card, PAGE_TITLE } from "@/components/ui/primitives";
-import { startOnboarding } from "@/lib/actions/pros";
+import { startOnboarding } from "@/lib/actions/proOnboarding";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";

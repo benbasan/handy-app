@@ -7,7 +7,7 @@ import {
   type UploadedDocs,
 } from "@/components/pro/VerificationUploads";
 import { BUTTON_PRO, ErrorText } from "@/components/ui/primitives";
-import { saveProDocuments } from "@/lib/actions/pros";
+import { saveProDocuments } from "@/lib/actions/proOnboarding";
 import { EMPTY_PRO_FORM_STATE } from "@/lib/actions/state";
 import {
   VERIFICATION_DOC_TYPES,

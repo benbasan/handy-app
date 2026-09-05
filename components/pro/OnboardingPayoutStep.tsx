@@ -8,7 +8,7 @@ import {
   FIELD_LABEL,
   INPUT_CLASS,
 } from "@/components/ui/primitives";
-import { submitProProfile } from "@/lib/actions/pros";
+import { submitProProfile } from "@/lib/actions/proOnboarding";
 import { EMPTY_PRO_FORM_STATE } from "@/lib/actions/state";
 import {
   PAYMENT_METHOD_LABEL,

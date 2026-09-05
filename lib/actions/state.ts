@@ -18,6 +18,16 @@ export type ProFormState = {
 
 export const EMPTY_PRO_FORM_STATE: ProFormState = {};
 
+/**
+ * What every pro-facing form says when Zod refuses it, before the per-field
+ * messages are laid over the top. Here rather than in either action module
+ * because the onboarding wizard and the availability screen both use it, and
+ * they now live in separate files.
+ */
+export const INVALID_PRO_FORM: ProFormState = {
+  error: "יש למלא את כל השדות המסומנים לפני ההמשך.",
+};
+
 export type AdminDecisionState = {
   error?: string;
   /** The pro whose row just changed, so the list can confirm which one. */

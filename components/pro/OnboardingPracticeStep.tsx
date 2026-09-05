@@ -8,7 +8,7 @@ import {
   FIELD_LABEL,
   INPUT_CLASS,
 } from "@/components/ui/primitives";
-import { savePracticeBid } from "@/lib/actions/pros";
+import { savePracticeBid } from "@/lib/actions/proOnboarding";
 import { EMPTY_PRO_FORM_STATE } from "@/lib/actions/state";
 import { commissionBreakdown, COMMISSION_RATE } from "@/lib/validation/pros";
 
