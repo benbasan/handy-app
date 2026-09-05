@@ -102,6 +102,52 @@ describe("describeVerifyError", () => {
  * fault or a genuinely broken auth provider would be filed as a typo — and
  * both failures are silent.
  */
+/**
+ * `[auth.sms] max_frequency` in supabase/config.toml — one code per number per
+ * minute. It is the failure the demo panel hits most, because switching back
+ * to a user you just left is the natural thing to do.
+ */
+describe("describeSendError and the resend throttle", () => {
+  // Verbatim from GoTrue, via e2e/helpers.ts, which parses the same number to
+  // wait it out. No error code accompanies it — which is why it used to fall
+  // through every branch and put raw English on a Hebrew screen.
+  const THROTTLED = {
+    code: null,
+    message: "you can only request this after 41 seconds",
+  };
+
+  it("answers in Hebrew, and keeps the only useful fact in it", () => {
+    const message = describeSendError(THROTTLED);
+
+    expect(message).toContain("41");
+    // The regression: the provider's own English reaching the browser.
+    expect(message).not.toContain("you can only");
+    expect(message).toMatch(/[\u0590-\u05FF]/);
+  });
+
+  it("does not let the generic rate-limit sentence swallow the number", () => {
+    // "after 41 seconds" contains neither "rate" nor "too many", but a future
+    // GoTrue message could carry both; the specific branch has to win, because
+    // the generic one drops the wait.
+    expect(
+      describeSendError({
+        code: null,
+        message: "Rate limited: you can only request this after 7 seconds",
+      }),
+    ).toContain("7");
+  });
+
+  it("still falls back for a throttle that names no number", () => {
+    const message = describeSendError({
+      code: "over_sms_send_rate_limit",
+      message: "too many requests",
+    });
+
+    expect(message).toMatch(/[\u0590-\u05FF]/);
+    expect(message).not.toContain("too many requests");
+  });
+});
+
 describe("isExpectedVerifyFailure", () => {
   const RECOGNISED = [
     WRONG_CODE,
