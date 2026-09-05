@@ -1,7 +1,13 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { BUTTON_PRO, ErrorText, INPUT_CLASS } from "@/components/ui/primitives";
+import {
+  BUTTON_PRO,
+  CARD_BASE,
+  CARD_CLASS,
+  ErrorText,
+  INPUT_CLASS,
+} from "@/components/ui/primitives";
 import { submitBid, updateBid } from "@/lib/actions/bids";
 import { EMPTY_BID_FORM_STATE } from "@/lib/actions/state";
 import type { PriceRange } from "@/lib/supabase/bids";
@@ -165,7 +171,7 @@ export function SubmitBidForm({
           </p>
         </div>
 
-        <div className="rounded-2xl border border-line bg-surface p-6">
+        <div className={`${CARD_BASE} p-6`}>
           <dl className="divide-y divide-line text-sm">
             <div className="flex items-baseline justify-between gap-3 pb-3">
               <dt className="text-muted">עמלת Handy (12%)</dt>
@@ -215,7 +221,7 @@ export function SubmitBidForm({
       </div>
 
       <div className="order-2 space-y-6 lg:order-1">
-        <fieldset className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+        <fieldset className={`${CARD_CLASS}`}>
           <legend className="px-1 text-lg font-bold text-ink">זמן הגעה</legend>
 
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -243,7 +249,7 @@ export function SubmitBidForm({
           )}
         </fieldset>
 
-        <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+        <div className={`${CARD_CLASS}`}>
           <label htmlFor="bid-note" className="text-lg font-bold text-ink">
             הערה ללקוח
           </label>

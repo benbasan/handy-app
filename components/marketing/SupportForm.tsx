@@ -6,7 +6,12 @@ import {
   EMPTY_SUPPORT_TICKET_STATE,
   type SupportTicketState,
 } from "@/lib/actions/state";
-import { BUTTON_CTA, ErrorText, INPUT_CLASS } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  CARD_CLASS,
+  ErrorText,
+  INPUT_CLASS,
+} from "@/components/ui/primitives";
 import {
   SUPPORT_TOPICS,
   SUPPORT_TOPIC_LABEL,
@@ -51,10 +56,7 @@ export function SupportForm({
   }
 
   return (
-    <form
-      action={action}
-      className="rounded-2xl border border-line bg-surface p-5 sm:p-6"
-    >
+    <form action={action} className={`${CARD_CLASS}`}>
       <input type="hidden" name="topic" value={topic} />
 
       <div className="grid gap-3 sm:grid-cols-2">

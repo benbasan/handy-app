@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { ProCard } from "@/components/marketing/ProCard";
 import { AppShell } from "@/components/ui/AppShell";
-import { BUTTON_CTA, BUTTON_QUIET } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  BUTTON_QUIET,
+  CARD_BASE,
+} from "@/components/ui/primitives";
 import { categoryCopy } from "@/lib/content/categories";
 import { CITIES, type City, inCity } from "@/lib/content/cities";
 import { MARKETING_ROUTES } from "@/lib/routes";
@@ -158,7 +162,7 @@ export function CategoryLanding({
         </h2>
 
         {pros.length === 0 ? (
-          <p className="mt-4 rounded-2xl border border-line bg-surface p-6 text-muted">
+          <p className={`mt-4 ${CARD_BASE} p-6 text-muted`}>
             עדיין אין {copy.professionalPlural} מאומתים שמכסים את האזור הזה.
             אפשר לפרסם קריאה בכל מקרה — היא תישלח לכל מי שיצטרף לאזור, ואפשר
             להרחיב את רדיוס החיפוש.
@@ -199,7 +203,7 @@ export function CategoryLanding({
             {copy.faq.map((entry) => (
               <details
                 key={entry.question}
-                className="group rounded-2xl border border-line bg-surface p-5"
+                className={`group ${CARD_BASE} p-5`}
               >
                 <summary className="cursor-pointer list-none font-bold text-ink group-open:text-brand">
                   {entry.question}

@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { AppShell } from "@/components/ui/AppShell";
-import { BUTTON_CTA, BUTTON_QUIET } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  BUTTON_QUIET,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import { getCurrentUser } from "@/lib/supabase/session";
 
@@ -32,9 +36,7 @@ export default async function NotFound() {
           404
         </p>
 
-        <h1 className="mt-4 text-3xl font-bold text-ink sm:text-4xl">
-          הדף הזה לא נמצא
-        </h1>
+        <h1 className={`mt-4 ${PAGE_TITLE}`}>הדף הזה לא נמצא</h1>
 
         <p className="mt-4 text-lg text-muted">
           אולי הקריאה נסגרה או שהקישור פג. אפשר לחזור לדף הבית או לבדוק את

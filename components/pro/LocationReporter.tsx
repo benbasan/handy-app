@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CARD_BASE } from "@/components/ui/primitives";
 import { reportJobLocation } from "@/lib/actions/tracking";
 import { LOCATION_REPORT_INTERVAL_MS } from "@/lib/validation/tracking";
 
@@ -110,7 +111,7 @@ export function LocationReporter({
   if (!live) return null;
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5">
+    <div className={`${CARD_BASE} p-5`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-bold text-ink">שידור מיקום ללקוח</h3>

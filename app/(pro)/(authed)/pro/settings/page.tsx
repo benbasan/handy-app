@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvailabilityForm } from "@/components/pro/AvailabilityForm";
-import { BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import { BUTTON_QUIET, Card, PAGE_TITLE } from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
 import { getMyProProfile } from "@/lib/supabase/pros";
@@ -27,9 +27,7 @@ export default async function ProSettingsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-          זמינות, אזור ולוח זמנים
-        </h1>
+        <h1 className={`${PAGE_TITLE}`}>זמינות, אזור ולוח זמנים</h1>
         <p className="mt-2 text-muted">
           רק קריאות שמתאימות להגדרות האלה יגיעו אליך.
         </p>

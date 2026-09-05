@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChatPanel } from "@/components/ui/ChatPanel";
 import { ChatThreadList } from "@/components/ui/ChatThreadList";
 import { MarkThreadRead } from "@/components/ui/MarkThreadRead";
-import { BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import { BUTTON_QUIET, Card, PAGE_TITLE } from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listMyThreads, listThreadMessages } from "@/lib/supabase/messages";
 import { requireRole } from "@/lib/supabase/session";
@@ -45,7 +45,7 @@ export default async function ProMessagesPage({
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold text-ink sm:text-4xl">הודעות</h1>
+        <h1 className={`${PAGE_TITLE}`}>הודעות</h1>
         <p className="mt-2 text-muted">
           שיחה אחת לכל קריאה שהגשתם עליה הצעה. הלקוח רואה רק את השיחה איתכם.
         </p>

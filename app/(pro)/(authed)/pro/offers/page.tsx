@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { MyBidRow } from "@/components/pro/MyBidRow";
-import { BUTTON_PRO, Card } from "@/components/ui/primitives";
+import { BUTTON_PRO, Card, PAGE_TITLE } from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { PRO_ROUTES } from "@/lib/routes";
 import {
@@ -78,9 +78,7 @@ export default async function ProOffersPage({
 
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-            ההצעות שלי
-          </h1>
+          <h1 className={`${PAGE_TITLE}`}>ההצעות שלי</h1>
           <p className="mt-2 text-muted">
             {stats.acceptancePct !== null ? (
               <>

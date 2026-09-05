@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CARD_BASE } from "@/components/ui/primitives";
 
 /**
  * One of the four cards across the top of
@@ -31,7 +32,7 @@ export function StatCard({
   tone?: keyof typeof FOOT_TONE;
 }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5">
+    <div className={`${CARD_BASE} p-5`}>
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-2 text-3xl font-bold text-ink">
         <span className="ltr-nums">{value}</span>

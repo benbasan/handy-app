@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CARD_BASE } from "@/components/ui/primitives";
 import { AppShell } from "@/components/ui/AppShell";
 import {
   DRAFT_NOTICE,
@@ -57,7 +58,7 @@ export function LegalPage({
           </p>
         </aside>
 
-        <article className="rounded-2xl border border-line bg-surface p-6 sm:p-8 lg:order-1">
+        <article className={`${CARD_BASE} p-6 sm:p-8 lg:order-1`}>
           <h1 className="text-3xl font-bold text-ink">{document.title}</h1>
 
           <div className="mt-6 space-y-6">

@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { FeedJobCard } from "@/components/pro/FeedJobCard";
 import { ProStatusCard } from "@/components/pro/ProStatusCard";
-import { BUTTON_PRO, BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_PRO,
+  BUTTON_QUIET,
+  Card,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { restoreDismissedJobs } from "@/lib/actions/pros";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { PRO_ROUTES } from "@/lib/routes";
@@ -77,9 +82,7 @@ export default async function ProJobFeedPage({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-            קריאות בסביבה
-          </h1>
+          <h1 className={`${PAGE_TITLE}`}>קריאות בסביבה</h1>
           <p className="mt-2 text-muted">
             {myTrades.length > 0 ? myTrades.join(", ") : "כל התחומים"} ·{" "}
             {activeRadius

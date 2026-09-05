@@ -1,6 +1,6 @@
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ProApprovalRow } from "@/components/admin/ProApprovalRow";
-import { Card } from "@/components/ui/primitives";
+import { Card, PAGE_TITLE } from "@/components/ui/primitives";
 import { ADMIN_ROUTES } from "@/lib/routes";
 import { listProApplications, signVerificationDocs } from "@/lib/supabase/pros";
 import { requireRole } from "@/lib/supabase/session";
@@ -40,9 +40,7 @@ export default async function AdminProApprovalsPage() {
     <AdminShell current={ADMIN_ROUTES.pros}>
       <div className="space-y-6">
         <header>
-          <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-            אישור בעלי מקצוע
-          </h1>
+          <h1 className={`${PAGE_TITLE}`}>אישור בעלי מקצוע</h1>
           <p className="mt-2 text-muted">
             {pending.length === 0
               ? "אין בקשות ממתינות"

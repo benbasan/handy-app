@@ -1,4 +1,5 @@
 import { signOut } from "@/lib/actions/auth";
+import { CARD_BASE } from "@/components/ui/primitives";
 import { USER_ROLE_LABEL } from "@/lib/routes";
 import type { CurrentUser } from "@/lib/supabase/session";
 import { formatIsraeliMobile } from "@/lib/validation/auth";
@@ -23,7 +24,7 @@ export function CurrentUserCard({
   verificationStatus?: string | null;
 }) {
   return (
-    <div className="w-full rounded-2xl border border-line bg-surface p-5">
+    <div className={`w-full ${CARD_BASE} p-5`}>
       <h2 className="text-lg font-bold text-ink">מי אני</h2>
       <p className="mt-1 text-sm text-muted">
         הנתונים נקראים מטבלת <code>profiles</code> תחת RLS — כל משתמש רואה רק את

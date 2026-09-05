@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/primitives";
+import { Badge, CARD_BASE } from "@/components/ui/primitives";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import type { CategoryPro } from "@/lib/supabase/publicProfiles";
 
@@ -16,7 +16,9 @@ export function ProCard({ pro }: { pro: CategoryPro }) {
   const initial = (pro.fullName ?? "?").trim().charAt(0);
 
   return (
-    <article className="flex h-full flex-col items-center rounded-2xl border border-line bg-surface p-5 text-center">
+    <article
+      className={`flex h-full flex-col items-center ${CARD_BASE} p-5 text-center`}
+    >
       {pro.avatarUrl ? (
         /* A Supabase Storage origin is configured per deployment, so
            next/image would need remotePatterns for a host that changes with

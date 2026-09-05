@@ -1,4 +1,5 @@
 import { JoinForm } from "@/components/pro/JoinForm";
+import { PAGE_TITLE } from "@/components/ui/primitives";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { listCategories } from "@/lib/supabase/jobs";
 import {
@@ -25,9 +26,7 @@ export default async function ProJoinPage() {
   return (
     <>
       <header className="mb-6 text-center sm:text-start">
-        <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-          פתיחת פרופיל מקצועי
-        </h1>
+        <h1 className={`${PAGE_TITLE}`}>פתיחת פרופיל מקצועי</h1>
         <p className="mt-2 text-muted">
           פרופיל מאומת מקבל פי 3 יותר עבודות. האישור נמסר תוך 24 שעות.
         </p>

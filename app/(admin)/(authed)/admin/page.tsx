@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { JobsPerDayChart } from "@/components/admin/JobsPerDayChart";
 import { StatCard } from "@/components/admin/StatCard";
-import { BUTTON_BASE } from "@/components/ui/primitives";
+import { BUTTON_BASE, PAGE_TITLE } from "@/components/ui/primitives";
 import { ADMIN_ROUTES } from "@/lib/routes";
 import {
   getAdminOverview,
@@ -80,9 +80,7 @@ export default async function AdminOverviewPage() {
           </div>
 
           <header className="text-start">
-            <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-              סקירה כללית
-            </h1>
+            <h1 className={`${PAGE_TITLE}`}>סקירה כללית</h1>
             {/*
               An all-digit date on one line and the window on another: a
               sentence that mixes a Hebrew month name with numbers on both

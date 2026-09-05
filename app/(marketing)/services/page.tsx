@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CARD_BASE } from "@/components/ui/primitives";
 import { AppShell } from "@/components/ui/AppShell";
 import { categoryIcon } from "@/lib/categories";
 import { categoryCopy } from "@/lib/content/categories";
@@ -51,10 +52,7 @@ export default async function ServicesPage() {
           const copy = categoryCopy(category.slug);
 
           return (
-            <li
-              key={category.id}
-              className="rounded-2xl border border-line bg-surface p-5"
-            >
+            <li key={category.id} className={`${CARD_BASE} p-5`}>
               <h2 className="flex items-center gap-2 text-lg font-bold text-ink">
                 <span aria-hidden className="text-2xl">
                   {categoryIcon(category.slug)}

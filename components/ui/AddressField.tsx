@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { INPUT_CLASS } from "@/components/ui/primitives";
+import { FIELD_LABEL, INPUT_CLASS } from "@/components/ui/primitives";
 
 /**
  * The one address control in the product: the customer's job address
@@ -152,10 +152,7 @@ export function AddressField({
 
   return (
     <div>
-      <label
-        htmlFor="addressText"
-        className="mb-1 block text-sm font-medium text-ink"
-      >
+      <label htmlFor="addressText" className={`${FIELD_LABEL}`}>
         {label}
       </label>
 

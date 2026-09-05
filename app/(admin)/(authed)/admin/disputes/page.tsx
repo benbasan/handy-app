@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { DisputeDecisionForm } from "@/components/admin/DisputeDecisionForm";
-import { Badge, Card } from "@/components/ui/primitives";
+import { Badge, Card, PAGE_TITLE } from "@/components/ui/primitives";
 import { ADMIN_ROUTES } from "@/lib/routes";
 import { getTrustMetrics, listAdminDisputes } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/supabase/session";
@@ -48,9 +48,7 @@ export default async function AdminDisputesPage() {
     <AdminShell current={ADMIN_ROUTES.disputes}>
       <div className="space-y-6">
         <header>
-          <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-            מחלוקות ובקרה
-          </h1>
+          <h1 className={`${PAGE_TITLE}`}>מחלוקות ובקרה</h1>
           <p className="mt-2 text-muted">
             {open.length === 0
               ? "אין מחלוקות פתוחות"

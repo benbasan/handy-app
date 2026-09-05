@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/AppShell";
-import { BUTTON_CTA } from "@/components/ui/primitives";
+import { BUTTON_CTA, CARD_BASE, PAGE_TITLE } from "@/components/ui/primitives";
 import { GUIDES, findGuide } from "@/lib/content/guides";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import { JsonLd, absoluteUrl, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
@@ -73,7 +73,7 @@ export default async function GuidePage({
         </Link>
       </nav>
 
-      <article className="mt-4 rounded-2xl border border-line bg-surface p-6 sm:p-8">
+      <article className={`mt-4 ${CARD_BASE} p-6 sm:p-8`}>
         <p className="text-sm text-muted">
           {guide.topic} · <span className="ltr-nums">{guide.minutes}</span> דק׳
           קריאה ·{" "}
@@ -82,9 +82,7 @@ export default async function GuidePage({
           </time>
         </p>
 
-        <h1 className="mt-2 text-3xl font-bold text-ink sm:text-4xl">
-          {guide.title}
-        </h1>
+        <h1 className={`mt-2 ${PAGE_TITLE}`}>{guide.title}</h1>
         <p className="mt-3 text-lg text-muted">{guide.summary}</p>
 
         <div className="mt-6 space-y-5">

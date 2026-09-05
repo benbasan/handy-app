@@ -10,8 +10,32 @@ import type { ReactNode } from "react";
  * (`ms/me/ps/pe/start/end`). A physical `ml-` reads fine in a Latin preview and
  * silently mirrors wrong in Hebrew — see CLAUDE.md section 3.
  */
-export const CARD_CLASS =
-  "rounded-2xl border border-line bg-surface p-5 sm:p-6";
+/**
+ * The card without its padding: radius, hairline border, white ground.
+ *
+ * Split out from CARD_CLASS because the app draws the same card at four
+ * different insets — `p-5 sm:p-6` for most of it, `p-6 sm:p-8` on the wide
+ * marketing panels, plain `p-5` in a dense list, `p-4` for a footnote — and
+ * before this the three tokens that make a card *look* like a card were
+ * written out beside each of them, fifty-five times across thirty-five files.
+ * The comment at the top of this module promised "a later re-skin is one edit
+ * here"; for buttons and inputs that was true, and for the card it was not.
+ *
+ * The padding stays with the caller. Which inset a given card takes is a
+ * judgement against design/screens/, not a thing to unify from the outside.
+ */
+export const CARD_BASE = "rounded-2xl border border-line bg-surface";
+
+export const CARD_CLASS = `${CARD_BASE} p-5 sm:p-6`;
+
+/**
+ * The `<h1>` on a screen — one size, sixteen screens, previously sixteen
+ * copies of the same four utilities.
+ */
+export const PAGE_TITLE = "text-3xl font-bold text-ink sm:text-4xl";
+
+/** The label above a form control. */
+export const FIELD_LABEL = "mb-1 block text-sm font-medium text-ink";
 
 export const BUTTON_BASE =
   "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60";

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/ui/AppShell";
-import { Badge } from "@/components/ui/primitives";
+import { Badge, CARD_BASE } from "@/components/ui/primitives";
 import { GUIDES, featuredGuide } from "@/lib/content/guides";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import { JsonLd, absoluteUrl, pageMetadata } from "@/lib/seo";
@@ -59,7 +59,7 @@ export default async function GuidesPage() {
             <li key={guide.slug}>
               <Link
                 href={MARKETING_ROUTES.guide(guide.slug)}
-                className="block rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-brand"
+                className={`block ${CARD_BASE} p-5 transition-colors hover:border-brand`}
               >
                 <h2 className="font-bold text-ink">{guide.title}</h2>
                 <p className="mt-1 text-sm text-muted">{guide.summary}</p>
@@ -72,7 +72,7 @@ export default async function GuidesPage() {
           ))}
         </ul>
 
-        <article className="rounded-2xl border border-line bg-surface p-6 sm:p-8 lg:order-1">
+        <article className={`${CARD_BASE} p-6 sm:p-8 lg:order-1`}>
           <Badge tone="open">כתבה מובילה</Badge>
           <h2 className="mt-3 text-2xl font-bold text-ink sm:text-3xl">
             <Link

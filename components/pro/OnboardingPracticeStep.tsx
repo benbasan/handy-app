@@ -5,6 +5,7 @@ import {
   BUTTON_PRO,
   Card,
   ErrorText,
+  FIELD_LABEL,
   INPUT_CLASS,
 } from "@/components/ui/primitives";
 import { savePracticeBid } from "@/lib/actions/pros";
@@ -65,10 +66,7 @@ export function OnboardingPracticeStep() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label
-            htmlFor="price"
-            className="mb-1 block text-sm font-medium text-ink"
-          >
+          <label htmlFor="price" className={`${FIELD_LABEL}`}>
             המחיר שלך (₪)
           </label>
           <input
@@ -91,10 +89,7 @@ export function OnboardingPracticeStep() {
         </div>
 
         <div>
-          <label
-            htmlFor="etaMinutes"
-            className="mb-1 block text-sm font-medium text-ink"
-          >
+          <label htmlFor="etaMinutes" className={`${FIELD_LABEL}`}>
             זמן הגעה (דקות)
           </label>
           <input
@@ -117,10 +112,7 @@ export function OnboardingPracticeStep() {
       </div>
 
       <div>
-        <label
-          htmlFor="note"
-          className="mb-1 block text-sm font-medium text-ink"
-        >
+        <label htmlFor="note" className={`${FIELD_LABEL}`}>
           הערה ללקוח
         </label>
         <textarea

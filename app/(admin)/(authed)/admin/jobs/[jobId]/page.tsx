@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { DisputeDecisionForm } from "@/components/admin/DisputeDecisionForm";
 import { ProEnforcementPanel } from "@/components/admin/ProEnforcementPanel";
-import { Badge, Card } from "@/components/ui/primitives";
+import { Badge, Card, PAGE_TITLE } from "@/components/ui/primitives";
 import { ADMIN_ROUTES, receiptPath } from "@/lib/routes";
 import { getProEnforcement } from "@/lib/supabase/admin";
 import { listJobDisputes } from "@/lib/supabase/disputes";
@@ -95,9 +95,7 @@ export default async function AdminJobDossierPage({
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <header>
-            <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-              תיעוד הקריאה
-            </h1>
+            <h1 className={`${PAGE_TITLE}`}>תיעוד הקריאה</h1>
             <p className="mt-2 text-muted">
               <span dir="ltr" className="font-bold text-ink">
                 {jobReference(job.id)}

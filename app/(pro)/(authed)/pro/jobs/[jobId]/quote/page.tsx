@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
 import { SubmitBidForm } from "@/components/pro/SubmitBidForm";
-import { BUTTON_QUIET, Badge, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_QUIET,
+  Badge,
+  Card,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import {
   countBidsOnJob,
@@ -69,7 +74,7 @@ export default async function SubmitBidPage({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-ink sm:text-4xl">
+          <h1 className={`${PAGE_TITLE}`}>
             הגשת הצעה — {job.description.split("\n")[0]!.slice(0, 60)}
           </h1>
           <p className="mt-2 text-muted">

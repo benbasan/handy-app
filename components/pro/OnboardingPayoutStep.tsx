@@ -5,6 +5,7 @@ import {
   BUTTON_PRO,
   Card,
   ErrorText,
+  FIELD_LABEL,
   INPUT_CLASS,
 } from "@/components/ui/primitives";
 import { submitProProfile } from "@/lib/actions/pros";
@@ -115,10 +116,7 @@ export function OnboardingPayoutStep({
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <label
-              htmlFor="bankName"
-              className="mb-1 block text-sm font-medium text-ink"
-            >
+            <label htmlFor="bankName" className={`${FIELD_LABEL}`}>
               בנק
             </label>
             <input
@@ -139,10 +137,7 @@ export function OnboardingPayoutStep({
           </div>
 
           <div>
-            <label
-              htmlFor="bankBranch"
-              className="mb-1 block text-sm font-medium text-ink"
-            >
+            <label htmlFor="bankBranch" className={`${FIELD_LABEL}`}>
               סניף
             </label>
             <input
@@ -164,10 +159,7 @@ export function OnboardingPayoutStep({
           </div>
 
           <div>
-            <label
-              htmlFor="accountLast4"
-              className="mb-1 block text-sm font-medium text-ink"
-            >
+            <label htmlFor="accountLast4" className={`${FIELD_LABEL}`}>
               4 ספרות אחרונות
             </label>
             <input

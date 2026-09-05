@@ -5,7 +5,12 @@ import { ChatDock } from "@/components/ui/ChatDock";
 import { ChatPanel } from "@/components/ui/ChatPanel";
 import { LiveMap } from "@/components/ui/LiveMap";
 import { MarkThreadRead } from "@/components/ui/MarkThreadRead";
-import { BUTTON_QUIET, Badge, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_QUIET,
+  Badge,
+  CARD_BASE,
+  Card,
+} from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import { listBidsForJob } from "@/lib/supabase/bids";
@@ -148,7 +153,7 @@ export default async function JobTrackingPage({
               יש בקשת עדכון מחיר שממתינה להחלטה שלך — היא מופיעה בצד.
             </p>
           ) : (
-            <p className="rounded-2xl border border-line bg-surface p-4 text-sm text-muted">
+            <p className={`${CARD_BASE} p-4 text-sm text-muted`}>
               אין כרגע בקשה לשינוי מחיר. כל שינוי יגיע לכאן עם תמונה מהשטח,
               ויחכה לאישור שלך.
             </p>
