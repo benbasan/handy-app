@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { Badge, BUTTON_BASE, ErrorText } from "@/components/ui/primitives";
+import {
+  BUTTON_BASE,
+  Badge,
+  CARD_BASE,
+  ErrorText,
+} from "@/components/ui/primitives";
 import { decideProVerification } from "@/lib/actions/admin";
 import { EMPTY_ADMIN_DECISION_STATE } from "@/lib/actions/state";
 import { formatIsraeliMobile } from "@/lib/validation/auth";
@@ -80,7 +85,7 @@ export function ProApprovalRow({
   const verdict = documentVerdict(application);
 
   return (
-    <li className="rounded-2xl border border-line bg-surface p-5">
+    <li className={`${CARD_BASE} p-5`}>
       <div className="flex flex-wrap items-center gap-4">
         <span
           aria-hidden

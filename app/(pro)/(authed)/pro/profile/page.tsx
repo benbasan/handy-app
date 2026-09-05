@@ -2,7 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PublicProfileForm } from "@/components/pro/PublicProfileForm";
 import { ReviewReplyForm } from "@/components/pro/ReviewReplyForm";
-import { BUTTON_QUIET } from "@/components/ui/primitives";
+import {
+  BUTTON_QUIET,
+  CARD_BASE,
+  CARD_CLASS,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { MARKETING_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { getMyProProfile } from "@/lib/supabase/pros";
 import { listMyReviews } from "@/lib/supabase/publicProfiles";
@@ -44,9 +49,7 @@ export default async function ProPublicProfilePage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-          הפרופיל הציבורי שלי
-        </h1>
+        <h1 className={`${PAGE_TITLE}`}>הפרופיל הציבורי שלי</h1>
         <p className="mt-2 text-muted">
           כך לקוחות רואים אותך לפני שהם בוחרים הצעה.
         </p>
@@ -79,7 +82,7 @@ export default async function ProPublicProfilePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+          <div className={`${CARD_CLASS}`}>
             <h2 className="text-base font-bold text-ink">תצוגה מקדימה</h2>
             <p className="mt-1 text-sm text-muted">
               כך הפרופיל נראה בעמוד הציבורי.
@@ -112,7 +115,7 @@ export default async function ProPublicProfilePage() {
             }}
           />
 
-          <section className="mt-6 rounded-2xl border border-line bg-surface">
+          <section className={`mt-6 ${CARD_BASE}`}>
             <h2 className="border-b border-line px-5 py-4 text-lg font-bold text-ink sm:px-6">
               ביקורות שקיבלתי
             </h2>

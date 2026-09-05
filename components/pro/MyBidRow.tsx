@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SubmitBidForm } from "@/components/pro/SubmitBidForm";
-import { Badge, BUTTON_QUIET } from "@/components/ui/primitives";
+import { BUTTON_QUIET, Badge, CARD_BASE } from "@/components/ui/primitives";
 import { categoryIcon } from "@/lib/categories";
 import { PRO_ROUTES } from "@/lib/routes";
 import type { MyBid } from "@/lib/supabase/bids";
@@ -47,7 +47,7 @@ export function MyBidRow({
         : "neutral";
 
   return (
-    <li className="rounded-2xl border border-line bg-surface">
+    <li className={`${CARD_BASE}`}>
       <div className="flex flex-wrap items-center gap-4 p-5">
         <span
           aria-hidden

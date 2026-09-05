@@ -7,7 +7,11 @@ import {
   type RequestOtpState,
   type VerifyOtpState,
 } from "@/lib/actions/auth";
-import { BUTTON_CTA, INPUT_CLASS } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  FIELD_LABEL,
+  INPUT_CLASS,
+} from "@/components/ui/primitives";
 import { formatIsraeliMobile, type SignupRole } from "@/lib/validation/auth";
 
 type Props = {
@@ -170,10 +174,7 @@ function Field({
 }) {
   return (
     <div>
-      <label
-        htmlFor={htmlFor}
-        className="mb-1 block text-sm font-medium text-ink"
-      >
+      <label htmlFor={htmlFor} className={`${FIELD_LABEL}`}>
         {label}
       </label>
       {children}

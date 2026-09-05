@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { fieldErrorsOf, optional } from "@/lib/actions/formData";
 import type { BidFormState, SelectBidState } from "@/lib/actions/state";
 import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { CUSTOMER_ROUTES, PRO_ROUTES } from "@/lib/routes";
@@ -12,7 +13,6 @@ import {
   submitBidSchema,
   updateBidSchema,
 } from "@/lib/validation/bids";
-import type { z } from "zod";
 
 /**
  * The write paths for bidding — product-spec.md 3.3 and 4.4.
@@ -29,20 +29,6 @@ import type { z } from "zod";
  *    rival in the same statement — the customer holds no grant on
  *    `jobs.selected_bid_id` at all.
  */
-
-function optional(value: FormDataEntryValue | null): string | undefined {
-  const text = typeof value === "string" ? value.trim() : "";
-  return text === "" ? undefined : text;
-}
-
-function fieldErrorsOf(error: z.ZodError): Record<string, string> {
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = String(issue.path[0] ?? "form");
-    fieldErrors[key] ??= issue.message;
-  }
-  return fieldErrors;
-}
 
 const INVALID: BidFormState = {
   error: "יש לתקן את השדות המסומנים לפני שליחת ההצעה.",

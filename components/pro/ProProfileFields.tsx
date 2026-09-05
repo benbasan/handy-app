@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { AddressField, type AddressValue } from "@/components/ui/AddressField";
-import { ErrorText, INPUT_CLASS } from "@/components/ui/primitives";
+import {
+  ErrorText,
+  FIELD_LABEL,
+  INPUT_CLASS,
+} from "@/components/ui/primitives";
 import { categoryIcon } from "@/lib/categories";
 import type { Category } from "@/lib/supabase/jobs";
 import {
@@ -86,10 +90,7 @@ export function ProProfileFields({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label
-            htmlFor="fullName"
-            className="mb-1 block text-sm font-medium text-ink"
-          >
+          <label htmlFor="fullName" className={`${FIELD_LABEL}`}>
             שם מלא
           </label>
           <input
@@ -111,9 +112,7 @@ export function ProProfileFields({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">
-            טלפון
-          </label>
+          <label className={`${FIELD_LABEL}`}>טלפון</label>
           {/* Read-only, and not a form field at all: the phone number is the
               identity Supabase Auth keys the account on, and `profiles.phone`
               carries no update grant for anyone. */}
@@ -130,10 +129,7 @@ export function ProProfileFields({
       </div>
 
       <div>
-        <label
-          htmlFor="bio"
-          className="mb-1 block text-sm font-medium text-ink"
-        >
+        <label htmlFor="bio" className={`${FIELD_LABEL}`}>
           תיאור מקצועי <span className="text-muted">(לא חובה)</span>
         </label>
         <textarea

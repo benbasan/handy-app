@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/AppShell";
-import { Badge, BUTTON_CTA, BUTTON_QUIET } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  BUTTON_QUIET,
+  Badge,
+  CARD_BASE,
+  CARD_CLASS,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import { JsonLd, absoluteUrl, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 import {
@@ -109,7 +116,7 @@ export default async function PublicProProfilePage({
         }}
       />
 
-      <section className="rounded-2xl border border-line bg-surface p-6 sm:p-8">
+      <section className={`${CARD_BASE} p-6 sm:p-8`}>
         <div className="flex flex-wrap items-start gap-6">
           {pro.avatarUrl ? (
             /* The Storage origin changes per deployment, so next/image
@@ -131,9 +138,7 @@ export default async function PublicProProfilePage({
 
           <div className="min-w-64 flex-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-                {name}
-              </h1>
+              <h1 className={`${PAGE_TITLE}`}>{name}</h1>
               <Badge tone="done">✓ מאומת Handy</Badge>
               {!pro.acceptingJobs && (
                 <Badge tone="neutral">לא מקבל קריאות כרגע</Badge>
@@ -196,7 +201,7 @@ export default async function PublicProProfilePage({
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
         <aside className="space-y-4 lg:order-1">
-          <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+          <div className={`${CARD_CLASS}`}>
             <h2 className="text-lg font-bold text-ink">מסמכים שאומתו</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {documents.map((document) => (
@@ -221,7 +226,7 @@ export default async function PublicProProfilePage({
             </p>
           </div>
 
-          <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+          <div className={`${CARD_CLASS}`}>
             <h2 className="text-lg font-bold text-ink">זמינות השבוע</h2>
             <ul className="mt-3 flex flex-wrap gap-1.5">
               {WORK_DAYS.map((day) => {
@@ -249,7 +254,7 @@ export default async function PublicProProfilePage({
           </div>
 
           {pro.paymentMethods.length > 0 && (
-            <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+            <div className={`${CARD_CLASS}`}>
               <h2 className="text-lg font-bold text-ink">אמצעי תשלום</h2>
               <ul className="mt-3 flex flex-wrap gap-2">
                 {pro.paymentMethods.map((method) => (
@@ -268,7 +273,7 @@ export default async function PublicProProfilePage({
         </aside>
 
         <div className="space-y-6 lg:order-2">
-          <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+          <section className={`${CARD_CLASS}`}>
             <h2 className="text-lg font-bold text-ink">על העבודה שלי</h2>
             <p className="mt-3 leading-relaxed whitespace-pre-line text-muted">
               {pro.bio ?? "בעל המקצוע עוד לא הוסיף תיאור."}
@@ -291,7 +296,7 @@ export default async function PublicProProfilePage({
           </section>
 
           {pro.galleryUrls.length > 0 && (
-            <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+            <section className={`${CARD_CLASS}`}>
               <h2 className="text-lg font-bold text-ink">גלריית עבודות</h2>
               <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {pro.galleryUrls.map((url) => (
@@ -308,7 +313,7 @@ export default async function PublicProProfilePage({
             </section>
           )}
 
-          <section className="rounded-2xl border border-line bg-surface">
+          <section className={`${CARD_BASE}`}>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
               <h2 className="text-lg font-bold text-ink">ביקורות מאומתות</h2>
               {pro.reviewsCount > 0 && (

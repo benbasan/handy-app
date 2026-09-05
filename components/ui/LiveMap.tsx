@@ -1,4 +1,5 @@
 import { getBrowserMapsKey } from "@/lib/maps/config";
+import { CARD_BASE } from "@/components/ui/primitives";
 import { haversineKm } from "@/lib/maps/geocode";
 import type { JobLocation } from "@/lib/supabase/tracking";
 import { isLocationFresh, sinceLabel } from "@/lib/validation/tracking";
@@ -41,7 +42,7 @@ export function LiveMap({
       : null;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+    <div className={`overflow-hidden ${CARD_BASE}`}>
       {mapsKey && location ? (
         <iframe
           title={caption}

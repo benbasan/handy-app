@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { CARD_BASE } from "@/components/ui/primitives";
 
 /**
  * The dark pill at the bottom of both tracking screens — "צ׳אט עם דוד" with an
@@ -40,7 +41,7 @@ export function ChatDock({
     <div className="fixed start-4 bottom-4 z-40 w-[min(24rem,calc(100vw-2rem))]">
       <div
         hidden={!open}
-        className="mb-3 overflow-hidden rounded-2xl border border-line bg-surface shadow-xl"
+        className={`mb-3 overflow-hidden ${CARD_BASE} shadow-xl`}
       >
         {children}
       </div>

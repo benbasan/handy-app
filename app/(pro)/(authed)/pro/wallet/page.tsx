@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import { BUTTON_QUIET, Card, PAGE_TITLE } from "@/components/ui/primitives";
 import { PRO_ROUTES, receiptPath } from "@/lib/routes";
 import { getMyBidStats } from "@/lib/supabase/bids";
 import {
@@ -66,9 +66,7 @@ export default async function ProWalletPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <header>
-          <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-            הכנסות והיסטוריה
-          </h1>
+          <h1 className={`${PAGE_TITLE}`}>הכנסות והיסטוריה</h1>
           <p className="mt-2 text-muted">
             {profile?.verificationStatus === "verified"
               ? "פעיל ומאומת ב-Handy"

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ProLogo } from "@/components/pro/ProLogo";
-import { BUTTON_PRO, Card } from "@/components/ui/primitives";
+import { BUTTON_PRO, CARD_BASE, Card } from "@/components/ui/primitives";
 import { PRO_ROUTES, ROLE_LOGIN } from "@/lib/routes";
 import { getCurrentUser } from "@/lib/supabase/session";
 import { COMMISSION_RATE } from "@/lib/validation/pros";
@@ -200,7 +200,7 @@ function Step({
   body: string;
 }) {
   return (
-    <li className="rounded-2xl border border-line bg-surface p-5">
+    <li className={`${CARD_BASE} p-5`}>
       <span
         aria-hidden
         className="flex size-8 items-center justify-center rounded-full bg-pro-soft text-sm font-bold text-pro"

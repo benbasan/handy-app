@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { ErrorText } from "@/components/ui/primitives";
+import { CARD_CLASS, ErrorText } from "@/components/ui/primitives";
 import { completeJob } from "@/lib/actions/completion";
 import { EMPTY_COMPLETE_JOB_STATE } from "@/lib/actions/state";
 import {
@@ -65,7 +65,7 @@ export function CompleteJobForm({
   const net = netOf(totalPrice);
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+    <section className={`${CARD_CLASS}`}>
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-sm font-semibold text-muted">מחיר מאושר לקריאה</h2>
         <p className="text-2xl font-bold text-ink">

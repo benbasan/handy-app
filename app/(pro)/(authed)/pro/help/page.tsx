@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { BUTTON_PRO } from "@/components/ui/primitives";
+import {
+  BUTTON_PRO,
+  CARD_BASE,
+  CARD_CLASS,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { PRO_FAQ, PRO_GUIDE_LINKS, SUPPORT_CHANNELS } from "@/lib/content/help";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import { requireRole } from "@/lib/supabase/session";
@@ -20,9 +25,7 @@ export default async function ProHelpPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-          מרכז עזרה לבעלי מקצוע
-        </h1>
+        <h1 className={`${PAGE_TITLE}`}>מרכז עזרה לבעלי מקצוע</h1>
         <p className="mt-2 text-muted">עמלות, אימות, עדכוני מחיר וגבייה.</p>
       </header>
 
@@ -41,7 +44,7 @@ export default async function ProHelpPage() {
             </Link>
           </div>
 
-          <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+          <div className={`${CARD_CLASS}`}>
             <h2 className="text-lg font-bold text-ink">מדריכים</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {PRO_GUIDE_LINKS.map((guide) => (
@@ -58,7 +61,7 @@ export default async function ProHelpPage() {
           </div>
         </aside>
 
-        <div className="rounded-2xl border border-line bg-surface lg:order-2">
+        <div className={`${CARD_BASE} lg:order-2`}>
           {PRO_FAQ.map((entry) => (
             <details
               key={entry.question}

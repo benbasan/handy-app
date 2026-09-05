@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AdminJobFilters } from "@/components/admin/AdminJobFilters";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { Card } from "@/components/ui/primitives";
+import { CARD_BASE, Card, PAGE_TITLE } from "@/components/ui/primitives";
 import { ADMIN_ROUTES } from "@/lib/routes";
 import { listAdminJobs, listJobCities } from "@/lib/supabase/admin";
 import { listCategories } from "@/lib/supabase/jobs";
@@ -62,9 +62,7 @@ export default async function AdminJobsPage({
     <AdminShell current={ADMIN_ROUTES.jobs}>
       <div className="space-y-6">
         <header>
-          <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-            קריאות במערכת
-          </h1>
+          <h1 className={`${PAGE_TITLE}`}>קריאות במערכת</h1>
           <p className="mt-2 text-muted">
             {jobs.length === 0
               ? "אין קריאות שתואמות את הסינון"
@@ -87,7 +85,7 @@ export default async function AdminJobsPage({
             </p>
           </Card>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
+          <div className={`overflow-x-auto ${CARD_BASE}`}>
             <table className="w-full min-w-3xl border-collapse text-sm">
               <thead>
                 <tr className="border-b border-line text-muted">

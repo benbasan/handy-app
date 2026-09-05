@@ -3,7 +3,11 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BUTTON_CTA, BUTTON_QUIET } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  BUTTON_QUIET,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import {
   ADMIN_ROUTES,
   loginPathFor,
@@ -77,9 +81,7 @@ export default function AppError({
           !
         </p>
 
-        <h1 className="mt-4 text-3xl font-bold text-ink sm:text-4xl">
-          משהו השתבש
-        </h1>
+        <h1 className={`mt-4 ${PAGE_TITLE}`}>משהו השתבש</h1>
 
         <p className="mt-4 text-lg text-muted">
           התקלה נרשמה אצלנו ואנחנו נבדוק אותה. לרוב זו תקלה זמנית — כדאי לנסות

@@ -5,6 +5,7 @@ import {
   BUTTON_PRO,
   Card,
   ErrorText,
+  FIELD_LABEL,
   INPUT_CLASS,
 } from "@/components/ui/primitives";
 import { categoryIcon } from "@/lib/categories";
@@ -146,10 +147,7 @@ export function AvailabilityForm({
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <div>
-            <label
-              htmlFor="workStartTime"
-              className="mb-1 block text-sm font-medium text-ink"
-            >
+            <label htmlFor="workStartTime" className={`${FIELD_LABEL}`}>
               משעה
             </label>
             <input
@@ -168,10 +166,7 @@ export function AvailabilityForm({
           </div>
 
           <div>
-            <label
-              htmlFor="workEndTime"
-              className="mb-1 block text-sm font-medium text-ink"
-            >
+            <label htmlFor="workEndTime" className={`${FIELD_LABEL}`}>
               עד שעה
             </label>
             <input

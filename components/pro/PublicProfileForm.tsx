@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import {
   BUTTON_PRO,
   BUTTON_QUIET,
+  CARD_CLASS,
   ErrorText,
   INPUT_CLASS,
 } from "@/components/ui/primitives";
@@ -86,7 +87,7 @@ export function PublicProfileForm({
         <input key={path} type="hidden" name="galleryPaths" value={path} />
       ))}
 
-      <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+      <section className={`${CARD_CLASS}`}>
         <div className="flex flex-wrap items-center gap-5">
           {avatarPath ? (
             /* The Storage origin is per-deployment, so next/image would
@@ -145,7 +146,7 @@ export function PublicProfileForm({
         )}
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+      <section className={`${CARD_CLASS}`}>
         <h2 className="text-lg font-bold text-ink">כתובת הפרופיל</h2>
         <p className="mt-1 text-sm text-muted">
           הקישור שאתם שולחים ללקוחות. אותיות באנגלית, ספרות ומקפים.
@@ -175,7 +176,7 @@ export function PublicProfileForm({
         )}
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+      <section className={`${CARD_CLASS}`}>
         <h2 className="text-lg font-bold text-ink">תיאור מקצועי</h2>
         <textarea
           name="bio"
@@ -209,7 +210,7 @@ export function PublicProfileForm({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+      <section className={`${CARD_CLASS}`}>
         <h2 className="text-lg font-bold text-ink">גלריית עבודות</h2>
         <p className="mt-1 text-sm text-muted">
           עד {MAX_GALLERY_PHOTOS} תמונות, עד{" "}

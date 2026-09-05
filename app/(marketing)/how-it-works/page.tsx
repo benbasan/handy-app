@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/ui/AppShell";
-import { BUTTON_CTA, BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  BUTTON_QUIET,
+  CARD_BASE,
+  Card,
+} from "@/components/ui/primitives";
 import { MARKETING_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { JsonLd, organizationJsonLd, pageMetadata } from "@/lib/seo";
 import { getCurrentUser } from "@/lib/supabase/session";
@@ -131,7 +136,7 @@ export default async function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="mt-12 rounded-2xl border border-line bg-surface p-6 text-center sm:p-8">
+      <section className={`mt-12 ${CARD_BASE} p-6 text-center sm:p-8`}>
         <h2 className="text-2xl font-bold text-ink">
           רוצים לדעת כמה זה אמור לעלות?
         </h2>
@@ -163,7 +168,7 @@ function StepCard({
   tone?: "brand" | "pro";
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-line bg-surface p-5">
+    <div className={`flex items-start gap-3 ${CARD_BASE} p-5`}>
       <span
         aria-hidden
         className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${

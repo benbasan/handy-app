@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { HelpBrowser } from "@/components/marketing/HelpBrowser";
 import { AppShell } from "@/components/ui/AppShell";
-import { BUTTON_CTA } from "@/components/ui/primitives";
+import { BUTTON_CTA, CARD_CLASS } from "@/components/ui/primitives";
 import {
   CUSTOMER_FAQ,
   POPULAR_HELP_TOPICS,
@@ -49,7 +49,7 @@ export default async function HelpPage() {
             </Link>
           </div>
 
-          <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+          <div className={`${CARD_CLASS}`}>
             <h2 className="text-lg font-bold text-ink">נושאים פופולריים</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {POPULAR_HELP_TOPICS.map((topic) => (

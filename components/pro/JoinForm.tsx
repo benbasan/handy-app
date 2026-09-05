@@ -15,7 +15,7 @@ import {
   ErrorText,
   SectionCard,
 } from "@/components/ui/primitives";
-import { saveProJoin } from "@/lib/actions/pros";
+import { saveProJoin } from "@/lib/actions/proOnboarding";
 import { EMPTY_PRO_FORM_STATE } from "@/lib/actions/state";
 import type { Category } from "@/lib/supabase/jobs";
 import {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { ErrorText, INPUT_CLASS } from "@/components/ui/primitives";
+import { CARD_CLASS, ErrorText, INPUT_CLASS } from "@/components/ui/primitives";
 import { submitJobReview } from "@/lib/actions/completion";
 import { EMPTY_REVIEW_FORM_STATE } from "@/lib/actions/state";
 import { MAX_RATING, REVIEW_COMMENT_MAX } from "@/lib/validation/completion";
@@ -42,7 +42,7 @@ export function RatingForm({
   const chosen = rating ?? saved;
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+    <section className={`${CARD_CLASS}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-bold text-ink">איך היה השירות?</h2>
         {saved !== null && (

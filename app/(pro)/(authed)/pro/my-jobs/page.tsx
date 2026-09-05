@@ -1,9 +1,11 @@
 import Link from "next/link";
 import {
-  Badge,
   BUTTON_PRO,
   BUTTON_QUIET,
+  Badge,
+  CARD_BASE,
   Card,
+  PAGE_TITLE,
 } from "@/components/ui/primitives";
 import { DisputeOpener } from "@/components/ui/DisputeOpener";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
@@ -87,7 +89,7 @@ export default async function ProMyJobsPage({
       />
 
       <header>
-        <h1 className="text-3xl font-bold text-ink sm:text-4xl">העבודות שלי</h1>
+        <h1 className={`${PAGE_TITLE}`}>העבודות שלי</h1>
         <p className="mt-2 text-muted">
           {showingHistory
             ? "עבודות שהושלמו, עם הקבלה והעמלה של כל אחת."
@@ -330,10 +332,7 @@ function HistoryList({
   return (
     <ul className="space-y-4">
       {jobs.map((job) => (
-        <li
-          key={job.jobId}
-          className="rounded-2xl border border-line bg-surface p-5"
-        >
+        <li key={job.jobId} className={`${CARD_BASE} p-5`}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-56 flex-1">
               <div className="flex flex-wrap items-center gap-2">

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { geocodeAddress, toEwkt } from "@/lib/maps/geocode";
 import { logServerError } from "@/lib/observability";
+import { optional } from "@/lib/actions/formData";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
 import { createJobSchema } from "@/lib/validation/jobs";
@@ -15,11 +16,6 @@ export type CreateJobState = {
 };
 
 /** `""` is what an untouched input submits; treat it as absent, not as a value. */
-function optional(value: FormDataEntryValue | null): string | undefined {
-  const text = typeof value === "string" ? value.trim() : "";
-  return text === "" ? undefined : text;
-}
-
 /**
  * Publish a job (פרסום קריאה) — product-spec.md 3.2.
  *

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import {
   BUTTON_BASE,
+  CARD_BASE,
   ErrorText,
   INPUT_CLASS,
 } from "@/components/ui/primitives";
@@ -49,7 +50,7 @@ export function DisputeOpener({
 
   if (existingStatus || state.opened) {
     return (
-      <div className="rounded-2xl border border-line bg-surface p-5">
+      <div className={`${CARD_BASE} p-5`}>
         <h2 className="font-bold text-ink">פנייה לצוות Handy</h2>
         <p className="mt-2 text-sm text-muted">
           {existingStatus
@@ -61,7 +62,7 @@ export function DisputeOpener({
   }
 
   return (
-    <details className="rounded-2xl border border-line bg-surface p-5">
+    <details className={`${CARD_BASE} p-5`}>
       <summary className="cursor-pointer font-bold text-ink">
         משהו לא תקין בחיוב?
       </summary>

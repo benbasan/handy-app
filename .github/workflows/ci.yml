@@ -18,6 +18,13 @@ jobs:
 
       - run: npm ci
 
+      # A dependency with a known advisory is a defect like any other, and this
+      # is the cheapest gate in the file. `--omit=dev` because what ships is
+      # what matters first; a dev-only advisory should not stop a deploy at
+      # three in the morning, and Dependabot opens a PR for those anyway.
+      - name: Audit dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Format check
         run: npm run format:check
 
@@ -31,7 +38,7 @@ jobs:
       # and the Zod schemas. Anything that depends on RLS is tested in the
       # database instead, by the `database` job below.
       - name: Unit tests
-        run: npm run test
+        run: npm run test:coverage
 
       # Runs without Supabase env vars on purpose: the app must build
       # without secrets. See lib/supabase/env.ts.
@@ -62,6 +69,16 @@ jobs:
       # data and another's, so it is tested rather than assumed.
       - name: RLS policy tests
         run: npm run db:test
+
+      # The spatial indexes and the pro feed, against a generated load, held to
+      # wall-clock budgets. Placed here because this job already has the stack
+      # up and the script needs nothing else. Without it the budgets in
+      # scripts/postgis-load-check.mjs only bind when somebody remembers to run
+      # it by hand — and the thing they are watching for, a feed that has
+      # quietly gone back to a sequential scan, is invisible until it is slow
+      # enough for a person to notice.
+      - name: PostGIS load budgets
+        run: npm run perf:postgis
 
       # A schema change with stale generated types is a broken build waiting to
       # happen in the next phase.

@@ -6,7 +6,7 @@ import {
   type ProProfileDefaults,
 } from "@/components/pro/ProProfileFields";
 import { BUTTON_PRO, ErrorText } from "@/components/ui/primitives";
-import { saveProProfile } from "@/lib/actions/pros";
+import { saveProProfile } from "@/lib/actions/proOnboarding";
 import { EMPTY_PRO_FORM_STATE } from "@/lib/actions/state";
 import type { Category } from "@/lib/supabase/jobs";
 

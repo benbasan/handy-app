@@ -1,0 +1,14 @@
+# The pre-commit hook formats and lints the files being committed. It cannot
+# see whether the *repository* still works: a commit that breaks tsc, or a
+# schema change that leaves a Zod schema behind, passes it without complaint
+# and is found minutes later by CI — or, on a branch nobody opens a PR from,
+# not at all.
+#
+# These are the two checks that are fast enough to sit in front of a push and
+# broad enough to be worth it: typecheck (~4s) and the unit suite (~1s). The
+# rest of the gate — build, pgTAP, Playwright — needs Docker or minutes, and
+# belongs in CI where it already is.
+#
+# To push past it in an emergency: git push --no-verify
+npm run typecheck
+npm run test

@@ -1,4 +1,5 @@
 import { SupportForm } from "@/components/marketing/SupportForm";
+import { CARD_CLASS } from "@/components/ui/primitives";
 import { AppShell } from "@/components/ui/AppShell";
 import { SUPPORT_CHANNELS } from "@/lib/content/help";
 import { MARKETING_ROUTES } from "@/lib/routes";
@@ -29,7 +30,7 @@ export default async function ContactPage() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
         <aside className="space-y-4 lg:order-1">
-          <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+          <div className={`${CARD_CLASS}`}>
             <h2 className="text-lg font-bold text-ink">דרכי יצירת קשר</h2>
             <dl className="mt-3 space-y-3 text-sm">
               <div className="flex items-center justify-between gap-3 border-b border-line pb-3">

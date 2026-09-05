@@ -1,0 +1,35 @@
+version: 2
+
+# Two ecosystems, weekly, and grouped rather than one PR per package.
+#
+# The audit finding this answers was not that anything was out of date — npm
+# audit was clean and the lockfile was current. It was that nothing here was
+# *watching*: every bump so far happened because somebody looked. A weekly PR
+# that nobody has to remember to open is the whole point.
+#
+# Minor and patch updates are grouped into a single PR per ecosystem, because
+# fifteen separate PRs is a thing people learn to ignore. Majors stay
+# ungrouped: ESLint 10, TypeScript 7 and Vitest 5 are each a decision, and each
+# deserves its own diff and its own conversation.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # The workflow files pin actions by major tag; this is what notices when one
+  # of those majors moves.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"

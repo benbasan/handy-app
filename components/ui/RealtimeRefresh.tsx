@@ -33,10 +33,35 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
  * Realtime then applies the subscriber's own RLS before delivering a row, so
  * publishing these tables widens nothing: a pro subscribed to `bids` is woken
  * only by their own, a customer only by bids on their own jobs.
+ *
+ * **The token does not have to be refreshed here, and that was checked rather
+ * than assumed.** `jwt_expiry` is an hour and the tracking screen is meant to
+ * be left open longer, so a socket still holding the token it joined with
+ * would go quiet without saying so. It does not: `createBrowserClient` returns
+ * a singleton in the browser, its constructor subscribes to
+ * `onAuthStateChange`, and `TOKEN_REFRESHED` reaches `realtime.setAuth()`,
+ * which pushes the new `access_token` to every joined channel. The singleton
+ * is also why several of these on one screen cost one socket rather than
+ * three. Read out of @supabase/ssr and @supabase/realtime-js; if either is
+ * upgraded past a major, it is worth reading again.
  */
 
 /** How long a "just updated" flash stays on screen. */
 const FLASH_MS = 2500;
+
+/**
+ * How long to wait for the rest of a burst before re-rendering.
+ *
+ * Every one of these tables arrives in clusters — three pros answering a call
+ * within the same second, a price update landing with the photo row beside it
+ * — and each event used to be its own `router.refresh()`, which on a
+ * `force-dynamic` screen is a full server render with every query in it. The
+ * flash still fires on the first event, so the page says "something arrived"
+ * at once; only the fetch waits to see whether more is coming.
+ *
+ * Short enough that nobody perceives it as lag on a single event.
+ */
+const COALESCE_MS = 300;
 
 export function RealtimeRefresh({
   table,
@@ -55,8 +80,9 @@ export function RealtimeRefresh({
 }) {
   const router = useRouter();
   const [flash, setFlash] = useState(false);
-  // Kept in a ref so the effect below does not re-subscribe on every flash.
+  // Kept in refs so the effect below does not re-subscribe on every flash.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // CI and any environment without credentials render the page fine and
@@ -87,10 +113,18 @@ export function RealtimeRefresh({
             ...(filter ? { filter } : {}),
           },
           () => {
-            router.refresh();
+            // Acknowledge immediately — this is the part the person sees.
             setFlash(true);
             if (timer.current) clearTimeout(timer.current);
             timer.current = setTimeout(() => setFlash(false), FLASH_MS);
+
+            // Coalesce the expensive half: the last event in a burst is the
+            // one whose refresh renders all of them.
+            if (pending.current) clearTimeout(pending.current);
+            pending.current = setTimeout(() => {
+              pending.current = null;
+              router.refresh();
+            }, COALESCE_MS);
           },
         )
         .subscribe();
@@ -99,6 +133,9 @@ export function RealtimeRefresh({
     return () => {
       cancelled = true;
       if (timer.current) clearTimeout(timer.current);
+      // A refresh still waiting when the screen goes away has nothing left to
+      // render, and firing it would touch a router the page no longer owns.
+      if (pending.current) clearTimeout(pending.current);
       if (channel) void supabase.removeChannel(channel);
     };
   }, [router, table, filter]);

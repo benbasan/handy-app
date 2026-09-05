@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/ui/AppShell";
-import { BUTTON_CTA, BUTTON_QUIET } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  BUTTON_QUIET,
+  CARD_BASE,
+  CARD_CLASS,
+} from "@/components/ui/primitives";
 import { categoryCopy } from "@/lib/content/categories";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import { JsonLd, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
@@ -75,7 +80,7 @@ export default async function PricingPage() {
       </section>
 
       {withData.length > 0 && (
-        <section className="mt-10 overflow-x-auto rounded-2xl border border-line bg-surface">
+        <section className={`mt-10 overflow-x-auto ${CARD_BASE}`}>
           <table className="w-full min-w-xl border-collapse text-start">
             <caption className="sr-only">
               טווחי מחירים לפי תחום, מתוך עבודות שנסגרו ב-Handy
@@ -135,7 +140,7 @@ export default async function PricingPage() {
       )}
 
       {withoutData.length > 0 && (
-        <section className="mt-4 rounded-2xl border border-line bg-surface p-5 sm:p-6">
+        <section className={`mt-4 ${CARD_CLASS}`}>
           <h2 className="text-base font-bold text-ink">
             תחומים שעדיין אין בהם מספיק נתונים
           </h2>
@@ -165,13 +170,13 @@ export default async function PricingPage() {
             12% נגבים מבעל המקצוע על עבודה שנסגרה. הלקוח לא משלם ל-Handy כלום.
           </p>
         </div>
-        <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+        <div className={`${CARD_CLASS}`}>
           <h2 className="text-lg font-bold text-ink">אין דמי הגעה נפרדים</h2>
           <p className="mt-2 text-sm text-muted">
             כל הצעה ב-Handy כוללת את הביקור. לא תתבקשו לשלם על אבחון בלבד.
           </p>
         </div>
-        <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+        <div className={`${CARD_CLASS}`}>
           <h2 className="text-lg font-bold text-ink">מה משפיע על המחיר</h2>
           <p className="mt-2 text-sm text-muted">
             שעת הקריאה, מורכבות הגישה, חלקים מקוריים וקומה ללא מעלית.

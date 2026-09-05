@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { ErrorText } from "@/components/ui/primitives";
+import { CARD_CLASS, ErrorText } from "@/components/ui/primitives";
 import { EMPTY_JOB_PROGRESS_STATE } from "@/lib/actions/state";
 import { markJobInProgress } from "@/lib/actions/tracking";
 import {
@@ -43,7 +43,7 @@ export function JobProgressPanel({
   const reached = progressIndex(current);
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+    <section className={`${CARD_CLASS}`}>
       <h2 className="text-lg font-bold text-ink">התקדמות העבודה</h2>
 
       <ol className="mt-4 grid grid-cols-3 gap-3">

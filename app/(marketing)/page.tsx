@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { AppShell } from "@/components/ui/AppShell";
-import { BUTTON_CTA, BUTTON_QUIET } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  BUTTON_QUIET,
+  CARD_BASE,
+} from "@/components/ui/primitives";
 import { categoryIcon } from "@/lib/categories";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
@@ -95,7 +99,7 @@ export default async function LandingPage() {
             <li key={category.id}>
               <Link
                 href="/new-request"
-                className="flex flex-col items-center gap-2 rounded-2xl border border-line bg-surface p-6 text-sm font-bold text-ink transition-colors hover:border-brand hover:text-brand"
+                className={`flex flex-col items-center gap-2 ${CARD_BASE} p-6 text-sm font-bold text-ink transition-colors hover:border-brand hover:text-brand`}
               >
                 <span aria-hidden className="text-3xl">
                   {categoryIcon(category.slug)}

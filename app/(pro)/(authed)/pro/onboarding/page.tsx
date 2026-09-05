@@ -3,8 +3,8 @@ import { OnboardingDocumentsStep } from "@/components/pro/OnboardingDocumentsSte
 import { OnboardingPayoutStep } from "@/components/pro/OnboardingPayoutStep";
 import { OnboardingPracticeStep } from "@/components/pro/OnboardingPracticeStep";
 import { OnboardingProfileStep } from "@/components/pro/OnboardingProfileStep";
-import { BUTTON_PRO, Card } from "@/components/ui/primitives";
-import { startOnboarding } from "@/lib/actions/pros";
+import { BUTTON_PRO, Card, PAGE_TITLE } from "@/components/ui/primitives";
+import { startOnboarding } from "@/lib/actions/proOnboarding";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
@@ -77,9 +77,7 @@ export default async function ProOnboardingPage({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-ink sm:text-4xl">
-            הקמת החשבון שלך ב-Handy
-          </h1>
+          <h1 className={`${PAGE_TITLE}`}>הקמת החשבון שלך ב-Handy</h1>
           <p className="mt-2 text-muted">
             שלב {step} מתוך {STEPS.length} · אפשר לעצור ולהמשיך בכל רגע
           </p>
