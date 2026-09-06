@@ -988,6 +988,19 @@ export type Database = {
           total_price: number
         }[]
       }
+      job_threads: {
+        Args: { p_job_id: string }
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          mine: boolean
+          pro_id: string
+          pro_name: string
+          read_at: string
+          sender_name: string
+        }[]
+      }
       mark_job_in_progress: { Args: { p_job_id: string }; Returns: string }
       my_active_jobs: {
         Args: never

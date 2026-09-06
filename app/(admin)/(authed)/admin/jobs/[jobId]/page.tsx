@@ -10,7 +10,7 @@ import { listJobDisputes } from "@/lib/supabase/disputes";
 import { listBidsForJob } from "@/lib/supabase/bids";
 import { getJobReceipt } from "@/lib/supabase/completion";
 import { getJob, signJobMedia } from "@/lib/supabase/jobs";
-import { listThreadMessages } from "@/lib/supabase/messages";
+import { listJobThreads } from "@/lib/supabase/messages";
 import {
   listPriceUpdates,
   signPriceUpdatePhotos,
@@ -71,24 +71,33 @@ export default async function AdminJobDossierPage({
 
   const selectedBid = bids.find((bid) => bid.status === "selected") ?? null;
 
-  const [media, faultPhotos, threads, assignedPro] = await Promise.all([
+  const [media, faultPhotos, jobThreads, assignedPro] = await Promise.all([
     signJobMedia(
       [job.videoPath, job.voiceNotePath, ...job.photoPaths].filter(
         (path): path is string => Boolean(path),
       ),
     ),
     signPriceUpdatePhotos(priceUpdates.map((update) => update.photoPath)),
-    // One conversation per pro who bid — a thread is (job, pro), never (job),
-    // which is exactly why the dossier has to ask for each of them by name.
-    Promise.all(
-      bids.map(async (bid) => ({
-        proId: bid.proId,
-        proName: bid.proName,
-        messages: await listThreadMessages(jobId, bid.proId),
-      })),
-    ),
+    // A thread is (job, pro), never (job), so this screen wants one
+    // conversation per pro who bid. It used to get them by asking for each by
+    // name — one round trip per offer, a count that grew with the job.
+    // `job_threads()` is that question asked once (TECHNICAL_DEBT #22).
+    listJobThreads(jobId),
     selectedBid ? getProEnforcement(selectedBid.proId) : null,
   ]);
+
+  // One entry per *bid*, not per conversation, so a pro who offered and never
+  // wrote anything still appears — that absence is part of the record a
+  // dispute is judged against, and the function only returns rows that exist.
+  const messagesByPro = new Map(
+    jobThreads.map((thread) => [thread.proId, thread.messages]),
+  );
+
+  const threads = bids.map((bid) => ({
+    proId: bid.proId,
+    proName: bid.proName,
+    messages: messagesByPro.get(bid.proId) ?? [],
+  }));
 
   return (
     <AdminShell current={ADMIN_ROUTES.jobs}>

@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(300);
+select plan(308);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -993,6 +993,84 @@ select is(
   3::bigint,
   'the customer reads every thread on their own job — both pros, kept apart from each other'
 );
+
+-- ---------------------------------------------------------------------------
+-- job_threads() — TECHNICAL_DEBT #22, the dossier's N+1.
+--
+-- It exists to be asked once instead of once per bid, and the whole risk of
+-- collapsing N calls into one is that the one answers too much. So what is
+-- asserted here is not that it is fast: it is that each caller is told exactly
+-- what the two SELECT policies on `messages` would have told them.
+-- ---------------------------------------------------------------------------
+
+select is(
+  (select count(*) from public.job_threads(:job_a)),
+  3::bigint,
+  'job_threads gives the job owner every thread on their job in one call'
+);
+
+select is(
+  (select count(distinct pro_id) from public.job_threads(:job_a)),
+  2::bigint,
+  'across both pros, which is the whole reason the dossier had to ask N times'
+);
+
+select is(
+  (select count(*) from public.job_threads(:job_a) where sender_name is null),
+  0::bigint,
+  'and it resolves every sender''s name, which is why it has to be a definer function'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.job_threads(:job_a)),
+  2::bigint,
+  'a pro who bid is told their own thread and no more, from the same function'
+);
+
+select is(
+  (select count(*) from public.job_threads(:job_a) where pro_id <> :pro_verified),
+  0::bigint,
+  'the rival''s conversation is not in it — a definer function suspends RLS, so this is the copy of the rule that matters'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select * from public.job_threads('d0000000-0000-4000-8000-000000000001') $$,
+  '42501',
+  null,
+  'a customer who does not own the job is refused at the door, not handed an empty set'
+);
+
+reset role;
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.job_threads(:job_a)),
+  3::bigint,
+  'an admin reads the whole dossier, which is what the screen this was built for shows'
+);
+
+reset role;
+set local role anon;
+
+select throws_ok(
+  $$ select * from public.job_threads('d0000000-0000-4000-8000-000000000001') $$,
+  '42501',
+  null,
+  'and anon holds no grant on it at all'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
 
 select throws_ok(
   $$ insert into public.messages (job_id, pro_id, sender_id, body)

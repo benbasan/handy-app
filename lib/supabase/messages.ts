@@ -82,3 +82,56 @@ export async function listThreadMessages(
 export function totalUnread(threads: readonly MessageThread[]): number {
   return threads.reduce((sum, thread) => sum + thread.unreadCount, 0);
 }
+
+/** One pro's side of a job, as the dossier lays it out. */
+export type JobThread = {
+  proId: string;
+  proName: string | null;
+  messages: ThreadMessage[];
+};
+
+/**
+ * Every conversation on one job, in a single round trip.
+ *
+ * `listThreadMessages` above answers "this one conversation" and is what the
+ * two chat screens want. This answers "every conversation on this job", which
+ * is a different question and used to be asked by repeating the first one once
+ * per bid — the dossier's N+1, TECHNICAL_DEBT #22.
+ *
+ * It is not an admin reader. `job_threads()` applies the same rule the SELECT
+ * policies on `messages` do: every thread for the job's owner and for an
+ * admin, their own for a pro who bid. Whoever calls it gets what they are
+ * entitled to and nothing else, which is proved in supabase/tests/rls_test.sql
+ * rather than assumed here.
+ */
+export async function listJobThreads(jobId: string): Promise<JobThread[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase.rpc("job_threads", { p_job_id: jobId });
+
+  // Grouped here rather than in SQL: the caller wants one entry per pro with
+  // the messages inside it, and a flat result set is the shape a `returns
+  // table` can express without an array or a json column.
+  const byPro = new Map<string, JobThread>();
+
+  for (const row of data ?? []) {
+    const thread = byPro.get(row.pro_id) ?? {
+      proId: row.pro_id,
+      proName: row.pro_name,
+      messages: [],
+    };
+
+    thread.messages.push({
+      id: row.id,
+      body: row.body,
+      createdAt: row.created_at,
+      readAt: row.read_at,
+      mine: row.mine,
+      senderName: row.sender_name,
+    });
+
+    byPro.set(row.pro_id, thread);
+  }
+
+  return [...byPro.values()];
+}
