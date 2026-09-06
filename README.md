@@ -59,6 +59,17 @@ on `/requests/<id>/offers` — the compare screen is unreadable with one. Their
 fourth offer, on יוסי כהן's job, is seeded already lapsed, which is what gives
 the "נדחו / פגו" tab on `/pro/offers` something real to show.
 
+### The demo login panel
+
+Setting `NEXT_PUBLIC_DEMO_LOGINS=1` puts a panel on the landing page with four
+buttons that sign straight in as דנה לוי, דוד מזרחי, אבי פרץ and מנהלת Handy —
+the same numbers and the same `123456`, without typing either. It exists to
+demonstrate the product, it is not part of it, and it says so on itself.
+
+Leave the flag unset anywhere a stranger can reach. Without it the seeded
+credentials still work but have to be guessed; with it the home page hands them
+over, including the button that reaches `/admin`. See CLAUDE.md section 9.
+
 Any other number can sign up for real, but will not receive a code until Twilio
 is configured. New sign-ups become `customer` or `pro` depending on which login
 screen they used — `/login` or `/pro/login`.
@@ -193,15 +204,16 @@ round trip on every query, and the screens here run four to nine of them.
 
 Environment variables that must be set on the Vercel project:
 
-| Variable                          | Why it matters in production                                                                                                                                                                                                                                           |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`        | The cloud project, not the local stack                                                                                                                                                                                                                                 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`   | Same                                                                                                                                                                                                                                                                   |
-| `SUPABASE_SERVICE_ROLE_KEY`       | Server only. Never prefix with `NEXT_PUBLIC_`                                                                                                                                                                                                                          |
-| `NEXT_PUBLIC_SITE_URL`            | **Inlined at build time.** Every canonical URL, Open Graph tag and `sitemap.xml` entry is built from it — unset, they all point at `localhost:3000` and search engines index that                                                                                      |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional. Without it the address field is a plain text input                                                                                                                                                                                                           |
-| `GOOGLE_MAPS_SERVER_API_KEY`      | Optional. Falls back to the browser key                                                                                                                                                                                                                                |
-| `ALLOW_NO_MAPS_KEY`               | Set to `1` **only** if you accept the built-in gazetteer in production. Without a Maps key and without this flag, a production build fails on purpose — so a deploy that merely forgot the key is loud rather than silently filing every job in the middle of Tel Aviv |
+| Variable                          | Why it matters in production                                                                                                                                                                                                                                                                                                         |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`        | The cloud project, not the local stack                                                                                                                                                                                                                                                                                               |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`   | Same                                                                                                                                                                                                                                                                                                                                 |
+| `SUPABASE_SERVICE_ROLE_KEY`       | Server only. Never prefix with `NEXT_PUBLIC_`                                                                                                                                                                                                                                                                                        |
+| `NEXT_PUBLIC_SITE_URL`            | **Inlined at build time.** Every canonical URL, Open Graph tag and `sitemap.xml` entry is built from it — unset, they all point at `localhost:3000` and search engines index that                                                                                                                                                    |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional. Without it the address field is a plain text input                                                                                                                                                                                                                                                                         |
+| `GOOGLE_MAPS_SERVER_API_KEY`      | Optional. Falls back to the browser key                                                                                                                                                                                                                                                                                              |
+| `ALLOW_NO_MAPS_KEY`               | Set to `1` **only** if you accept the built-in gazetteer in production. Without a Maps key and without this flag, a production build fails on purpose — so a deploy that merely forgot the key is loud rather than silently filing every job in the middle of Tel Aviv                                                               |
+| `NEXT_PUBLIC_DEMO_LOGINS`         | Leave **unset** on anything public. Set to `1` only on a deployment nobody but you can reach — a Vercel Preview is the right home for it. It puts a one-click sign-in panel for the seeded demo users, **including the admin**, on the landing page. Inlined at build time, so unsetting it needs a redeploy, not a dashboard change |
 
 `NEXT_PUBLIC_*` values are baked into the bundle at build time, so changing one
 needs a redeploy, not a restart.

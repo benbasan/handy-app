@@ -55,6 +55,21 @@ export function describeSendError(
 
   // Older stacks, and anything that arrives without a code.
   const normalized = error.message.toLowerCase();
+
+  // `[auth.sms] max_frequency` in supabase/config.toml — one code per number
+  // per minute. GoTrue answers it with "you can only request this after 41
+  // seconds" and no error code at all, so before this branch existed the
+  // sentence fell through to `error.message` and a Hebrew screen showed raw
+  // English. e2e/helpers.ts is where that string was first seen, and it still
+  // parses the same number to wait it out.
+  //
+  // Before the generic rate check below, which would otherwise swallow it and
+  // drop the one useful fact: how long.
+  const seconds = /after (\d+) seconds?/i.exec(normalized)?.[1];
+  if (seconds) {
+    return `אפשר לבקש קוד חדש לאותו מספר פעם בדקה. נסו שוב בעוד ${seconds} שניות.`;
+  }
+
   if (normalized.includes("rate") || normalized.includes("too many")) {
     return TOO_MANY_REQUESTS;
   }

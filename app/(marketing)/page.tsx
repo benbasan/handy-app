@@ -5,7 +5,9 @@ import {
   BUTTON_QUIET,
   CARD_BASE,
 } from "@/components/ui/primitives";
+import { DemoLoginPanel } from "@/components/marketing/DemoLoginPanel";
 import { categoryIcon } from "@/lib/categories";
+import { demoKeyForPhone, demoLoginsEnabled } from "@/lib/demo";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
 import { getCurrentUser } from "@/lib/supabase/session";
@@ -42,6 +44,18 @@ export default async function LandingPage() {
 
   return (
     <AppShell user={user}>
+      {/* Above the hero, not below it. Below, a developer tool sits inside the
+          marketing narrative and reads as a product section; above, it reads as
+          environment chrome — and it is reachable without scrolling, which is
+          the point when identities are being switched live. Absent entirely
+          unless the flag is set; see lib/demo.ts. */}
+      {demoLoginsEnabled() && (
+        <DemoLoginPanel
+          currentKey={demoKeyForPhone(user?.phone)}
+          currentName={user?.fullName ?? null}
+        />
+      )}
+
       <section className="grid items-center gap-10 lg:grid-cols-2">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full bg-cta/15 px-4 py-2 text-sm font-semibold text-cta-strong">
