@@ -121,10 +121,11 @@ export default async function HowItWorksPage() {
         </Card>
         <Card>
           <h3 className="text-lg font-bold text-ink">
-            עמלה רק על עבודה שנסגרה
+            תשלום רק על עבודה שנלקחה
           </h3>
           <p className="mt-2 text-sm text-muted">
-            12% מבעל המקצוע. הלקוח לא משלם ל-Handy כלום, ואין דמי הרשמה.
+            35 ₪ מבעל המקצוע, כשהוא מאשר שהוא לוקח את הקריאה. הלקוח לא משלם
+            ל-Handy כלום, ואין דמי הרשמה.
           </p>
         </Card>
         <div className="rounded-2xl bg-ink p-5 text-white sm:p-6">

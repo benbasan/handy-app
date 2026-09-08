@@ -31,6 +31,7 @@ function bid(
     note: null,
     status,
     expiresAt: "2099-01-01T00:00:00Z",
+    acceptDeadline: status === "selected" ? "2099-01-01T02:00:00Z" : null,
     createdAt: "2026-09-04T09:00:00Z",
     unreadCount: 0,
   };

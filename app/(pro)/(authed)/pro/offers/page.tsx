@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { MyBidRow } from "@/components/pro/MyBidRow";
+import { OfferAnswerCard } from "@/components/pro/OfferAnswerCard";
 import { BUTTON_PRO, Card, PAGE_TITLE } from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { PRO_ROUTES } from "@/lib/routes";
 import {
   getMyBidStats,
   listMyBids,
+  listMyPendingAcceptances,
   sweepExpiredBids,
 } from "@/lib/supabase/bids";
 import { signJobMedia } from "@/lib/supabase/jobs";
@@ -18,7 +20,7 @@ export const dynamic = "force-dynamic";
 /** The two tabs above the list, exactly as the design splits them. */
 const TABS = {
   pending: "ממתינות",
-  settled: "נדחו / פגו",
+  settled: "נדחו / פגו / ויתרתי",
 } as const;
 
 type Tab = keyof typeof TABS;
@@ -34,7 +36,11 @@ type Tab = keyof typeof TABS;
  *
  * Realtime on `bids` because the pro is not the only one who changes these
  * rows: the moment a customer picks somebody, every rival offer on that job
- * flips to rejected, and this list has to say so without a reload.
+ * flips to rejected, and this list has to say so without a reload. Since
+ * Phase 10 it also carries the other direction — a customer choosing *this*
+ * pro puts a card at the top of this screen that they have two hours to
+ * answer, and the socket is the only thing that will tell them so while the
+ * tab is open.
  */
 export default async function ProOffersPage({
   searchParams,
@@ -45,9 +51,10 @@ export default async function ProOffersPage({
   // a stack with no scheduler. The read reports it as expired regardless.
   await sweepExpiredBids();
 
-  const [bids, stats, params] = await Promise.all([
+  const [bids, stats, offers, params] = await Promise.all([
     listMyBids(),
     getMyBidStats(),
+    listMyPendingAcceptances(),
     searchParams,
   ]);
 
@@ -59,8 +66,12 @@ export default async function ProOffersPage({
 
   const shown = bids.filter((bid) =>
     tab === "pending"
-      ? bid.status === "pending" || bid.status === "selected"
-      : bid.status === "rejected" || bid.status === "expired",
+      ? bid.status === "pending" ||
+        bid.status === "selected" ||
+        bid.status === "accepted"
+      : bid.status === "rejected" ||
+        bid.status === "expired" ||
+        bid.status === "declined",
   );
 
   const firstPhotos = shown
@@ -115,6 +126,14 @@ export default async function ProOffersPage({
           ))}
         </nav>
       </header>
+
+      {offers.length > 0 && (
+        <div className="space-y-4">
+          {offers.map((offer) => (
+            <OfferAnswerCard key={offer.bidId} offer={offer} />
+          ))}
+        </div>
+      )}
 
       {justSent && (
         <p

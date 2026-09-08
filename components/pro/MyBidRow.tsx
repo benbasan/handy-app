@@ -40,9 +40,9 @@ export function MyBidRow({
   const left = live ? minutesLeft(bid.expiresAt) : 0;
 
   const tone =
-    bid.status === "selected"
+    bid.status === "accepted"
       ? "done"
-      : bid.status === "pending"
+      : bid.status === "pending" || bid.status === "selected"
         ? "waiting"
         : "neutral";
 
@@ -110,7 +110,7 @@ export function MyBidRow({
             >
               {editing ? "סגירה" : "עדכן הצעה"}
             </button>
-          ) : bid.status === "selected" ? (
+          ) : bid.status === "accepted" ? (
             /* The offer that won leads to the job itself — the route, the
                progress bar and the price-update card (Phase 5). */
             <Link
@@ -118,6 +118,16 @@ export function MyBidRow({
               className={`${BUTTON_QUIET} border-pro/30 px-4 py-2 text-sm text-pro`}
             >
               ניהול העבודה
+            </Link>
+          ) : bid.status === "selected" ? (
+            /* Chosen and unanswered. The answer itself is not taken from this
+               row — accepting charges money, and that decision belongs on the
+               card at the top of the screen with the fee printed on it. */
+            <Link
+              href={PRO_ROUTES.offers}
+              className={`${BUTTON_QUIET} border-pro/30 px-4 py-2 text-sm text-pro`}
+            >
+              לאישור העבודה
             </Link>
           ) : (
             <span className="px-4 py-2 text-sm text-muted">

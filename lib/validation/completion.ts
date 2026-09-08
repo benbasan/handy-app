@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  COMMISSION_RATE,
+  ACCEPTANCE_FEE,
   PAYMENT_METHODS,
   type PaymentMethod,
 } from "@/lib/validation/pros";
@@ -15,9 +15,10 @@ import {
  *    approved update — read inside `complete_job()`. A pro who could state it
  *    could bill for a price the customer never approved, which is the one rule
  *    the whole product exists to enforce.
- *  * The **commission**. 12% of that total, computed in the same statement.
- *    `commissionOf()` below exists so a screen can *show* the number before it
- *    is charged; it is never sent anywhere.
+ *  * The **fee**. Since Phase 10 it is not computed here at all: it was
+ *    charged when this pro accepted the job, by `accept_job()`, and closing
+ *    only records what the work finally cost. `netOf()` below subtracts it for
+ *    display; it is never sent anywhere.
  *  * The job's **status**. `assigned`/`in_progress` → `completed` is
  *    `complete_job()`, and `jobs.status` has had no column grant since Phase 4.
  *
@@ -25,7 +26,7 @@ import {
  * process the money (business rule 4) — it records the collection.
  */
 
-export { COMMISSION_RATE, PAYMENT_METHODS };
+export { ACCEPTANCE_FEE, PAYMENT_METHODS };
 export type { PaymentMethod } from "@/lib/validation/pros";
 
 /** Narrows the free `text[]` a pro ticked in onboarding to the four we know. */
@@ -68,21 +69,15 @@ export const saveProSchema = z.object({
 });
 
 /**
- * What Handy takes, for display only.
+ * What the pro keeps out of what they collected.
  *
- * The charged number is `round(total * commission_rate(), 2)` inside
- * `complete_job()`. This is the same arithmetic so a pro can see the figure
- * before they press the button — it is never sent to the server, and a screen
- * that shows a different number from the receipt would be a bug in this
- * function, not in the charge.
+ * The fee is not taken from this money and never was — Handy is not a party to
+ * the payment (business rule 4). It was charged to the pro when they took the
+ * job, and this is the subtraction that tells them what the job was worth once
+ * that is counted.
  */
-export function commissionOf(total: number): number {
-  return Math.round(total * COMMISSION_RATE * 100) / 100;
-}
-
-/** What the pro actually keeps. */
 export function netOf(total: number): number {
-  return Math.round((total - commissionOf(total)) * 100) / 100;
+  return Math.round((total - ACCEPTANCE_FEE) * 100) / 100;
 }
 
 /**
@@ -134,7 +129,9 @@ export function rangeStart(range: EarningsRange, now: Date = new Date()): Date {
  * first-class citizen being whatever the pro actually earned.
  *
  * Derived from the same rows the table below it renders, so a bar and a line
- * can never disagree — there is no second query behind the picture.
+ * can never disagree — there is no second query behind the picture. Keyed on
+ * `completedAt` rather than `chargedAt`: since Phase 10 those are different
+ * days, and this chart is about earnings, which land when the work ends.
  */
 export type EarningsBar = {
   /** Local ISO date, `YYYY-MM-DD` — the key, not something rendered. */
@@ -144,7 +141,7 @@ export type EarningsBar = {
 };
 
 export function earningsByDay(
-  charges: ReadonlyArray<{ chargedAt: string; totalPrice: number }>,
+  charges: ReadonlyArray<{ completedAt: string; totalPrice: number }>,
   range: EarningsRange,
   now: Date = new Date(),
 ): EarningsBar[] {
@@ -162,7 +159,7 @@ export function earningsByDay(
 
   const index = new Map(bars.map((bar) => [bar.day, bar]));
   for (const charge of charges) {
-    const bar = index.get(localDay(new Date(charge.chargedAt)));
+    const bar = index.get(localDay(new Date(charge.completedAt)));
     if (bar) bar.total += charge.totalPrice;
   }
 

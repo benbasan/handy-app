@@ -143,6 +143,7 @@ const STATUS_LABEL: Record<
   draft: { text: "טיוטה", tone: "neutral" },
   open: { text: "ממתין להצעות", tone: "waiting" },
   bidding: { text: "מתקבלות הצעות", tone: "waiting" },
+  awaiting_pro: { text: "ממתין לאישור בעל המקצוע", tone: "waiting" },
   assigned: { text: "נבחר בעל מקצוע", tone: "open" },
   in_progress: { text: "בעבודה", tone: "open" },
   completed: { text: "הושלם", tone: "done" },

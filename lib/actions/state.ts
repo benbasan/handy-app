@@ -55,6 +55,29 @@ export type SelectBidState = {
 
 export const EMPTY_SELECT_BID_STATE: SelectBidState = {};
 
+/**
+ * The pro's answer to an offer — "אשר וקח את העבודה" or "ויתור".
+ *
+ * `accepted` rather than a redirect state, because taking a job is the one
+ * moment in the product where money is charged: the screen says so before it
+ * navigates anywhere.
+ */
+export type AnswerOfferState = {
+  error?: string;
+  accepted?: boolean;
+  declined?: boolean;
+};
+
+export const EMPTY_ANSWER_OFFER_STATE: AnswerOfferState = {};
+
+/** "בטל בחירה" — the customer takes an unanswered offer back. */
+export type WithdrawSelectionState = {
+  error?: string;
+  withdrawn?: boolean;
+};
+
+export const EMPTY_WITHDRAW_SELECTION_STATE: WithdrawSelectionState = {};
+
 export type SendMessageState = {
   error?: string;
   sent?: boolean;

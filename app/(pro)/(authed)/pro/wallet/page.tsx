@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 /**
  * design/screens/pro-4.1-earnings-wallet.png — הכנסות והיסטוריה, at /pro/wallet.
  *
- * Every number here comes out of `commission_charges` and `reviews`, which is
+ * Every number here comes out of `job_fees` and `reviews`, which is
  * the roadmap's third definition-of-done line for this phase: the screen shows
  * what the database holds, not a shape filled with plausible figures. Where
  * there is nothing to show it says so rather than drawing an empty chart —
@@ -71,7 +71,7 @@ export default async function ProWalletPage({
             {profile?.verificationStatus === "verified"
               ? "פעיל ומאומת ב-Handy"
               : "הפרופיל עדיין לא אומת"}{" "}
-            · עמלה של 12% נגבית רק על עבודה שנסגרה.
+            · דמי קבלת עבודה: 35 ₪, רק על עבודה שאישרת.
           </p>
         </header>
 
@@ -103,11 +103,24 @@ export default async function ProWalletPage({
             <span className="ltr-nums">{formatIls(stats.net)}</span> ₪
           </p>
           <p className="mt-1 text-sm text-white/70">
-            נטו, אחרי עמלה של{" "}
-            <span className="ltr-nums">{formatIls(stats.commission)}</span> ₪ על{" "}
+            נטו, אחרי דמי קבלת עבודה של{" "}
+            <span className="ltr-nums">{formatIls(stats.fees)}</span> ₪ על{" "}
             <span className="ltr-nums">{stats.jobsCount}</span>{" "}
             {stats.jobsCount === 1 ? "עבודה" : "עבודות"}
           </p>
+          {/* Money already charged for work not yet finished. Under the 12%
+              these were the same event; they are days apart now, and folding
+              them into the range above would report a cost as an earning. */}
+          {stats.openJobsCount > 0 && (
+            <p className="mt-1 text-sm text-white/70">
+              בנוסף שילמת{" "}
+              <span className="ltr-nums">{formatIls(stats.openFees)}</span> ₪ על{" "}
+              <span className="ltr-nums">{stats.openJobsCount}</span>{" "}
+              {stats.openJobsCount === 1
+                ? "עבודה שעדיין לא נסגרה"
+                : "עבודות שעדיין לא נסגרו"}
+            </p>
+          )}
 
           <div
             className="mt-5 flex h-24 items-end gap-2"
@@ -215,7 +228,7 @@ export default async function ProWalletPage({
                   <Th>תחום</Th>
                   <Th>דירוג</Th>
                   <Th>סכום</Th>
-                  <Th>עמלה</Th>
+                  <Th>דמי קבלה</Th>
                   <Th>נטו</Th>
                   <Th>קבלה</Th>
                 </tr>
@@ -233,7 +246,7 @@ export default async function ProWalletPage({
                     </Td>
                     <Td>
                       <span className="ltr-nums">
-                        {shortDate(job.chargedAt)}
+                        {shortDate(job.completedAt)}
                       </span>
                     </Td>
                     <Td>{job.addressText}</Td>
@@ -258,7 +271,7 @@ export default async function ProWalletPage({
                     </Td>
                     <Td>
                       <span className="ltr-nums text-muted">
-                        {formatIls(job.commissionAmount)} ₪
+                        {formatIls(job.feeAmount)} ₪
                       </span>
                     </Td>
                     <Td>
@@ -283,11 +296,11 @@ export default async function ProWalletPage({
       </Card>
 
       <Card>
-        <h2 className="font-bold text-ink">איך נגבית העמלה</h2>
+        <h2 className="font-bold text-ink">איך נגבים דמי קבלת העבודה</h2>
         <p className="mt-2 text-sm text-muted">
-          12% מכל עבודה שנסגרה, מחושבים על המחיר הסופי שסוכם — כולל עדכוני מחיר
-          שהלקוח אישר, ולא כולל בקשות שלא אושרו. אין דמי הרשמה ואין תשלום על
-          הצעות שלא נבחרו.
+          35 ₪ קבועים על כל עבודה שאישרת, ללא תלות בגובה העבודה. הם נגבים ברגע
+          שאתה מאשר שאתה לוקח את הקריאה, לא בסיומה, ואינם מוחזרים. אין דמי
+          הרשמה, אין תשלום על הצעה שלא נבחרה, ואין תשלום על קריאה שוויתרת עליה.
           {profile?.payoutAccountLast4 ? (
             <>
               {" "}
@@ -298,7 +311,7 @@ export default async function ProWalletPage({
           ) : (
             <>
               {" "}
-              עוד לא הוגדר חשבון לגביית העמלה —{" "}
+              עוד לא הוגדר חשבון לגבייה —{" "}
               <Link href={PRO_ROUTES.settings} className="underline">
                 אפשר להשלים אותו בהגדרות
               </Link>

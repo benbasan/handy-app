@@ -49,11 +49,11 @@ export default async function ProSettingsPage() {
                 <span dir="ltr" className="ltr-nums">
                   {profile.payoutAccountLast4}
                 </span>
-                . העמלה נגבית כל שני וחמישי.
+                . הגבייה מתבצעת כל שני וחמישי.
               </p>
             ) : (
               <p className="mt-2">
-                עוד לא הוגדר חשבון לחיוב העמלה. הוא נקבע בשלב 5 של ההרשמה.
+                עוד לא הוגדר חשבון לגבייה. הוא נקבע בשלב 5 של ההרשמה.
               </p>
             )}
             <Link

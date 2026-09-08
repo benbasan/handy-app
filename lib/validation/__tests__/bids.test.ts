@@ -10,7 +10,7 @@ import {
   submitBidSchema,
   updateBidSchema,
 } from "@/lib/validation/bids";
-import { commissionBreakdown } from "@/lib/validation/pros";
+import { feeBreakdown } from "@/lib/validation/pros";
 
 /**
  * The bid schemas and the small pure helpers around them.
@@ -90,17 +90,17 @@ describe("submitBidSchema", () => {
     expect(BID_VALIDITY_MINUTES).toBe(45);
   });
 
-  it("has no field for the status, and none for the commission", () => {
+  it("has no field for the status, and none for the fee", () => {
     const parsed = submitBidSchema.parse({
       jobId: JOB,
       price: "320",
       etaMinutes: "30",
       status: "selected",
-      commission: 0,
+      fee: 0,
     });
 
     expect(parsed).not.toHaveProperty("status");
-    expect(parsed).not.toHaveProperty("commission");
+    expect(parsed).not.toHaveProperty("fee");
   });
 });
 
@@ -139,19 +139,19 @@ describe("selectBidSchema", () => {
   });
 });
 
-describe("commissionBreakdown", () => {
-  it("takes 12% from the pro and leaves the rest, adding back to the price", () => {
-    const { commission, net } = commissionBreakdown(320);
+describe("feeBreakdown", () => {
+  it("takes the flat fee from the pro and leaves the rest", () => {
+    const { fee, net } = feeBreakdown(320);
 
-    expect(commission).toBe(38.4);
-    expect(net).toBe(281.6);
-    expect(commission + net).toBe(320);
+    expect(fee).toBe(35);
+    expect(net).toBe(285);
+    expect(fee + net).toBe(320);
   });
 
   it("still adds back up on a price that does not divide cleanly", () => {
-    for (const price of [333, 1, 99999, 4567]) {
-      const { commission, net } = commissionBreakdown(price);
-      expect(Number((commission + net).toFixed(2))).toBe(price);
+    for (const price of [333, 99999, 4567.55]) {
+      const { fee, net } = feeBreakdown(price);
+      expect(Number((fee + net).toFixed(2))).toBe(price);
     }
   });
 });
@@ -196,8 +196,15 @@ describe("initials", () => {
 });
 
 describe("status and sort guards", () => {
-  it("recognises exactly the four statuses the database can report", () => {
-    for (const status of ["pending", "selected", "rejected", "expired"]) {
+  it("recognises exactly the six statuses the database can report", () => {
+    for (const status of [
+      "pending",
+      "selected",
+      "accepted",
+      "declined",
+      "rejected",
+      "expired",
+    ]) {
       expect(isBidStatus(status)).toBe(true);
     }
     expect(isBidStatus("draft")).toBe(false);

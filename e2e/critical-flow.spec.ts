@@ -26,15 +26,15 @@ const ADDRESS = "רחוב דיזנגוף 100, תל אביב";
 const BID_PRICE = 380;
 const UPDATED_PRICE = 520;
 /**
- * Business rule 3, on the total: 12% of 520. Written out rather than computed,
- * so a bug in `commissionOf()` cannot agree with itself.
+ * Business rule 3 as Phase 10 rewrote it: a flat fee, charged when the pro
+ * takes the job rather than a percentage of what it ends up being worth.
+ * Written out rather than imported, so a bug in ACCEPTANCE_FEE cannot agree
+ * with itself.
  *
- * A regex because the two places it appears disagree about the trailing zero —
- * the screen formats it for a person (62.4 ₪) and `commission_charges` stores
- * the agora (62.40). Both are the same number, and asserting a shape that
- * accepts either is the honest way to say so.
+ * A regex because the two places it appears disagree about the decimals — the
+ * screen formats it for a person (35 ₪) and `job_fees` stores agorot (35.00).
  */
-const COMMISSION = /62\.40?/;
+const FEE = /35(\.00?)?/;
 
 test.describe("a call from posting to receipt", () => {
   // Serial, and deliberately one test rather than six: the steps are a single
@@ -106,9 +106,13 @@ test.describe("a call from posting to receipt", () => {
       .getByLabel("הערה ללקוח")
       .fill("כולל ביקור, חלקים ואחריות שנה על העבודה.");
 
-    // The 12% is shown to the pro before they commit to the price — the whole
-    // reason that card is on this screen.
-    await expect(pro.getByText("עמלת Handy (12%)")).toBeVisible();
+    // The fee is shown to the pro before they commit to the price — the whole
+    // reason that card is on this screen — together with the thing that
+    // matters more than its size: it is only charged if they take the job.
+    await expect(pro.getByText("דמי קבלת עבודה")).toBeVisible();
+    await expect(
+      pro.getByText(/דמי קבלת העבודה נגבים רק אם הלקוח יבחר בך/),
+    ).toBeVisible();
 
     await pro.getByRole("button", { name: "שלח הצעה ללקוח" }).click();
     await pro.waitForURL(/\/pro\/offers/);
@@ -127,6 +131,30 @@ test.describe("a call from posting to receipt", () => {
 
     await offer.getByRole("button", { name: "בחר הצעה" }).click();
 
+    // ---------------------------------------------------------------------
+    // 4b. The pro answers — Phase 10, and the moment Handy charges
+    //
+    // Choosing no longer assigns anything. The customer waits, the job is not
+    // theirs to track yet, and the offer is still one the customer could take
+    // back and hand to somebody else.
+    // ---------------------------------------------------------------------
+
+    await expect(
+      customer.getByRole("heading", { name: "ממתינים לאישור בעל המקצוע" }),
+    ).toBeVisible();
+    await expect(
+      customer.getByRole("button", { name: "בטלו את הבחירה" }),
+    ).toBeVisible();
+
+    await pro.goto("/pro/offers");
+    // Scoped to this run's own job: the seed leaves one offer waiting, and
+    // every other test in this file leaves another behind it.
+    const answerCard = pro.locator("section").filter({ hasText: marker });
+    await expect(answerCard).toContainText(FEE);
+
+    await answerCard.getByRole("button", { name: /אשר וקח את העבודה/ }).click();
+
+    await customer.reload();
     await expect(
       customer.getByRole("heading", { name: "בחרתם בעל מקצוע — הקריאה שובצה" }),
     ).toBeVisible();
@@ -233,7 +261,7 @@ test.describe("a call from posting to receipt", () => {
       closing,
       "the closing card bills the approved total, not the original bid",
     ).toContainText(String(UPDATED_PRICE));
-    await expect(closing).toContainText(COMMISSION);
+    await expect(closing).toContainText(FEE);
 
     const close = closing.getByRole("button", { name: "סיימתי — עדכן גבייה" });
     await expect(
@@ -271,11 +299,11 @@ test.describe("a call from posting to receipt", () => {
       "the collection the pro declared is the one shown to the customer",
     ).toContainText("✓");
 
-    // The 12% is between Handy and the pro. A customer's copy of anything must
+    // The fee is between Handy and the pro. A customer's copy of anything must
     // not carry it.
     await expect(
-      customer.getByText("עמלת Handy"),
-      "the commission is not the customer's business",
+      customer.getByText("דמי קבלת עבודה"),
+      "what Handy charges the pro is not the customer's business",
     ).toHaveCount(0);
 
     // The receipt PDF, fetched through the customer's own session.
@@ -307,7 +335,7 @@ test.describe("a call from posting to receipt", () => {
     await expect(
       pro.locator("body"),
       "the commission the database computed reaches the wallet",
-    ).toContainText(COMMISSION);
+    ).toContainText(FEE);
 
     await customer.close();
     await pro.close();
@@ -378,7 +406,11 @@ function jobIdFrom(url: string): string {
   return id;
 }
 
-/** Post a call, bid on it, choose the bid, and arrive. Returns the job id. */
+/**
+ * Post a call, bid on it, choose the bid, take it, and arrive. Returns the job
+ * id. Since Phase 10 "choose" and "take" are two different people's decisions,
+ * and this helper has to make both of them.
+ */
 async function postAndAssign(
   customer: Page,
   pro: Page,
@@ -408,8 +440,14 @@ async function postAndAssign(
     .getByRole("button", { name: "בחר הצעה" })
     .click();
   await expect(
-    customer.getByRole("heading", { name: "בחרתם בעל מקצוע — הקריאה שובצה" }),
+    customer.getByRole("heading", { name: "ממתינים לאישור בעל המקצוע" }),
   ).toBeVisible();
+
+  // Phase 10: the pro's answer is what assigns the job, and what charges them.
+  await pro.goto("/pro/offers");
+  const answerCard = pro.locator("section").filter({ hasText: marker });
+  await answerCard.getByRole("button", { name: /אשר וקח את העבודה/ }).click();
+  await expect(answerCard).toHaveCount(0);
 
   await pro.goto(`/pro/jobs/${jobId}`);
   await pro.getByRole("button", { name: "לחץ: הגעתי ללקוח" }).click();

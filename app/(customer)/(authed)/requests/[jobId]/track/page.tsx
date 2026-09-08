@@ -63,7 +63,7 @@ export default async function JobTrackingPage({
   if (!job) notFound();
 
   const bids = await listBidsForJob(jobId);
-  const chosen = bids.find((bid) => bid.status === "selected") ?? null;
+  const chosen = bids.find((bid) => bid.status === "accepted") ?? null;
 
   // Nothing to track until somebody has been chosen; the offers screen is
   // where that happens.

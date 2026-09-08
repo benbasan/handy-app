@@ -100,7 +100,7 @@ export function ProShell({
 
       <footer className="border-t border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm text-muted sm:px-6">
-          <p>Handy Pro · עמלה של 12% — רק על עבודה שנסגרה.</p>
+          <p>Handy Pro · 35 ₪ לעבודה — רק על עבודה שאישרתם.</p>
           <p>עדכון מחיר בשטח מחייב תמונה ואישור של הלקוח.</p>
         </div>
       </footer>

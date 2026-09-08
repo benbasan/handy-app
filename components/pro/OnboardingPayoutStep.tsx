@@ -25,7 +25,7 @@ import {
  *
  *  * How the pro collects from the customer. Handy never touches it (business
  *    rule 4); this is what the customer is told to expect.
- *  * Where the 12% commission is charged from. Bank, branch and the last four
+ *  * Where the acceptance fee is charged from. Bank, branch and the last four
  *    digits only — the rest of the account number is not collected here,
  *    because how it would be stored is a payments-phase decision to take with
  *    the user (CLAUDE.md section 8).
@@ -96,7 +96,7 @@ export function OnboardingPayoutStep({
         </div>
         <p className="mt-2 text-xs text-muted">
           התשלום עובר ישירות ממנו אליך — Handy לא מעבדת אותו, רק רושמת מה נגבה
-          לצורך העמלה והקבלה.
+          לצורך הגבייה והקבלה.
         </p>
         {fieldErrors.paymentMethods && (
           <p className="mt-2">
@@ -107,10 +107,10 @@ export function OnboardingPayoutStep({
 
       <div>
         <h3 className="mb-2 text-sm font-medium text-ink">
-          חשבון בנק לחיוב העמלה
+          חשבון בנק לגביית דמי קבלת עבודה
         </h3>
         <p className="mb-3 text-xs text-muted">
-          העמלה נגבית כל שני וחמישי על עבודות שנסגרו. נשמרות רק 4 הספרות
+          הגבייה מתבצעת כל שני וחמישי על עבודות שאישרת. נשמרות רק 4 הספרות
           האחרונות של החשבון — מספיק כדי שתזהו אותו, ולא יותר מזה.
         </p>
 

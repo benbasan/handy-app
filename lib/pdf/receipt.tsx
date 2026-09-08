@@ -13,7 +13,7 @@ import {
 } from "@react-pdf/renderer";
 import type { JobReceipt } from "@/lib/supabase/completion";
 import {
-  COMMISSION_RATE,
+  ACCEPTANCE_FEE,
   formatReceiptDate,
   type ReceiptLine,
 } from "@/lib/validation/completion";
@@ -153,10 +153,10 @@ function Money({
 }
 
 /**
- * The receipt itself. `audience` decides one thing only: whether the commission
- * block appears. The customer's copy has no 12% on it, because the 12% is
- * between Handy and the pro — the same split `job_receipt()` makes in the
- * database, restated here rather than assumed from a NULL.
+ * The receipt itself. `audience` decides one thing only: whether the fee block
+ * appears. The customer's copy carries no fee, because what Handy charges the
+ * pro is between Handy and the pro — the same split `job_receipt()` makes in
+ * the database, restated here rather than assumed from a NULL.
  */
 export function ReceiptDocument({
   receipt,
@@ -168,8 +168,7 @@ export function ReceiptDocument({
   audience: "customer" | "pro";
 }) {
   const reference = jobReference(receipt.jobId);
-  const showsCommission =
-    audience === "pro" && receipt.commissionAmount !== null;
+  const showsFee = audience === "pro" && receipt.feeAmount !== null;
 
   return (
     <Document title={`קבלה ${reference} — Handy`} author="Handy" language="he">
@@ -208,7 +207,7 @@ export function ReceiptDocument({
           </View>
           <View style={[styles.row, styles.line]}>
             <Text style={{ color: MUTED }}>נסגר בתאריך</Text>
-            <Text>{formatReceiptDate(receipt.chargedAt)}</Text>
+            <Text>{formatReceiptDate(receipt.completedAt)}</Text>
           </View>
           <View style={[styles.row, styles.line]}>
             <Text style={{ color: MUTED }}>אמצעי תשלום</Text>
@@ -248,23 +247,34 @@ export function ReceiptDocument({
           )}
         </View>
 
-        {showsCommission && (
+        {showsFee && (
           <View style={styles.section}>
-            <Text style={styles.heading}>עמלת Handy</Text>
+            <Text style={styles.heading}>דמי קבלת עבודה</Text>
 
             <View style={styles.row}>
               <Text style={{ color: MUTED }}>
-                {`עמלה (${Math.round(COMMISSION_RATE * 100)}% מהעבודה שנסגרה)`}
+                {`דמי קבלת עבודה (${ACCEPTANCE_FEE} ₪, נגבו בקבלת העבודה)`}
               </Text>
-              <Money amount={receipt.commissionAmount ?? 0} />
+              <Money amount={receipt.feeAmount ?? 0} />
             </View>
+
+            {/* Its own line, all digits, for the reason the detail rows above
+                give: a date inside a sentence is a third bidi run. It sits
+                with the fee and not with the net, because it is the fee's
+                date — the day the job was taken, not the day it ended. */}
+            <View style={styles.row}>
+              <Text style={{ color: MUTED }}>נגבו בתאריך</Text>
+              <Text>{formatReceiptDate(receipt.chargedAt)}</Text>
+            </View>
+
             <View style={[styles.row, styles.line]}>
               <Text style={{ fontWeight: 700 }}>נטו לבעל המקצוע</Text>
               <Money amount={receipt.netAmount ?? 0} bold tone={CTA} />
             </View>
 
             <Text style={styles.note}>
-              העמלה נגבית מבעל המקצוע בלבד, ואינה חלק מהסכום שהלקוח שילם.
+              הסכום נגבה מבעל המקצוע בלבד, ביום שבו אישר את העבודה, ואינו חלק
+              מהסכום שהלקוח שילם.
             </Text>
           </View>
         )}
@@ -278,7 +288,7 @@ export function ReceiptDocument({
           </Text>
           <Text style={styles.note}>
             Handy אינה מעבדת את התשלום ואינה צד לו — היא מתעדת אותו לצורך הקבלה
-            והעמלה.
+            והגבייה.
           </Text>
         </View>
       </Page>

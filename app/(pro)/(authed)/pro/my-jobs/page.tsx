@@ -40,7 +40,7 @@ export const dynamic = "force-dynamic";
  * product can cancel an assigned job yet, so the count would be a permanent
  * zero dressed as a metric — the same reason Phase 2 and 3 dropped the
  * prototype's invented figures. What replaces it is the one number a pro
- * actually wants beside their earnings: what Handy took.
+ * actually wants beside their earnings: what Handy took to hand them the work.
  */
 export default async function ProMyJobsPage({
   searchParams,
@@ -92,7 +92,7 @@ export default async function ProMyJobsPage({
         <h1 className={`${PAGE_TITLE}`}>העבודות שלי</h1>
         <p className="mt-2 text-muted">
           {showingHistory
-            ? "עבודות שהושלמו, עם הקבלה והעמלה של כל אחת."
+            ? "עבודות שהושלמו, עם הקבלה ודמי הקבלה של כל אחת."
             : "העבודות שנבחרת אליהן ועדיין לא הסתיימו."}
         </p>
       </header>
@@ -141,8 +141,8 @@ export default async function ProMyJobsPage({
                 value={`${formatIls(stats.lifetimeGross)} ₪`}
               />
               <SummaryRow
-                label="עמלות Handy"
-                value={`${formatIls(stats.lifetimeCommission)} ₪`}
+                label="דמי קבלת עבודות"
+                value={`${formatIls(stats.lifetimeFees)} ₪`}
               />
             </dl>
             <Link
@@ -323,7 +323,7 @@ function HistoryList({
         <p className="text-lg font-bold text-ink">עוד לא סגרת עבודה</p>
         <p className="mt-2 text-muted">
           עבודה עוברת לכאן ברגע שתלחצו &quot;סיימתי — עדכן גבייה&quot;, יחד עם
-          הקבלה והעמלה שלה.
+          הקבלה ודמי הקבלה שלה.
         </p>
       </Card>
     );
@@ -364,11 +364,8 @@ function HistoryList({
               <p className="mt-1 text-xs text-muted">
                 מתוך{" "}
                 <span className="ltr-nums">{formatIls(job.totalPrice)}</span> ₪,
-                עמלה{" "}
-                <span className="ltr-nums">
-                  {formatIls(job.commissionAmount)}
-                </span>{" "}
-                ₪
+                דמי קבלה{" "}
+                <span className="ltr-nums">{formatIls(job.feeAmount)}</span> ₪
               </p>
             </div>
           </div>

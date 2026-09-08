@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   availabilitySchema,
-  commissionBreakdown,
+  ACCEPTANCE_FEE,
+  feeBreakdown,
   formatWorkDays,
   payoutSchema,
   practiceBidSchema,
@@ -198,15 +199,21 @@ describe("availabilitySchema", () => {
   });
 });
 
-describe("commissionBreakdown", () => {
-  it("takes 12% from the pro and leaves the rest", () => {
-    expect(commissionBreakdown(500)).toEqual({ commission: 60, net: 440 });
+describe("feeBreakdown", () => {
+  it("takes a flat 35 from the pro and leaves the rest", () => {
+    expect(feeBreakdown(500)).toEqual({ fee: 35, net: 465 });
+  });
+
+  it("does not move with the price — that is what flat means", () => {
+    for (const price of [80, 380, 1234.55, 99999]) {
+      expect(feeBreakdown(price).fee).toBe(ACCEPTANCE_FEE);
+    }
   });
 
   it("always adds back up to the price the pro typed", () => {
-    for (const price of [1, 37, 380, 1234.55, 99999]) {
-      const { commission, net } = commissionBreakdown(price);
-      expect(commission + net).toBeCloseTo(price, 2);
+    for (const price of [37, 380, 1234.55, 99999]) {
+      const { fee, net } = feeBreakdown(price);
+      expect(fee + net).toBeCloseTo(price, 2);
     }
   });
 });
