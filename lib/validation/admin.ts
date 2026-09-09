@@ -23,6 +23,7 @@ import { z } from "zod";
 export type AdminJobState =
   | "no_bids"
   | "awaiting_choice"
+  | "awaiting_pro"
   | "assigned"
   | "in_progress"
   | "completed"
@@ -32,6 +33,7 @@ export type AdminJobState =
 export const ADMIN_JOB_STATE_LABEL: Record<AdminJobState, string> = {
   no_bids: "ללא הצעות",
   awaiting_choice: "ממתין לבחירה",
+  awaiting_pro: "ממתין לאישור בעל המקצוע",
   assigned: "שובץ",
   in_progress: "בעבודה",
   completed: "הושלם",
@@ -46,6 +48,7 @@ export const ADMIN_JOB_STATE_TONE: Record<
 > = {
   no_bids: "alert",
   awaiting_choice: "warn",
+  awaiting_pro: "warn",
   assigned: "ok",
   in_progress: "ok",
   completed: "ok",
@@ -59,6 +62,12 @@ export function adminJobState(
 ): AdminJobState {
   if (status === "open" || status === "bidding") {
     return bidsCount === 0 ? "no_bids" : "awaiting_choice";
+  }
+  // Chosen, not yet answered. Its own state on the console: a job stuck here
+  // is a pro not responding, which is a different problem from a customer not
+  // choosing, and the two would otherwise look identical.
+  if (status === "awaiting_pro") {
+    return "awaiting_pro";
   }
   if (
     status === "assigned" ||
@@ -76,6 +85,7 @@ export function adminJobState(
 export const ADMIN_JOB_STATUS_FILTERS = [
   "open",
   "bidding",
+  "awaiting_pro",
   "assigned",
   "in_progress",
   "completed",
@@ -84,6 +94,7 @@ export const ADMIN_JOB_STATUS_FILTERS = [
 export const ADMIN_JOB_STATUS_FILTER_LABEL: Record<string, string> = {
   open: "פתוחות",
   bidding: "בהצעות",
+  awaiting_pro: "ממתינות לאישור",
   assigned: "שובצו",
   in_progress: "בעבודה",
   completed: "הושלמו",

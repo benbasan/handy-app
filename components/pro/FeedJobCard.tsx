@@ -95,6 +95,18 @@ export function FeedJobCard({
                 ? "הצעה אחת עד כה"
                 : `${job.bidsCount} הצעות עד כה`}
           </p>
+
+          {/* Shown rather than hidden: a pro bidding into somebody else's
+              open acceptance window is spending their time on a long shot,
+              and they are entitled to know that before they price it. How
+              long the other pro has been thinking is not their business, so
+              this is a flag and not a clock. */}
+          {job.awaitingAnswer && (
+            <p className="mt-2 text-sm font-semibold text-alert">
+              הלקוח כבר בחר הצעה וממתין לאישור בעל המקצוע. אפשר להגיש הצעה — היא
+              תיכנס לתמונה אם הוא לא יאשר.
+            </p>
+          )}
         </div>
 
         <div className="flex w-full shrink-0 flex-col gap-2 sm:w-52">

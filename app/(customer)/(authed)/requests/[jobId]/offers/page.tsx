@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BidCard } from "@/components/customer/BidCard";
+import { WaitingForProCard } from "@/components/customer/WaitingForProCard";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
 import { BUTTON_CTA, BUTTON_QUIET, Card } from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
@@ -72,7 +73,9 @@ export default async function JobOffersPage({
 
   const ordered = sortBids(bids, sort);
   const highlights = bidHighlights(bids);
-  const chosen = bids.find((bid) => bid.status === "selected") ?? null;
+  // Three states now, not two: nobody chosen, chosen but unanswered, taken.
+  const chosen = bids.find((bid) => bid.status === "accepted") ?? null;
+  const waiting = bids.find((bid) => bid.status === "selected") ?? null;
   const liveCount = bids.filter((bid) => bid.status === "pending").length;
 
   const mapsKey = getBrowserMapsKey();
@@ -89,7 +92,9 @@ export default async function JobOffersPage({
             <h1 className="text-2xl font-bold sm:text-3xl">
               {chosen
                 ? "בחרתם בעל מקצוע — הקריאה שובצה"
-                : "הקריאה פורסמה — Handy מחפשת בעלי מקצוע בסביבה"}
+                : waiting
+                  ? "ממתינים לאישור בעל המקצוע"
+                  : "הקריאה פורסמה — Handy מחפשת בעלי מקצוע בסביבה"}
             </h1>
             <p className="mt-2 text-white/85">
               {job.categoryName ?? "קריאה"} · {job.addressText} · נמצאו{" "}
@@ -170,7 +175,7 @@ export default async function JobOffersPage({
                   : `${bids.length} הצעות התקבלו`}
             </h2>
 
-            {bids.length > 1 && !chosen && (
+            {bids.length > 1 && !chosen && !waiting && (
               <nav aria-label="מיון הצעות" className="flex flex-wrap gap-2">
                 {BID_SORTS.map((option) => (
                   <Link
@@ -206,6 +211,12 @@ export default async function JobOffersPage({
                 מעקב חי
               </Link>
             </div>
+          ) : waiting ? (
+            <WaitingForProCard
+              bid={waiting}
+              jobId={jobId}
+              otherLiveCount={liveCount}
+            />
           ) : (
             liveCount > 0 && (
               <p className="text-sm text-muted">
@@ -249,6 +260,7 @@ export default async function JobOffersPage({
           )}
 
           {!chosen &&
+            !waiting &&
             ordered.some(
               (bid) =>
                 bid.status === "pending" && minutesLeft(bid.expiresAt) <= 10,

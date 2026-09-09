@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { OfferAnswerCard } from "@/components/pro/OfferAnswerCard";
 import { ProStatusCard } from "@/components/pro/ProStatusCard";
 import { CurrentUserCard } from "@/components/ui/CurrentUserCard";
 import { BUTTON_QUIET, Card } from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
-import { listMyBids } from "@/lib/supabase/bids";
+import { listMyBids, listMyPendingAcceptances } from "@/lib/supabase/bids";
 import { listMyThreads, totalUnread } from "@/lib/supabase/messages";
 import { getMyProProfile, listFeedJobs } from "@/lib/supabase/pros";
 import { requireRole } from "@/lib/supabase/session";
@@ -22,7 +23,9 @@ export const metadata = { title: "דשבורד בעל מקצוע — Handy" };
  * at.
  *
  * The design's "דורש טיפול" card — offers waiting on a customer, messages not
- * yet read — became real in Phase 4 and is here. What is still missing is the
+ * yet read — became real in Phase 4 and is here. Phase 10 put one thing above
+ * it: a job a customer has chosen this pro for, which they have two hours to
+ * answer and which nothing outside an open tab will tell them about. What is still missing is the
  * earnings half (this week's takings, the day's schedule), which is Phase 6:
  * CLAUDE.md's one-phase-at-a-time rule says not to build it early, and filling
  * it with invented numbers would be worse than leaving the space.
@@ -37,12 +40,13 @@ export default async function ProDashboardPage({
   // Failing to the sign-up screen is the only honest reading.
   if (!profile) redirect(PRO_ROUTES.join);
 
-  const [categories, feed, bids, threads, params] = await Promise.all([
+  const [categories, feed, bids, offers, threads, params] = await Promise.all([
     listCategories(),
     // Cheap for an unverified pro: the RLS policy returns nothing before the
     // query does any work.
     listFeedJobs(null),
     listMyBids(),
+    listMyPendingAcceptances(),
     listMyThreads(),
     searchParams,
   ]);
@@ -50,7 +54,7 @@ export default async function ProDashboardPage({
   // "דורש טיפול" — offers still waiting on a customer, and conversations with
   // something unread in them. Both counts are the caller's own rows.
   const pendingBids = bids.filter((bid) => bid.status === "pending");
-  const wonBids = bids.filter((bid) => bid.status === "selected");
+  const wonBids = bids.filter((bid) => bid.status === "accepted");
   const unread = totalUnread(threads);
 
   const justSubmitted = params.submitted === "1";
@@ -82,6 +86,16 @@ export default async function ProDashboardPage({
         </p>
       )}
 
+      {/* Above the stats and above "דורש טיפול", because this is the one
+          thing on the screen that expires. */}
+      {offers.length > 0 && (
+        <div className="space-y-4">
+          {offers.map((offer) => (
+            <OfferAnswerCard key={offer.bidId} offer={offer} />
+          ))}
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat
           value={
@@ -101,7 +115,7 @@ export default async function ProDashboardPage({
           label="הצעות ממתינות לתשובה"
           hint={
             wonBids.length > 0
-              ? `${wonBids.length} הצעות נבחרו עד כה`
+              ? `${wonBids.length} עבודות לקחת עד כה`
               : "כל הצעה תקפה 45 דקות"
           }
         />

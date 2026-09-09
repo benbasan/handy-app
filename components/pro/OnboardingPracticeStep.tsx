@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/primitives";
 import { savePracticeBid } from "@/lib/actions/proOnboarding";
 import { EMPTY_PRO_FORM_STATE } from "@/lib/actions/state";
-import { commissionBreakdown, COMMISSION_RATE } from "@/lib/validation/pros";
+import { ACCEPTANCE_FEE, feeBreakdown } from "@/lib/validation/pros";
 
 /**
  * Onboarding step 4 — תרגול הגשת הצעה (product-spec.md 4.2).
@@ -18,7 +18,7 @@ import { commissionBreakdown, COMMISSION_RATE } from "@/lib/validation/pros";
  * A simulation on a sample job, and the spec is explicit that it is never sent
  * to a real customer: nothing on this path touches the `bids` table. What it
  * does teach is the one piece of arithmetic the pro has to be able to read
- * before their first real bid — the 12% comes out of the price they typed, and
+ * before their first real bid — the fee comes out of the price they typed, and
  * never gets added on top of it for the customer (business rule 3).
  *
  * The four rules beside the form are the spec's "4 כללים להצעה שנבחרת".
@@ -48,7 +48,7 @@ export function OnboardingPracticeStep() {
 
   const numericPrice = Number(price);
   const valid = Number.isFinite(numericPrice) && numericPrice > 0;
-  const { commission, net } = commissionBreakdown(valid ? numericPrice : 0);
+  const { fee, net } = feeBreakdown(valid ? numericPrice : 0);
   const fieldErrors = state.fieldErrors ?? {};
 
   return (
@@ -135,8 +135,8 @@ export function OnboardingPracticeStep() {
         <dl className="mt-3 space-y-2 text-sm">
           <Line label="מחיר ההצעה" value={valid ? numericPrice : null} />
           <Line
-            label={`עמלת Handy (${Math.round(COMMISSION_RATE * 100)}%)`}
-            value={valid ? -commission : null}
+            label={`דמי קבלת עבודה (${ACCEPTANCE_FEE} ₪)`}
+            value={valid ? -fee : null}
           />
           <div className="flex items-baseline justify-between gap-3 border-t border-white/15 pt-2">
             <dt className="font-bold">נטו אליך</dt>
@@ -146,7 +146,8 @@ export function OnboardingPracticeStep() {
           </div>
         </dl>
         <p className="mt-3 text-xs text-white/60">
-          העמלה נגבית ממך בלבד ולא מתווספת למחיר שהלקוח רואה.
+          הסכום נגבה ממך בלבד, רק אם תאשר שאתה לוקח את העבודה, ואינו מתווסף
+          למחיר שהלקוח רואה.
         </p>
       </Card>
 

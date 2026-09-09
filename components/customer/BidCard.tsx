@@ -16,6 +16,7 @@ import {
   BID_STATUS_LABEL,
   PRICE_INCLUDES_NOTE,
   initials,
+  timeLeftLabel,
 } from "@/lib/validation/bids";
 
 /**
@@ -41,7 +42,13 @@ export function BidCard({
   bid: JobBid;
   jobId: string;
   highlights: readonly string[];
-  /** True once any offer on this job has been chosen: the rest are read-only. */
+  /**
+   * True once a pro has actually taken this job: the rest go read-only.
+   *
+   * An offer merely *waiting* for its pro is not decided — the customer may
+   * still hand the job to somebody else, and `select_bid()` will release the
+   * first one in the same statement. That is the whole of "אפשר להתחרט".
+   */
   decided: boolean;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -50,13 +57,18 @@ export function BidCard({
   );
 
   const live = bid.status === "pending";
-  const won = bid.status === "selected";
+  const waiting = bid.status === "selected";
+  const won = bid.status === "accepted";
 
   return (
     <li
       className={`rounded-2xl border bg-surface p-5 ${
-        won ? "border-cta ring-1 ring-cta/30" : "border-line"
-      } ${live || won ? "" : "opacity-70"}`}
+        won
+          ? "border-cta ring-1 ring-cta/30"
+          : waiting
+            ? "border-brand ring-1 ring-brand/30"
+            : "border-line"
+      } ${live || won || waiting ? "" : "opacity-70"}`}
     >
       {/* The pro at the leading edge with the price and its two actions at
           the trailing one, as in customer-2.2-compare-bids.png. They stack
@@ -126,10 +138,20 @@ export function BidCard({
             ) : (
               <p
                 className={`rounded-xl px-4 py-3 text-center text-sm font-semibold ${
-                  won ? "bg-cta/15 text-cta-strong" : "bg-canvas text-muted"
+                  won
+                    ? "bg-cta/15 text-cta-strong"
+                    : waiting
+                      ? "bg-brand/10 text-brand"
+                      : "bg-canvas text-muted"
                 }`}
               >
                 {BID_STATUS_LABEL[bid.status]}
+                {waiting && bid.acceptDeadline && (
+                  <>
+                    {" · "}
+                    {timeLeftLabel(bid.acceptDeadline)}
+                  </>
+                )}
               </p>
             )}
 

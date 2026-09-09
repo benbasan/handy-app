@@ -5,7 +5,7 @@ import { CARD_CLASS, ErrorText } from "@/components/ui/primitives";
 import { completeJob } from "@/lib/actions/completion";
 import { EMPTY_COMPLETE_JOB_STATE } from "@/lib/actions/state";
 import {
-  commissionOf,
+  ACCEPTANCE_FEE,
   netOf,
   PAYMENT_METHODS,
   type PaymentMethod,
@@ -16,20 +16,19 @@ import { PAYMENT_METHOD_LABEL } from "@/lib/validation/pros";
 /**
  * "מחיר מאושר לקריאה · סיימתי — עדכן גבייה" — the green card in the sidebar of
  * design/screens/pro-3.1-manage-job-price-update.png. Phase 5 drew the price
- * and left the button out, because pressing it has to create a commission row
- * and a receipt. This is that button.
+ * and left the button out, because pressing it has to write a charge and a
+ * receipt. This is that button.
  *
  * One question stands between the pro and the close: **how were you paid.**
  * Handy never touches the money (business rule 4) — it records the collection
- * so it can charge its 12% and issue a receipt, and the pro is the person who
- * was actually handed the cash or the Bit transfer. Nothing else on this form
- * is sent: the total is `job_effective_price()` and the commission is computed
- * inside `complete_job()`.
+ * so it can issue a receipt, and the pro is the person who was actually handed
+ * the cash or the Bit transfer. Nothing else on this form is sent: the total
+ * is `job_effective_price()`, read inside `complete_job()`.
  *
- * The two numbers under the buttons are shown *before* the press on purpose.
- * A pro should never learn what Handy took by reading it on a statement
- * afterwards, and the arithmetic here is the same arithmetic the database
- * performs — `commissionOf()` exists to keep the two from drifting.
+ * Since Phase 10 nothing is charged here at all — the fee was taken when this
+ * pro accepted the job, and the line under the button says so rather than
+ * quietly dropping off the screen. A pro who saw "עמלת Handy" at closing time
+ * for nine phases should be told where it went.
  */
 export function CompleteJobForm({
   jobId,
@@ -61,7 +60,6 @@ export function CompleteJobForm({
     ),
   ];
 
-  const commission = commissionOf(totalPrice);
   const net = netOf(totalPrice);
 
   return (
@@ -82,7 +80,7 @@ export function CompleteJobForm({
             איך נגבה התשלום?
           </legend>
           <p className="mt-1 text-sm text-muted">
-            התשלום עובר ישירות אליך. Handy רק מתעדת אותו לצורך הקבלה והעמלה.
+            התשלום עובר ישירות אליך. Handy רק מתעדת אותו לצורך הקבלה.
           </p>
 
           <div className="mt-3 flex flex-wrap gap-2">
@@ -117,9 +115,9 @@ export function CompleteJobForm({
 
         <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
           <div className="flex items-center justify-between gap-3">
-            <dt className="text-muted">עמלת Handy (12%)</dt>
+            <dt className="text-muted">דמי קבלת העבודה (נגבו בקבלתה)</dt>
             <dd className="ltr-nums font-semibold text-ink">
-              {formatIls(commission)} ₪
+              {formatIls(ACCEPTANCE_FEE)} ₪
             </dd>
           </div>
           <div className="flex items-center justify-between gap-3">

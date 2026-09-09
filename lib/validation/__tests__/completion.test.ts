@@ -1,7 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  COMMISSION_RATE,
-  commissionOf,
+  ACCEPTANCE_FEE,
   completeJobSchema,
   earningsByDay,
   isEarningsRange,
@@ -13,34 +13,47 @@ import {
 } from "@/lib/validation/completion";
 
 /**
- * The money arithmetic on this screen is *display* arithmetic — the charged
- * number is `round(total * commission_rate(), 2)` inside `complete_job()`, and
- * supabase/tests/rls_test.sql proves that one. What these tests protect is the
- * promise that the two agree: a pro who is shown 62.40 before pressing the
- * button and charged something else afterwards has been lied to, and that is
- * exactly the kind of drift a unit test catches and a schema cannot.
+ * The money on these screens is *display* money — what is actually charged is
+ * `job_acceptance_fee()` inside `accept_job()`, and supabase/tests/rls_test.sql
+ * proves that one. What these tests protect is the promise that the two agree:
+ * a pro shown 35 ₪ under a button and charged something else afterwards has
+ * been lied to, and that is exactly the kind of drift a unit test catches and
+ * a schema cannot.
  */
-describe("commission", () => {
-  it("is 12%", () => {
-    expect(COMMISSION_RATE).toBe(0.12);
+describe("the acceptance fee", () => {
+  it("is a flat 35 ₪", () => {
+    expect(ACCEPTANCE_FEE).toBe(35);
   });
 
-  it("matches the number the database charges on the design's own job", () => {
+  /**
+   * The number exists twice on purpose — once here for every screen that
+   * shows it before it is charged, once in the migration as the function that
+   * charges it. This is the test that keeps the two copies the same number.
+   */
+  it("matches job_acceptance_fee() in the migration, to the shekel", () => {
+    const sql = readFileSync(
+      "supabase/migrations/20260911120000_pro_acceptance_and_flat_fee.sql",
+      "utf8",
+    );
+    const body = sql.slice(
+      sql.indexOf("create function public.job_acceptance_fee()"),
+    );
+    const charged = body.match(/select (\d+(?:\.\d+)?)::numeric/);
+
+    expect(charged).not.toBeNull();
+    expect(Number(charged![1])).toBe(ACCEPTANCE_FEE);
+  });
+
+  it("leaves the pro the rest of what they collected", () => {
     // 380 base + 140 approved = 520, the figures on
     // design/screens/customer-4.1-summary-receipt-rating.png.
-    expect(commissionOf(520)).toBe(62.4);
-    expect(netOf(520)).toBe(457.6);
+    expect(netOf(520)).toBe(485);
+    expect(netOf(333)).toBe(298);
   });
 
-  it("rounds to agorot rather than trailing float noise", () => {
-    expect(commissionOf(333)).toBe(39.96);
-    expect(commissionOf(0.1)).toBe(0.01);
-    // 12% of 1 is 0.12 exactly; in binary floating point it is not.
-    expect(commissionOf(1)).toBe(0.12);
-  });
-
-  it("leaves the pro the rest, to the agora", () => {
-    expect(commissionOf(333) + netOf(333)).toBe(333);
+  it("does not move with the size of the job", () => {
+    expect(netOf(1000) + ACCEPTANCE_FEE).toBe(1000);
+    expect(netOf(80) + ACCEPTANCE_FEE).toBe(80);
   });
 });
 
@@ -179,12 +192,12 @@ describe("earnings ranges", () => {
     expect(start.getHours()).toBe(0);
   });
 
-  it("buckets charges into the day they were charged on", () => {
+  it("buckets earnings into the day the job was closed on", () => {
     const bars = earningsByDay(
       [
-        { chargedAt: "2026-09-03T10:00:00+03:00", totalPrice: 520 },
-        { chargedAt: "2026-09-03T18:00:00+03:00", totalPrice: 260 },
-        { chargedAt: "2026-09-01T09:00:00+03:00", totalPrice: 320 },
+        { completedAt: "2026-09-03T10:00:00+03:00", totalPrice: 520 },
+        { completedAt: "2026-09-03T18:00:00+03:00", totalPrice: 260 },
+        { completedAt: "2026-09-01T09:00:00+03:00", totalPrice: 320 },
       ],
       "week",
       now,
@@ -197,7 +210,7 @@ describe("earnings ranges", () => {
 
   it("ignores a charge from outside the window rather than folding it into the last bar", () => {
     const bars = earningsByDay(
-      [{ chargedAt: "2026-08-01T09:00:00+03:00", totalPrice: 999 }],
+      [{ completedAt: "2026-08-01T09:00:00+03:00", totalPrice: 999 }],
       "week",
       now,
     );

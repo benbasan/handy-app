@@ -84,7 +84,7 @@ export default async function LandingPage() {
 
           <dl className="mt-8 grid max-w-lg grid-cols-3 gap-4 text-center">
             <Stat value="0 ₪" label="עלות פרסום קריאה" />
-            <Stat value="12%" label="עמלה — מבעל המקצוע בלבד" />
+            <Stat value="35 ₪" label="לעבודה — מבעל המקצוע בלבד" />
             <Stat value="100%" label="בעלי מקצוע מאומתים" />
           </dl>
         </div>

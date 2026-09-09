@@ -82,7 +82,7 @@ export function JobProgressPanel({
       ) : (
         <p className="mt-5 rounded-xl bg-canvas p-4 text-center text-sm text-muted">
           {current === "completed"
-            ? "העבודה הושלמה. הקבלה והעמלה מופיעות בהיסטוריית העבודות ובארנק."
+            ? "העבודה הושלמה. הקבלה מופיעה בהיסטוריית העבודות ובארנק."
             : "העבודה בביצוע. לסיום ולעדכון הגבייה — הכרטיס הירוק שבצד."}
         </p>
       )}

@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(308);
+select plan(360);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -46,11 +46,11 @@ $$;
 -- document per pro, so "a pro sees only their own" has something to fail on.
 -- ---------------------------------------------------------------------------
 
-insert into public.commission_charges
-  (job_id, pro_id, base_price, total_price, commission_amount, payment_method)
+insert into public.job_fees
+  (job_id, pro_id, base_price, total_price, fee_amount, payment_method, completed_at)
 values
-  (:job_a, :pro_verified, 500, 500, 60, 'cash'),
-  (:job_b, :pro_pending, 800, 800, 96, 'bit');
+  (:job_a, :pro_verified, 500, 500, 35, 'cash', now()),
+  (:job_b, :pro_pending, 800, 800, 35, 'bit', now());
 
 insert into public.verification_documents (pro_id, doc_type, file_url) values
   (:pro_verified, 'id_card', 'verification-docs/pro3-id.jpg'),
@@ -83,13 +83,14 @@ select is(
   'customer A cannot see customer B''s job'
 );
 
--- Three, and every one of them theirs: the job this section is about, plus
--- the two Phase 6 added to the seed so the summary and receipt screens have
--- finished work to render. The number is not the point — "no row that is not
--- mine" is, which is why customer B's single job is asserted separately above.
+-- Four, and every one of them theirs: the job this section is about, the two
+-- Phase 6 added to the seed so the summary and receipt screens have finished
+-- work to render, and the one Phase 10 added that is waiting for a pro to
+-- answer. The number is not the point — "no row that is not mine" is, which is
+-- why customer B's single job is asserted separately above.
 select is(
   (select count(*) from public.jobs),
-  3::bigint,
+  4::bigint,
   'and nothing else — every job an unfiltered select returns to customer A is customer A''s'
 );
 
@@ -170,8 +171,8 @@ select is(
 
 select is(
   (select count(*) from public.jobs where status not in ('open', 'bidding')),
-  3::bigint,
-  'and, beyond the feed, only the jobs they were actually assigned'
+  4::bigint,
+  'and, beyond the feed, only jobs they are a side of: the three they were assigned, plus the one they have been offered'
 );
 
 reset role;
@@ -271,19 +272,19 @@ set local role authenticated;
 -- with jobs, the count is incidental; the assertion under it is the one that
 -- matters.
 select is(
-  (select count(*) from public.commission_charges),
+  (select count(*) from public.job_fees),
   4::bigint,
   'a pro sees their own commission charges'
 );
 
 select is(
-  (select count(*) from public.commission_charges where pro_id <> :pro_verified),
+  (select count(*) from public.job_fees where pro_id <> :pro_verified),
   0::bigint,
   'and not one row belonging to another pro'
 );
 
 select is(
-  (select count(*) from public.commission_charges where pro_id = :pro_pending),
+  (select count(*) from public.job_fees where pro_id = :pro_pending),
   0::bigint,
   'a pro cannot see another pro''s earnings'
 );
@@ -308,7 +309,7 @@ select pg_temp.act_as(:customer_a);
 set local role authenticated;
 
 select is(
-  (select count(*) from public.commission_charges),
+  (select count(*) from public.job_fees),
   0::bigint,
   'a customer sees no commission charges whatsoever — the 12% is not their business'
 );
@@ -906,14 +907,20 @@ select is(
 
 select is(
   (select count(*) from public.my_bids()),
-  5::bigint,
-  'ההצעות שלי lists exactly the caller''s own bids — the two in this section plus the three closed jobs in the seed'
+  6::bigint,
+  'ההצעות שלי lists exactly the caller''s own bids — the two in this section, the three closed jobs in the seed, and the one waiting for their answer'
+);
+
+select is(
+  (select count(*) from public.my_bids() where status = 'accepted'),
+  3::bigint,
+  'and none belonging to anyone else, at any status'
 );
 
 select is(
   (select count(*) from public.my_bids() where status = 'selected'),
-  3::bigint,
-  'and none belonging to anyone else, at any status'
+  1::bigint,
+  'exactly one of them is an offer the customer has made and this pro has not answered'
 );
 
 select lives_ok(
@@ -1150,10 +1157,83 @@ select is(
   'the customer chooses a bid'
 );
 
+-- Phase 10: choosing is an offer, not an assignment. Everything the old
+-- select_bid() did at this point now waits for the pro's answer.
+select is(
+  (select status from public.jobs where id = :job_a),
+  'awaiting_pro',
+  'which offers the job to that pro rather than assigning it'
+);
+
+select is(
+  (select selected_bid_id from public.jobs where id = :job_a),
+  null,
+  'nothing has fixed the price yet — selected_bid_id waits for the acceptance'
+);
+
+select is(
+  (select count(*) from public.bids where job_id = :job_a and status = 'rejected'),
+  0::bigint,
+  'and no rival is closed out while the offer is unanswered — the customer can still change their mind'
+);
+
+select cmp_ok(
+  (select accept_deadline from public.bids where id = :bid_one),
+  '>', now() + interval '110 minutes',
+  'the chosen bid carries a two-hour deadline to answer'
+);
+
+select is(
+  (select status from public.bids_for_job(:job_a) where id = :bid_one),
+  'selected',
+  'and the compare screen shows it as waiting'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.accept_job('b0000000-0000-4000-8000-000000000001') $$,
+  '42501',
+  null,
+  'a pro who was not chosen cannot take the job by calling accept_job with the winner''s bid id'
+);
+
+reset role;
+-- The fixture at the top of this file stands in for a charge that already
+-- exists, and section 5 has had everything it needs from it. From here on the
+-- charge on this job is the real one, written by accept_job() — and job_id is
+-- unique, so the stand-in has to go first.
+delete from public.job_fees where job_id = :job_a;
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.my_pending_acceptances() where bid_id = :bid_one),
+  1::bigint,
+  'the chosen pro sees the offer on their own screen, with the fee it will cost'
+);
+
+select is(
+  (select fee_amount from public.my_pending_acceptances() where bid_id = :bid_one),
+  35::numeric,
+  'and the fee is the flat 35 ₪, read from job_acceptance_fee() rather than from the caller'
+);
+
+select isnt(
+  public.accept_job(:bid_one),
+  null,
+  'the pro takes the job'
+);
+
+reset role;
+
 select is(
   (select status from public.jobs where id = :job_a),
   'assigned',
-  'which moves the job to assigned'
+  'which is what moves the job to assigned'
 );
 
 select is(
@@ -1165,14 +1245,52 @@ select is(
 select is(
   (select count(*) from public.bids where job_id = :job_a and status = 'rejected'),
   1::bigint,
-  'choosing one bid locks every rival that was still pending, in the same statement'
+  'accepting locks every rival that was still pending, in the same statement'
 );
+
+select is(
+  (select fee_amount from public.job_fees where job_id = :job_a),
+  35::numeric,
+  'and charges the pro 35 ₪ — the moment money enters, before any work is done'
+);
+
+select is(
+  (select total_price from public.job_fees where job_id = :job_a),
+  null,
+  'with no total and no payment method yet: those are facts about a job that has not happened'
+);
+
+select is(
+  (select count(*) from public.job_fees where job_id = :job_a),
+  1::bigint,
+  'exactly one charge'
+);
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select isnt(
+  public.accept_job(:bid_one),
+  null,
+  'accepting twice is idempotent — a retried tap on a phone must not charge again'
+);
+
+reset role;
+
+select is(
+  (select count(*) from public.job_fees where job_id = :job_a),
+  1::bigint,
+  'and it did not: still exactly one charge'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
 
 select throws_ok(
   $$ select public.select_bid('b0000000-0000-4000-8000-000000000002') $$,
   '22023',
   null,
-  'and a second choice on the same job is refused'
+  'once a pro has taken the job, the customer cannot hand it to somebody else'
 );
 
 reset role;
@@ -1674,10 +1792,6 @@ reset role;
 
 reset role;
 
--- The fixture at the top of this file stands in for a charge that already
--- exists, and section 5 has had everything it needs from it. This section is
--- about the row complete_job() writes, and job_id is unique.
-delete from public.commission_charges where job_id = :job_a;
 
 select pg_temp.act_as(:customer_a);
 set local role authenticated;
@@ -1686,7 +1800,7 @@ select throws_ok(
   $$ select public.complete_job('d0000000-0000-4000-8000-000000000001', 'cash') $$,
   '42501',
   null,
-  'a customer cannot close the job themselves — the commission is charged to the pro who did the work'
+  'a customer cannot close the job themselves — closing records how the pro was paid, and the pro is who was paid'
 );
 
 reset role;
@@ -1723,47 +1837,53 @@ select is(
 );
 
 select is(
-  (select base_price from public.commission_charges where job_id = :job_a),
+  (select base_price from public.job_fees where job_id = :job_a),
   390::numeric,
-  'the commission row records the bid that was agreed as the base'
+  'the fee row still records the bid this pro took the job at, written back in section 11'
 );
 
 select is(
-  (select total_price from public.commission_charges where job_id = :job_a),
+  (select total_price from public.job_fees where job_id = :job_a),
   520::numeric,
-  'the price that actually held — job_effective_price(), approved update included — as the total'
+  'and closing fills in the price that actually held — job_effective_price(), approved update included'
 );
 
 select is(
-  (select commission_amount from public.commission_charges where job_id = :job_a),
-  62.40::numeric,
-  'and 12% of that total as Handy''s cut, computed in the database and never sent by the client'
+  (select fee_amount from public.job_fees where job_id = :job_a),
+  35::numeric,
+  'the fee is untouched by what the job turned out to be worth: a flat 35 ₪, charged when it was taken'
+);
+
+select cmp_ok(
+  (select charged_at from public.job_fees where job_id = :job_a),
+  '<=', (select completed_at from public.job_fees where job_id = :job_a),
+  'and the two timestamps are now different facts — charged when taken, completed when finished'
 );
 
 select is(
   public.complete_job(:job_a, 'cash'),
-  (select id from public.commission_charges where job_id = :job_a),
+  (select id from public.job_fees where job_id = :job_a),
   'pressing it twice returns the same charge rather than raising — this is the last thing a pro does, often on a phone'
 );
 
 select is(
-  (select count(*) from public.commission_charges where job_id = :job_a),
+  (select count(*) from public.job_fees where job_id = :job_a),
   1::bigint,
-  'and there is still exactly one commission row for the job'
+  'and there is still exactly one fee row for the job'
 );
 
 select throws_ok(
-  $$ insert into public.commission_charges
-       (job_id, pro_id, base_price, total_price, commission_amount, payment_method)
+  $$ insert into public.job_fees
+       (job_id, pro_id, base_price, total_price, fee_amount, payment_method)
      values ('d0000000-0000-4000-8000-000000000002',
              'a0000000-0000-4000-8000-000000000003', 900, 900, 1, 'cash') $$,
   '42501',
   null,
-  'a pro cannot write their own commission row — the table has never had an INSERT grant'
+  'a pro cannot write their own fee row — the table has never had an INSERT grant'
 );
 
 select throws_ok(
-  $$ update public.commission_charges set commission_amount = 0
+  $$ update public.job_fees set fee_amount = 0
       where job_id = 'd0000000-0000-4000-8000-000000000001' $$,
   '42501',
   null,
@@ -1771,14 +1891,14 @@ select throws_ok(
 );
 
 select is(
-  (select commission_amount from public.job_receipt(:job_a)),
-  62.40::numeric,
+  (select fee_amount from public.job_receipt(:job_a)),
+  35::numeric,
   'the pro''s receipt shows what Handy took'
 );
 
 select is(
   (select net_amount from public.job_receipt(:job_a)),
-  457.60::numeric,
+  485::numeric,
   'and what is left after it'
 );
 
@@ -1787,9 +1907,9 @@ select pg_temp.act_as(:customer_a);
 set local role authenticated;
 
 select is(
-  (select count(*) from public.commission_charges),
+  (select count(*) from public.job_fees),
   0::bigint,
-  'the customer cannot see the commission row at all — the 12% is between Handy and the pro'
+  'the customer cannot see the fee row at all — what Handy charges the pro is between Handy and the pro'
 );
 
 select is(
@@ -1799,9 +1919,9 @@ select is(
 );
 
 select is(
-  (select commission_amount from public.job_receipt(:job_a)),
+  (select fee_amount from public.job_receipt(:job_a)),
   null::numeric,
-  'without the commission, which is none of their business'
+  'without the fee, which is none of their business'
 );
 
 reset role;
@@ -1928,15 +2048,15 @@ select is(
 );
 
 select is(
-  (select total_price from public.commission_charges where job_id = :job_c),
+  (select total_price from public.job_fees where job_id = :job_c),
   320::numeric,
-  'the commission row is written against that price'
+  'the fee row is completed against that price'
 );
 
 select is(
-  (select commission_amount from public.commission_charges where job_id = :job_c),
-  38.40::numeric,
-  'and 12% of it, with no approved update anywhere in the sum'
+  (select fee_amount from public.job_fees where job_id = :job_c),
+  35::numeric,
+  'and the fee is the same 35 ₪ it was on a job worth 520 — that is what flat means'
 );
 
 select is(
@@ -2817,6 +2937,369 @@ select is(
 
 reset role;
 
+-- ===========================================================================
+-- 16. Phase 10 — the pro's answer, and the fee that rides on it
+--
+-- The customer's choice is now an offer, and the money enters when it is
+-- accepted rather than when the work ends. Both halves of that are only true
+-- if they hold in the database: that nothing is charged before an answer, that
+-- only the pro who was chosen can give one, and that the job is not held
+-- hostage while nobody does.
+--
+-- The seed leaves job H waiting: chosen pro, two-hour clock running, one rival
+-- still live. Everything below happens to that one job, in the order a real
+-- one could — offered, declined, re-offered, withdrawn, lapsed, and finally
+-- taken.
+-- ===========================================================================
+
+\set job_offered '''d0000000-0000-4000-8000-000000000008'''
+\set bid_offered '''b0000000-0000-4000-8000-000000000009'''
+\set bid_rival   '''b0000000-0000-4000-8000-000000000010'''
+
+reset role;
+
+select is(
+  (select status from public.jobs where id = :job_offered),
+  'awaiting_pro',
+  'a chosen job waits for its pro rather than being assigned to them'
+);
+
+-- The assertion this whole phase turns on.
+select is(
+  (select count(*) from public.job_fees where job_id = :job_offered),
+  0::bigint,
+  'and nothing is charged while it waits — the fee follows the answer, not the choice'
+);
+
+select is(
+  (select status from public.bids where id = :bid_rival),
+  'pending',
+  'the rival offer is untouched, so the customer still has somewhere to go'
+);
+
+-- ---------------------------------------------------------------------------
+-- The job stays in the feed while it waits (decided with the user, 8.9.2026)
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:pro_third);
+set local role authenticated;
+
+select ok(
+  public.can_bid_on_job(:job_offered),
+  'a third pro may still bid on a job that is waiting for somebody else to answer'
+);
+
+select is(
+  (select awaiting_answer from public.open_jobs_for_pro() where id = :job_offered),
+  true,
+  'and the feed tells them so rather than hiding it — a long shot they can price knowingly'
+);
+
+select lives_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+     values ('d0000000-0000-4000-8000-000000000008',
+             'a0000000-0000-4000-8000-000000000007', 265, 35) $$,
+  'the bid is actually accepted by the insert policy, not merely offered by the feed'
+);
+
+-- ---------------------------------------------------------------------------
+-- Only the pro who was chosen may answer
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.accept_job('b0000000-0000-4000-8000-000000000009') $$,
+  '42501',
+  null,
+  'a pro who was not chosen cannot take the job, even holding the winning bid id'
+);
+
+select is(
+  (select count(*) from public.my_pending_acceptances()),
+  0::bigint,
+  'and sees no offer of their own — my_pending_acceptances() is scoped inside the function'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.accept_job('b0000000-0000-4000-8000-000000000009') $$,
+  '42501',
+  null,
+  'nor can the customer accept on the pro''s behalf — it is the pro who is charged'
+);
+
+select throws_ok(
+  $$ update public.bids set accept_deadline = now() + interval '30 days'
+      where id = 'b0000000-0000-4000-8000-000000000009' $$,
+  '42501',
+  null,
+  'and nobody can stretch the deadline by hand: accept_deadline has no column grant'
+);
+
+-- ---------------------------------------------------------------------------
+-- A pro suspended between the offer and the answer cannot take the work
+-- ---------------------------------------------------------------------------
+
+reset role;
+update public.pro_profiles set verification_status = 'suspended'
+ where user_id = :pro_verified;
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.accept_job('b0000000-0000-4000-8000-000000000009') $$,
+  '42501',
+  null,
+  'a pro suspended since they bid cannot take the job — verification is re-checked at the answer'
+);
+
+reset role;
+update public.pro_profiles set verification_status = 'verified'
+ where user_id = :pro_verified;
+
+-- ---------------------------------------------------------------------------
+-- Declining costs nothing and gives the job back
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.decline_job('b0000000-0000-4000-8000-000000000009') $$,
+  'the pro passes on the job'
+);
+
+reset role;
+
+select is(
+  (select status from public.jobs where id = :job_offered),
+  'bidding',
+  'which hands it straight back to the customer'
+);
+
+select is(
+  (select count(*) from public.job_fees where job_id = :job_offered),
+  0::bigint,
+  'with nothing charged — a fee is for taking work, not for being offered it'
+);
+
+select is(
+  (select status from public.bids where id = :bid_rival),
+  'pending',
+  'and the rival offers are still exactly where they were'
+);
+
+-- ---------------------------------------------------------------------------
+-- The customer changes their mind, twice: once by taking it back, once by
+-- running out of patience
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select isnt(
+  public.select_bid(
+    (select id from public.bids
+      where job_id = :job_offered and pro_id = :pro_third)
+  ),
+  null,
+  'the customer offers it to the pro who bid while it waited'
+);
+
+select lives_ok(
+  $$ select public.withdraw_bid_selection('d0000000-0000-4000-8000-000000000008') $$,
+  'then takes the offer back before it is answered'
+);
+
+reset role;
+
+select is(
+  (select status from public.bids
+    where job_id = :job_offered and pro_id = :pro_third),
+  'pending',
+  'which returns that bid to the pile rather than killing it — its own 45 minutes are still running'
+);
+
+select is(
+  (select status from public.jobs where id = :job_offered),
+  'bidding',
+  'and the job with it'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select isnt(
+  public.select_bid(
+    (select id from public.bids
+      where job_id = :job_offered and pro_id = :pro_third)
+  ),
+  null,
+  'the customer offers it again'
+);
+
+reset role;
+
+-- Two hours later, with no sweep run: everything below has to be true anyway.
+--
+-- `session_replication_role` turns off bids_guard_update for one statement.
+-- That guard exists to stop a *client* editing a settled bid, and no client
+-- holds a grant on accept_deadline at any status — this is the test moving the
+-- clock, which is the one thing it cannot do any other way.
+set local session_replication_role = replica;
+update public.bids set accept_deadline = now() - interval '1 minute'
+ where job_id = :job_offered and status = 'selected';
+set local session_replication_role = origin;
+
+select pg_temp.act_as(:pro_third);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.accept_job(
+       (select id from public.bids
+         where job_id = 'd0000000-0000-4000-8000-000000000008'
+           and pro_id = 'a0000000-0000-4000-8000-000000000007')) $$,
+  '22023',
+  null,
+  'a pro who answers after the window has closed is refused, sweep or no sweep'
+);
+
+select is(
+  (select count(*) from public.my_pending_acceptances()),
+  0::bigint,
+  'and the offer is off their screen the moment it lapses, not the moment a job runs'
+);
+
+reset role;
+
+select cmp_ok(
+  public.expire_stale_selections(),
+  '>=', 1,
+  'the sweep settles the lapsed selection, for the screens that read the column'
+);
+
+select is(
+  (select status from public.bids
+    where job_id = :job_offered and pro_id = :pro_third),
+  'expired',
+  'after which the row itself says so'
+);
+
+select is(
+  (select status from public.jobs where id = :job_offered),
+  'bidding',
+  'and the job is back in the customer''s hands without anybody having to ask'
+);
+
+-- ---------------------------------------------------------------------------
+-- Taken, at last — and the fee that comes with it
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  public.select_bid(:bid_rival),
+  :bid_rival::uuid,
+  'the customer offers it to the pro who has been waiting the whole time'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select isnt(
+  public.accept_job(:bid_rival),
+  null,
+  'who takes it'
+);
+
+reset role;
+
+select is(
+  (select status from public.jobs where id = :job_offered),
+  'assigned',
+  'now the job is assigned'
+);
+
+select is(
+  (select fee_amount from public.job_fees where job_id = :job_offered),
+  35::numeric,
+  'and now, for the first time on this job, Handy has charged: 35 ₪'
+);
+
+select is(
+  (select base_price from public.job_fees where job_id = :job_offered),
+  290::numeric,
+  'against the price this pro took it at'
+);
+
+select is(
+  (select completed_at from public.job_fees where job_id = :job_offered),
+  null,
+  'with no completion on it yet — the charge is for taking the work, not finishing it'
+);
+
+select is(
+  (select count(*) from public.bids
+    where job_id = :job_offered and status = 'pending'),
+  0::bigint,
+  'and no offer on the job is still live'
+);
+
+-- ---------------------------------------------------------------------------
+-- The fee is not refunded. Decided with the user on 8.9.2026, and this is
+-- where that decision is written down in a form that fails if it changes.
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select isnt(
+  public.complete_job(:job_offered, 'cash'),
+  null,
+  'the pro finishes the job'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select lives_ok(
+  $$ insert into public.disputes (job_id, opened_by, reason)
+     values ('d0000000-0000-4000-8000-000000000008',
+             'a0000000-0000-4000-8000-000000000001',
+             'המנגנון שהותקן ממשיך לטפטף.') $$,
+  'the customer opens a case on it'
+);
+
+reset role;
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select isnt(
+  public.resolve_dispute(
+    (select id from public.disputes where job_id = 'd0000000-0000-4000-8000-000000000008'),
+    'resolved', 'זיכוי חלקי ללקוח.', 120),
+  null,
+  'and an admin upholds it, with a credit'
+);
+
+reset role;
+
+select is(
+  (select fee_amount from public.job_fees where job_id = :job_offered),
+  35::numeric,
+  'the credit is the customer''s. The fee the pro paid to take the job is not touched by it — decided with the user, 8.9.2026'
+);
+
 -- ---------------------------------------------------------------------------
 -- Phase 9 — the security checklist, as assertions
 --
@@ -2869,7 +3352,8 @@ select is_empty(
 -- The functions an anonymous visitor may execute. Phase 8 published five
 -- (`pro_public_profile`, `pro_public_reviews`, `category_pros`,
 -- `category_stats`, `pricing_guide`, plus `public_pro_slugs` behind the
--- sitemap); the rest are RLS helper predicates, which answer false for a
+-- sitemap), and Phase 10 published `job_acceptance_fee()` because /pricing
+-- prints the fee to a stranger; the rest are RLS helper predicates, which answer false for a
 -- caller with no session and are reachable from a policy either way.
 --
 -- Trigger functions are excluded: PostgREST cannot call one, and their
@@ -2883,7 +3367,7 @@ insert into pg_temp_anon_expected (signature) values
   ('can_read_price_update_photo(p_object_name text)'),
   ('category_pros(p_category_slug text, p_lat double precision, p_lng double precision, p_limit integer)'),
   ('category_stats(p_category_slug text, p_lat double precision, p_lng double precision)'),
-  ('commission_rate()'),
+  ('job_acceptance_fee()'),
   ('is_admin()'),
   ('is_assigned_pro(p_job_id uuid)'),
   ('is_bidding_pro(p_job_id uuid)'),
@@ -2933,12 +3417,15 @@ insert into pg_temp_protected (tbl, col) values
   ('jobs',                   'selected_bid_id'),
   ('bids',                   'status'),
   ('bids',                   'expires_at'),
+  ('bids',                   'accept_deadline'),
   ('price_updates',          'status'),
   ('price_updates',          'original_price'),
   ('price_updates',          'decided_at'),
-  ('commission_charges',     'base_price'),
-  ('commission_charges',     'total_price'),
-  ('commission_charges',     'commission_amount'),
+  ('job_fees',               'base_price'),
+  ('job_fees',               'total_price'),
+  ('job_fees',               'fee_amount'),
+  ('job_fees',               'charged_at'),
+  ('job_fees',               'completed_at'),
   ('disputes',               'status'),
   ('disputes',               'credit_amount'),
   ('disputes',               'resolved_at'),

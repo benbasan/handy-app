@@ -36,6 +36,7 @@ export type Database = {
     Tables: {
       bids: {
         Row: {
+          accept_deadline: string | null
           created_at: string
           eta_minutes: number
           expires_at: string
@@ -47,6 +48,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          accept_deadline?: string | null
           created_at?: string
           eta_minutes: number
           expires_at?: string
@@ -58,6 +60,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          accept_deadline?: string | null
           created_at?: string
           eta_minutes?: number
           expires_at?: string
@@ -105,54 +108,6 @@ export type Database = {
           slug?: string
         }
         Relationships: []
-      }
-      commission_charges: {
-        Row: {
-          base_price: number
-          charged_at: string
-          commission_amount: number
-          id: string
-          job_id: string
-          payment_method: string
-          pro_id: string
-          total_price: number
-        }
-        Insert: {
-          base_price: number
-          charged_at?: string
-          commission_amount: number
-          id?: string
-          job_id: string
-          payment_method: string
-          pro_id: string
-          total_price: number
-        }
-        Update: {
-          base_price?: number
-          charged_at?: string
-          commission_amount?: number
-          id?: string
-          job_id?: string
-          payment_method?: string
-          pro_id?: string
-          total_price?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "commission_charges_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: true
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "commission_charges_pro_id_fkey"
-            columns: ["pro_id"]
-            isOneToOne: false
-            referencedRelation: "pro_profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
       }
       disputes: {
         Row: {
@@ -241,6 +196,57 @@ export type Database = {
           },
           {
             foreignKeyName: "job_dismissals_pro_id_fkey"
+            columns: ["pro_id"]
+            isOneToOne: false
+            referencedRelation: "pro_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      job_fees: {
+        Row: {
+          base_price: number
+          charged_at: string
+          completed_at: string | null
+          fee_amount: number
+          id: string
+          job_id: string
+          payment_method: string | null
+          pro_id: string
+          total_price: number | null
+        }
+        Insert: {
+          base_price: number
+          charged_at?: string
+          completed_at?: string | null
+          fee_amount: number
+          id?: string
+          job_id: string
+          payment_method?: string | null
+          pro_id: string
+          total_price?: number | null
+        }
+        Update: {
+          base_price?: number
+          charged_at?: string
+          completed_at?: string | null
+          fee_amount?: number
+          id?: string
+          job_id?: string
+          payment_method?: string | null
+          pro_id?: string
+          total_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_fees_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_fees_pro_id_fkey"
             columns: ["pro_id"]
             isOneToOne: false
             referencedRelation: "pro_profiles"
@@ -791,6 +797,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_job: { Args: { p_bid_id: string }; Returns: string }
       admin_category_mix: {
         Args: { p_days?: number }
         Returns: {
@@ -861,9 +868,9 @@ export type Database = {
         Args: never
         Returns: {
           closed_rate_pct: number
-          commission_month: number
-          commission_month_jobs: number
-          commission_prev_month: number
+          fees_month: number
+          fees_month_jobs: number
+          fees_prev_month: number
           jobs_24h: number
           jobs_prev_24h: number
           jobs_without_bids: number
@@ -886,9 +893,19 @@ export type Database = {
         }[]
       }
       auth_role: { Args: never; Returns: string }
+      bid_accept_window: { Args: never; Returns: string }
+      bid_effective_status: {
+        Args: {
+          p_accept_deadline: string
+          p_expires_at: string
+          p_status: string
+        }
+        Returns: string
+      }
       bids_for_job: {
         Args: { p_job_id: string }
         Returns: {
+          accept_deadline: string
           created_at: string
           eta_minutes: number
           expires_at: string
@@ -941,7 +958,6 @@ export type Database = {
           pros_count: number
         }[]
       }
-      commission_rate: { Args: never; Returns: number }
       complete_job: {
         Args: { p_job_id: string; p_payment_method: string }
         Returns: string
@@ -950,12 +966,15 @@ export type Database = {
         Args: { p_approve: boolean; p_id: string }
         Returns: string
       }
+      decline_job: { Args: { p_bid_id: string }; Returns: undefined }
       expire_stale_bids: { Args: never; Returns: number }
+      expire_stale_selections: { Args: never; Returns: number }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_pro: { Args: { p_job_id: string }; Returns: boolean }
       is_bidding_pro: { Args: { p_job_id: string }; Returns: boolean }
       is_job_owner: { Args: { p_job_id: string }; Returns: boolean }
       is_verified_pro: { Args: never; Returns: boolean }
+      job_acceptance_fee: { Args: never; Returns: number }
       job_bid_count: { Args: { p_job_id: string }; Returns: number }
       job_city: { Args: { p_address: string }; Returns: string }
       job_contact: {
@@ -975,9 +994,10 @@ export type Database = {
           base_price: number
           category_name_he: string
           charged_at: string
-          commission_amount: number
+          completed_at: string
           customer_name: string
           description: string
+          fee_amount: number
           job_id: string
           net_amount: number
           payment_method: string
@@ -1023,15 +1043,17 @@ export type Database = {
         Args: never
         Returns: {
           acceptance_pct: number
+          accepted: number
           avg_response_minutes: number
+          awaiting_answer: number
           pending: number
-          selected: number
           total: number
         }[]
       }
       my_bids: {
         Args: never
         Returns: {
+          accept_deadline: string
           category_name_he: string
           category_slug: string
           created_at: string
@@ -1059,9 +1081,10 @@ export type Database = {
           category_name_he: string
           category_slug: string
           charged_at: string
-          commission_amount: number
+          completed_at: string
           customer_name: string
           description: string
+          fee_amount: number
           job_id: string
           net_amount: number
           payment_method: string
@@ -1072,13 +1095,15 @@ export type Database = {
       my_earnings_stats: {
         Args: { p_since?: string }
         Returns: {
-          commission: number
+          fees: number
           gross: number
           jobs_count: number
-          lifetime_commission: number
+          lifetime_fees: number
           lifetime_gross: number
           lifetime_jobs_count: number
           net: number
+          open_fees: number
+          open_jobs_count: number
           rating_avg: number
           rating_count: number
         }[]
@@ -1095,6 +1120,23 @@ export type Database = {
           last_body: string
           pro_id: string
           unread_count: number
+        }[]
+      }
+      my_pending_acceptances: {
+        Args: never
+        Returns: {
+          accept_deadline: string
+          address_text: string
+          bid_id: string
+          category_name_he: string
+          customer_name: string
+          description: string
+          eta_minutes: number
+          fee_amount: number
+          job_id: string
+          photo_urls: string[]
+          price: number
+          selected_at: string
         }[]
       }
       my_reviews: {
@@ -1127,6 +1169,7 @@ export type Database = {
         Args: { p_max_km?: number }
         Returns: {
           address_text: string
+          awaiting_answer: boolean
           bids_count: number
           category_id: string
           category_name_he: string
@@ -1273,6 +1316,7 @@ export type Database = {
           sender_name: string
         }[]
       }
+      withdraw_bid_selection: { Args: { p_job_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

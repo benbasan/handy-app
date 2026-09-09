@@ -17,7 +17,6 @@ import {
   PRICE_UPDATE_STEP,
   priceDelta,
 } from "@/lib/validation/priceUpdates";
-import { commissionBreakdown } from "@/lib/validation/pros";
 
 /**
  * The orange card on design/screens/pro-3.1-manage-job-price-update.png —
@@ -67,7 +66,6 @@ export function PriceUpdateForm({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const delta = priceDelta(originalPrice, newPrice);
-  const { commission } = commissionBreakdown(newPrice);
 
   async function onPickPhoto(file: File | undefined) {
     if (!file) return;
@@ -265,14 +263,17 @@ export function PriceUpdateForm({
         </div>
       </div>
 
+      {/* What Handy takes does not appear here any more, and that is the
+          point: since Phase 10 the fee is a flat sum charged when the job was
+          taken, so an approved update changes what the pro earns and nothing
+          else. */}
       <p className="mt-2 text-sm text-muted">
         הפרש{" "}
         <span className="ltr-nums font-semibold text-ink">
           {delta > 0 ? "+" : ""}
           {formatIls(delta)}
         </span>{" "}
-        ₪ · עמלת Handy על המחיר המעודכן{" "}
-        <span className="ltr-nums">{formatIls(commission)}</span> ₪
+        ₪ · כולו שלך: דמי קבלת העבודה כבר נגבו ואינם משתנים
       </p>
 
       {state.fieldErrors?.newPrice && (

@@ -285,7 +285,7 @@ export async function saveProDocuments(
  *
  * product-spec.md 4.2 is explicit that this is a simulation on a sample job
  * and is never sent to a real customer, so nothing here touches `bids`. It is
- * still validated: the practice screen shows the pro the 12% commission
+ * still validated: the practice screen shows the pro the acceptance fee
  * arithmetic on the number they typed, and teaching that with a NaN in it
  * would be worse than not teaching it.
  */

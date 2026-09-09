@@ -57,16 +57,15 @@ export const SERVICE_RADIUS_LABEL: Record<number, string> = {
   15: "כל העיר",
 };
 
-/** product-spec.md 3.6 / business rule 4: Handy never handles the money. */
 /**
  * The four ways a customer pays a pro directly — product-spec.md 3.6 and
  * business rule 4: Handy never processes the money, it only records how it
- * changed hands so it can charge its 12% and print a receipt.
+ * changed hands so it can print a receipt.
  *
- * `bank_transfer`, not `transfer`: Phase 1 spelled it that way on
- * `commission_charges.payment_method`, and Phase 3 spelled it the other way on
- * `pro_profiles.payment_methods`. Phase 6 put both on the same screen, noticed,
- * and settled on the spelling that ends up on a receipt.
+ * `bank_transfer`, not `transfer`: Phase 1 spelled it that way on the ledger,
+ * and Phase 3 spelled it the other way on `pro_profiles.payment_methods`.
+ * Phase 6 put both on the same screen, noticed, and settled on the spelling
+ * that ends up on a receipt.
  */
 export const PAYMENT_METHODS = [
   "cash",
@@ -83,8 +82,17 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   bank_transfer: "העברה בנקאית",
 };
 
-/** Business rule 3, and the only number in the product that is not negotiable. */
-export const COMMISSION_RATE = 0.12;
+/**
+ * What Handy charges a pro for taking a job: a flat 35 ₪, once, at the moment
+ * they accept it — business rule 3 as Phase 10 rewrote it, replacing the 12%
+ * of a closed job that came before.
+ *
+ * `job_acceptance_fee()` is the number that is actually charged. This constant
+ * exists so a screen can show it before the button is pressed; the two are
+ * asserted equal in lib/validation/__tests__/completion.test.ts, which reads
+ * the migration.
+ */
+export const ACCEPTANCE_FEE = 35;
 
 export const BIO_MAX = 600;
 
@@ -248,7 +256,7 @@ export const practiceBidSchema = z.object({
     .transform((value) => (value === "" ? undefined : value)),
 });
 
-/** Step 5 — how money moves, on both sides of the 12%. */
+/** Step 5 — how money moves, on both sides of the fee. */
 export const payoutSchema = z.object({
   paymentMethods: z
     .array(z.enum(PAYMENT_METHODS))
@@ -297,17 +305,21 @@ export const setVerificationSchema = z.object({
 
 /**
  * What Handy takes and what is left, from a bid price. Business rule 3: the
- * 12% is charged to the pro, never added to the customer's price.
+ * fee is charged to the pro, never added to the customer's price.
  *
- * Rounded to agorot at each end so the two numbers the pro is shown always add
- * back up to the price they typed.
+ * The fee no longer moves with the price, so this is nearly a subtraction —
+ * it stays a function because every screen that shows "נטו אליך" should get
+ * the number from one place, and because what it subtracts changed once
+ * already.
  */
-export function commissionBreakdown(price: number): {
-  commission: number;
+export function feeBreakdown(price: number): {
+  fee: number;
   net: number;
 } {
-  const commission = Math.round(price * COMMISSION_RATE * 100) / 100;
-  return { commission, net: Math.round((price - commission) * 100) / 100 };
+  return {
+    fee: ACCEPTANCE_FEE,
+    net: Math.round((price - ACCEPTANCE_FEE) * 100) / 100,
+  };
 }
 
 /** "כל יום" beats listing all seven; a workless week reads as a warning. */

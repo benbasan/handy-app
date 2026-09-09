@@ -10,16 +10,29 @@ import { z } from "zod";
  *  * `expiresAt` — the 45 minutes are a column default plus a trigger, and the
  *    pro holds no INSERT grant on that column. A form cannot offer a bid that
  *    never lapses.
- *  * `status` — `pending → selected/rejected` is `select_bid()` and
- *    `pending → expired` is `expire_stale_bids()`, both security definer. No
- *    client role holds an UPDATE grant on the column.
- *  * The commission. It is derived from the price by
- *    `commissionBreakdown()`, never sent from the browser: business rule 3 is
- *    server-authoritative like every other number with a ₪ in front of it.
+ *  * `status` — every transition is a security definer function
+ *    (`select_bid()`, `accept_job()`, `decline_job()`,
+ *    `withdraw_bid_selection()`, and the two sweeps). No client role holds an
+ *    UPDATE grant on the column.
+ *  * `acceptDeadline` — the two hours a chosen pro has to answer are stamped
+ *    by `select_bid()`. A form cannot extend its own window.
+ *  * The fee. It is `job_acceptance_fee()`, shown by `feeBreakdown()` and
+ *    never sent from the browser: business rule 3 is server-authoritative like
+ *    every other number with a ₪ in front of it.
  */
 
 /** Business rule 6 — הצעת מחיר תקפה 45 דקות. Mirrors the column default. */
 export const BID_VALIDITY_MINUTES = 45;
+
+/**
+ * How long a chosen pro has to answer — `bid_accept_window()`, in minutes.
+ *
+ * Longer than the offer's own 45 minutes on purpose, and the two clocks do not
+ * overlap: once a bid is chosen, `expires_at` stops mattering and this is what
+ * runs. Two hours because nothing notifies a pro whose tab is closed
+ * (CLAUDE.md section 9).
+ */
+export const ACCEPT_WINDOW_MINUTES = 120;
 
 /** The four chips on design/screens/pro-2.3-submit-bid.png. */
 export const ETA_OPTIONS = [15, 30, 45, 60] as const;
@@ -41,13 +54,18 @@ export const DEFAULT_BID_PRICE = 320;
 export const BID_NOTE_MAX = 500;
 
 /**
- * The five states a bid can be in on screen. `expired` is reported by the read
- * functions the moment the deadline passes, whether or not the sweep has run —
- * so a label here is never ahead of or behind the database.
+ * The six states a bid can be in on screen. `expired` is reported by the read
+ * functions the moment either deadline passes, whether or not a sweep has run
+ * — so a label here is never ahead of or behind the database.
+ *
+ * `selected` stopped meaning "won" in Phase 10: it is the offer the customer
+ * has made and the pro has not answered. `accepted` is winning.
  */
 export const BID_STATUSES = [
   "pending",
   "selected",
+  "accepted",
+  "declined",
   "rejected",
   "expired",
 ] as const;
@@ -56,7 +74,9 @@ export type BidStatus = (typeof BID_STATUSES)[number];
 /** Customer-facing wording (design/screens/customer-2.2-compare-bids.png). */
 export const BID_STATUS_LABEL: Record<BidStatus, string> = {
   pending: "ממתינה להחלטה",
-  selected: "ההצעה שנבחרה",
+  selected: "ממתין לאישור בעל המקצוע",
+  accepted: "ההצעה שנבחרה",
+  declined: "בעל המקצוע ויתר",
   rejected: "לא נבחרה",
   expired: "פג תוקף",
 };
@@ -64,7 +84,9 @@ export const BID_STATUS_LABEL: Record<BidStatus, string> = {
 /** Pro-facing wording (design/screens/pro-2.4-my-bids.png). */
 export const BID_STATUS_LABEL_PRO: Record<BidStatus, string> = {
   pending: "ממתינה לבחירת הלקוח",
-  selected: "הלקוח בחר בך",
+  selected: "הלקוח בחר בך — צריך את האישור שלך",
+  accepted: "לקחת את העבודה",
+  declined: "ויתרת על העבודה",
   rejected: "הלקוח בחר אחר",
   expired: "פג תוקף — לא נענה",
 };
@@ -128,6 +150,16 @@ export const selectBidSchema = z.object({
   bidId: z.uuid({ error: "מזהה הצעה לא תקין" }),
 });
 
+/** "אשר וקח את העבודה" / "ויתור" — the pro's two answers. */
+export const answerOfferSchema = z.object({
+  bidId: z.uuid({ error: "מזהה הצעה לא תקין" }),
+});
+
+/** "בטל בחירה" — the customer takes an unanswered offer back. */
+export const withdrawSelectionSchema = z.object({
+  jobId: z.uuid({ error: "מזהה קריאה לא תקין" }),
+});
+
 /**
  * "כולל ביקור וחלקים" under every price in the design — business rule 2, that
  * there are no separate call-out fees. Kept here beside the schema so the two
@@ -153,13 +185,32 @@ export function relativeTime(iso: string, now: number = Date.now()): string {
 
 /**
  * "ההצעה תקפה עוד 38 דקות" — counted down from the deadline the database
- * wrote, not from when the page happened to render a timer.
+ * wrote, not from when the page happened to render a timer. Serves both
+ * clocks: the offer's 45 minutes and the acceptance window's two hours.
  */
 export function minutesLeft(
   expiresAt: string,
   now: number = Date.now(),
 ): number {
   return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - now) / 60000));
+}
+
+/**
+ * "עוד שעה ו-12 דק׳" — the acceptance window is long enough that a bare
+ * minute count stops being readable at a glance.
+ */
+export function timeLeftLabel(
+  deadline: string,
+  now: number = Date.now(),
+): string {
+  const minutes = minutesLeft(deadline, now);
+  if (minutes <= 0) return "פג הזמן";
+  if (minutes < 60) return `עוד ${minutes} דק׳`;
+
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  const hoursLabel = hours === 1 ? "שעה" : `${hours} שעות`;
+  return rest === 0 ? `עוד ${hoursLabel}` : `עוד ${hoursLabel} ו-${rest} דק׳`;
 }
 
 /** "ד.ל" — the initials avatar the compare screen puts beside each offer. */

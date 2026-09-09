@@ -24,7 +24,7 @@ import {
  * front of it:
  *
  *  * `complete_job()` reads the base from the selected bid and the total from
- *    `job_effective_price()`, and computes the 12% itself. This file sends one
+ *    `job_effective_price()` itself. This file sends one
  *    fact — how the pro was paid — because that is the only thing about the
  *    closing the server cannot work out on its own.
  *  * `submit_job_review()` refuses a job that is not finished and is the only

@@ -165,9 +165,10 @@ export default async function PricingPage() {
 
       <section className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl bg-ink p-5 text-white sm:p-6">
-          <h2 className="text-lg font-bold">עמלת Handy</h2>
+          <h2 className="text-lg font-bold">דמי קבלת עבודה</h2>
           <p className="mt-2 text-sm text-white/75">
-            12% נגבים מבעל המקצוע על עבודה שנסגרה. הלקוח לא משלם ל-Handy כלום.
+            35 ₪ נגבים מבעל המקצוע כשהוא מאשר שהוא לוקח את העבודה. הלקוח לא משלם
+            ל-Handy כלום.
           </p>
         </div>
         <div className={`${CARD_CLASS}`}>

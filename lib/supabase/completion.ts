@@ -13,7 +13,7 @@ import {
  *
  *  * `job_receipt()` names both sides of the job, and `profiles` has no
  *    cross-user read policy. It is also where the two readers are told
- *    different things — the commission comes back NULL for the customer.
+ *    different things — the fee comes back NULL for the customer.
  *  * `my_completed_jobs()` and `my_earnings_stats()` carry the customer's name
  *    beside each amount, and scope themselves to `auth.uid()` inside the
  *    function, so "a pro sees only their own earnings" is not a filter this
@@ -46,10 +46,12 @@ export type JobReceipt = {
   paymentMethod: PaymentMethod;
   basePrice: number;
   totalPrice: number;
-  /** NULL for the customer: the 12% is between Handy and the pro. */
-  commissionAmount: number | null;
+  /** NULL for the customer: what Handy charges the pro is theirs to know. */
+  feeAmount: number | null;
   netAmount: number | null;
+  /** When the pro took the job — which is when the fee was charged. */
   chargedAt: string;
+  completedAt: string;
   rating: number | null;
   reviewComment: string | null;
 };
@@ -77,10 +79,10 @@ export async function getJobReceipt(jobId: string): Promise<JobReceipt | null> {
     paymentMethod: toPaymentMethod(row.payment_method),
     basePrice: Number(row.base_price),
     totalPrice: Number(row.total_price),
-    commissionAmount:
-      row.commission_amount === null ? null : Number(row.commission_amount),
+    feeAmount: row.fee_amount === null ? null : Number(row.fee_amount),
     netAmount: row.net_amount === null ? null : Number(row.net_amount),
     chargedAt: row.charged_at,
+    completedAt: row.completed_at,
     rating: row.rating,
     reviewComment: row.review_comment,
   };
@@ -96,10 +98,12 @@ export type CompletedJob = {
   customerName: string | null;
   basePrice: number;
   totalPrice: number;
-  commissionAmount: number;
+  feeAmount: number;
   netAmount: number;
   paymentMethod: PaymentMethod;
+  /** When the job was taken, and when it was closed — days apart, sometimes. */
   chargedAt: string;
+  completedAt: string;
   rating: number | null;
 };
 
@@ -125,10 +129,11 @@ export async function listMyCompletedJobs(
     customerName: row.customer_name,
     basePrice: Number(row.base_price),
     totalPrice: Number(row.total_price),
-    commissionAmount: Number(row.commission_amount),
+    feeAmount: Number(row.fee_amount),
     netAmount: Number(row.net_amount),
     paymentMethod: toPaymentMethod(row.payment_method),
     chargedAt: row.charged_at,
+    completedAt: row.completed_at,
     rating: row.rating,
   }));
 }
@@ -137,11 +142,14 @@ export async function listMyCompletedJobs(
 export type EarningsStats = {
   jobsCount: number;
   gross: number;
-  commission: number;
+  fees: number;
   net: number;
+  /** Taken and paid for, not finished yet: the fee on these is already spent. */
+  openJobsCount: number;
+  openFees: number;
   lifetimeJobsCount: number;
   lifetimeGross: number;
-  lifetimeCommission: number;
+  lifetimeFees: number;
   /** From `reviews`, to two decimals — the design prints 4.95. */
   ratingAvg: number | null;
   ratingCount: number;
@@ -150,11 +158,13 @@ export type EarningsStats = {
 const NO_EARNINGS: EarningsStats = {
   jobsCount: 0,
   gross: 0,
-  commission: 0,
+  fees: 0,
   net: 0,
+  openJobsCount: 0,
+  openFees: 0,
   lifetimeJobsCount: 0,
   lifetimeGross: 0,
-  lifetimeCommission: 0,
+  lifetimeFees: 0,
   ratingAvg: null,
   ratingCount: 0,
 };
@@ -172,11 +182,13 @@ export async function getMyEarningsStats(since?: Date): Promise<EarningsStats> {
   return {
     jobsCount: row.jobs_count,
     gross: Number(row.gross),
-    commission: Number(row.commission),
+    fees: Number(row.fees),
     net: Number(row.net),
+    openJobsCount: row.open_jobs_count,
+    openFees: Number(row.open_fees),
     lifetimeJobsCount: row.lifetime_jobs_count,
     lifetimeGross: Number(row.lifetime_gross),
-    lifetimeCommission: Number(row.lifetime_commission),
+    lifetimeFees: Number(row.lifetime_fees),
     ratingAvg: row.rating_avg === null ? null : Number(row.rating_avg),
     ratingCount: row.rating_count,
   };

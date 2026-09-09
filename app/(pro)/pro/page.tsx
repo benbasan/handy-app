@@ -3,7 +3,7 @@ import { ProLogo } from "@/components/pro/ProLogo";
 import { BUTTON_PRO, CARD_BASE, Card } from "@/components/ui/primitives";
 import { PRO_ROUTES, ROLE_LOGIN } from "@/lib/routes";
 import { getCurrentUser } from "@/lib/supabase/session";
-import { COMMISSION_RATE } from "@/lib/validation/pros";
+import { ACCEPTANCE_FEE } from "@/lib/validation/pros";
 
 // Identity is a per-request fact, not a build-time one.
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Handy Pro — עבודות אמיתיות, בסביבה שלך",
   description:
-    "קריאות מלקוחות מאומתים ברדיוס שאתם בוחרים. עמלה של 12% רק על עבודה שנסגרה, ללא דמי הרשמה וללא תשלום על הצעות שלא נבחרו.",
+    "קריאות מלקוחות מאומתים ברדיוס שאתם בוחרים. 35 ₪ בלבד על עבודה שאישרתם, ללא דמי הרשמה וללא תשלום על הצעות שלא נבחרו.",
 };
 
 /**
@@ -67,7 +67,7 @@ export default async function ProLandingPage() {
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-2">
             <div>
               <p className="inline-flex items-center gap-2 rounded-full bg-cta/15 px-4 py-2 text-sm font-semibold text-cta-bright">
-                ללא דמי מנוי · עמלה רק על עבודה שנסגרה
+                ללא דמי מנוי · תשלום רק על עבודה שאישרתם
               </p>
 
               <h1 className="mt-5 text-4xl leading-tight font-bold sm:text-5xl">
@@ -95,10 +95,7 @@ export default async function ProLandingPage() {
 
               <dl className="mt-8 grid max-w-lg grid-cols-3 gap-4">
                 <Stat value="0 ₪" label="דמי הרשמה" />
-                <Stat
-                  value={`${Math.round(COMMISSION_RATE * 100)}%`}
-                  label="עמלה בלבד"
-                />
+                <Stat value={`${ACCEPTANCE_FEE} ₪`} label="על עבודה שאישרתם" />
                 <Stat value="0 ₪" label="על הצעה שלא נבחרה" />
               </dl>
             </div>
@@ -166,7 +163,7 @@ export default async function ProLandingPage() {
 
       <footer className="border-t border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm text-muted sm:px-6">
-          <p>Handy Pro · עמלה של 12% — רק על עבודה שנסגרה.</p>
+          <p>Handy Pro · 35 ₪ לעבודה — רק על עבודה שאישרתם.</p>
           <Link href="/" className="hover:text-ink">
             לאזור הלקוחות
           </Link>

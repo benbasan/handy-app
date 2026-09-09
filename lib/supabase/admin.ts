@@ -35,9 +35,9 @@ export type AdminOverview = {
   minutesToFirstBid: number | null;
   closedRatePct: number | null;
   jobsWithoutBids: number;
-  commissionMonth: number;
-  commissionMonthJobs: number;
-  commissionPrevMonth: number;
+  feesMonth: number;
+  feesMonthJobs: number;
+  feesPrevMonth: number;
   unreviewedDocs: number;
   prosWithManyPriceUpdates: number;
 };
@@ -50,9 +50,9 @@ const NO_OVERVIEW: AdminOverview = {
   minutesToFirstBid: null,
   closedRatePct: null,
   jobsWithoutBids: 0,
-  commissionMonth: 0,
-  commissionMonthJobs: 0,
-  commissionPrevMonth: 0,
+  feesMonth: 0,
+  feesMonthJobs: 0,
+  feesPrevMonth: 0,
   unreviewedDocs: 0,
   prosWithManyPriceUpdates: 0,
 };
@@ -76,9 +76,9 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     closedRatePct:
       row.closed_rate_pct === null ? null : Number(row.closed_rate_pct),
     jobsWithoutBids: row.jobs_without_bids,
-    commissionMonth: Number(row.commission_month),
-    commissionMonthJobs: row.commission_month_jobs,
-    commissionPrevMonth: Number(row.commission_prev_month),
+    feesMonth: Number(row.fees_month),
+    feesMonthJobs: row.fees_month_jobs,
+    feesPrevMonth: Number(row.fees_prev_month),
     unreviewedDocs: row.unreviewed_docs,
     prosWithManyPriceUpdates: row.pros_with_many_price_updates,
   };

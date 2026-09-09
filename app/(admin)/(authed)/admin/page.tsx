@@ -41,10 +41,7 @@ export default async function AdminOverviewPage() {
   ]);
 
   const jobsChange = percentChange(overview.jobs24h, overview.jobsPrev24h);
-  const commissionChange = percentChange(
-    overview.commissionMonth,
-    overview.commissionPrevMonth,
-  );
+  const feesChange = percentChange(overview.feesMonth, overview.feesPrevMonth);
 
   const alerts = [
     overview.jobsWithoutBids > 0
@@ -155,24 +152,26 @@ export default async function AdminOverviewPage() {
 
           <div className="space-y-4">
             <section className="rounded-2xl bg-ink p-5 text-white sm:p-6">
-              <p className="text-sm text-white/70">הכנסות עמלה החודש</p>
+              <p className="text-sm text-white/70">
+                הכנסות מדמי קבלת עבודה החודש
+              </p>
               <p className="mt-2 text-4xl font-bold text-cta">
                 <span className="ltr-nums">
-                  {formatIls(overview.commissionMonth)}
+                  {formatIls(overview.feesMonth)}
                 </span>{" "}
                 ₪
               </p>
+              {/* "שנלקחו", not "שנסגרו": since Phase 10 the charge happens
+                  when a pro accepts, so this counts acceptances — including
+                  jobs still under way. */}
               <p className="mt-2 text-sm text-white/70">
-                מ-
-                <span className="ltr-nums">
-                  {overview.commissionMonthJobs}
-                </span>{" "}
-                עבודות שנסגרו
+                מ-<span className="ltr-nums">{overview.feesMonthJobs}</span>{" "}
+                עבודות שנלקחו
               </p>
               <p className="mt-1 text-sm text-white/70">
-                {commissionChange === null
+                {feesChange === null
                   ? "אין חודש קודם להשוות אליו"
-                  : `${commissionChange >= 0 ? "+" : ""}${commissionChange}% מהחודש הקודם`}
+                  : `${feesChange >= 0 ? "+" : ""}${feesChange}% מהחודש הקודם`}
               </p>
             </section>
 

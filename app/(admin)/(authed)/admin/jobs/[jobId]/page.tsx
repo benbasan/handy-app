@@ -43,7 +43,7 @@ export async function generateMetadata({
  *
  * This screen is that sentence. Everything on it is read as plain rows under
  * the admin's own RLS — `jobs`, `bids`, `price_updates`, `messages`,
- * `commission_charges` — through the very modules the customer and the pro use
+ * `job_fees` — through the very modules the customer and the pro use
  * for the same data. There is no admin-only projection of a job anywhere in
  * this codebase, which is what makes "the admin sees what happened" and "the
  * two sides see what happened" the same sentence rather than two.
@@ -69,7 +69,7 @@ export default async function AdminJobDossierPage({
     getJobReceipt(jobId),
   ]);
 
-  const selectedBid = bids.find((bid) => bid.status === "selected") ?? null;
+  const selectedBid = bids.find((bid) => bid.status === "accepted") ?? null;
 
   const [media, faultPhotos, jobThreads, assignedPro] = await Promise.all([
     signJobMedia(
@@ -191,7 +191,7 @@ export default async function AdminJobDossierPage({
                     הגעה תוך <span className="ltr-nums">{bid.etaMinutes}</span>{" "}
                     דק׳
                   </span>
-                  {bid.status === "selected" ? (
+                  {bid.status === "accepted" ? (
                     <Badge tone="done">נבחרה</Badge>
                   ) : (
                     <Badge tone="neutral">
@@ -351,11 +351,11 @@ export default async function AdminJobDossierPage({
                 ltr
               />
               <Fact
-                label="עמלת Handy"
+                label="דמי קבלת עבודה"
                 value={
-                  receipt.commissionAmount === null
+                  receipt.feeAmount === null
                     ? "—"
-                    : `${formatIls(receipt.commissionAmount)} ₪`
+                    : `${formatIls(receipt.feeAmount)} ₪`
                 }
                 ltr
               />

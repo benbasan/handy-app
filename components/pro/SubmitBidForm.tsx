@@ -22,18 +22,19 @@ import {
   MIN_BID_PRICE,
   PRICE_STEP,
 } from "@/lib/validation/bids";
-import { commissionBreakdown } from "@/lib/validation/pros";
+import { ACCEPTANCE_FEE, feeBreakdown } from "@/lib/validation/pros";
 
 /**
  * design/screens/pro-2.3-submit-bid.png — the dark price card on the leading
  * edge, the commission breakdown under it, and the ETA chips plus note in the
  * main column.
  *
- * The commission arithmetic runs live as the pro types, because that is the
- * number the screen exists to make unmissable: 12% off the price, and what is
- * actually left. It is a *display* of business rule 3, never an input —
- * nothing here submits a commission, and the server recomputes it from the
- * price when it matters (Phase 6).
+ * The net runs live as the pro types, because that is the number the screen
+ * exists to make unmissable: what is actually left after Handy's fee. The fee
+ * itself no longer moves with the price — it is a flat 35 ₪ — and the line
+ * under it says the thing that matters more than its size: it is charged only
+ * if this offer is chosen *and* the pro then accepts. It is a *display* of
+ * business rule 3, never an input.
  *
  * The same component serves "עדכן הצעה" on the offers list: the two actions
  * write the same four fields, and re-pricing a live bid restarts its 45
@@ -63,7 +64,7 @@ export function SubmitBidForm({
   const [price, setPrice] = useState(initialPrice ?? DEFAULT_BID_PRICE);
   const [eta, setEta] = useState(initialEta ?? DEFAULT_ETA_MINUTES);
 
-  const { commission, net } = commissionBreakdown(price);
+  const { net } = feeBreakdown(price);
 
   // The three quick prices in the design. Anchored on what the pro has already
   // chosen, so they stay useful after a nudge rather than jumping back.
@@ -174,10 +175,10 @@ export function SubmitBidForm({
         <div className={`${CARD_BASE} p-6`}>
           <dl className="divide-y divide-line text-sm">
             <div className="flex items-baseline justify-between gap-3 pb-3">
-              <dt className="text-muted">עמלת Handy (12%)</dt>
+              <dt className="text-muted">דמי קבלת עבודה</dt>
               <dd className="font-bold text-ink">
                 <span className="ltr-nums">
-                  {commission.toLocaleString("he-IL")}
+                  {ACCEPTANCE_FEE.toLocaleString("he-IL")}
                 </span>{" "}
                 ₪
               </dd>
@@ -202,6 +203,9 @@ export function SubmitBidForm({
           <p className="mt-2 text-center text-xs text-muted">
             ההצעה תקפה {BID_VALIDITY_MINUTES} דקות
             {bidId ? " — עדכון מחיר מתחיל את הספירה מחדש." : "."}
+          </p>
+          <p className="mt-1 text-center text-xs text-muted">
+            דמי קבלת העבודה נגבים רק אם הלקוח יבחר בך ותאשר שאתה לוקח את העבודה.
           </p>
 
           {state.error && (

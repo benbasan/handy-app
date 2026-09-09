@@ -32,6 +32,8 @@ export type JobBid = {
   note: string | null;
   status: BidStatus;
   expiresAt: string;
+  /** Set only while this is the offer waiting for its pro to answer. */
+  acceptDeadline: string | null;
   createdAt: string;
   unreadCount: number;
 };
@@ -59,6 +61,7 @@ export async function listBidsForJob(jobId: string): Promise<JobBid[]> {
     note: row.note,
     status: toBidStatus(row.status),
     expiresAt: row.expires_at,
+    acceptDeadline: row.accept_deadline,
     createdAt: row.created_at,
     unreadCount: row.unread_count,
   }));
@@ -153,6 +156,7 @@ export type MyBid = {
   note: string | null;
   status: BidStatus;
   expiresAt: string;
+  acceptDeadline: string | null;
   createdAt: string;
   /** Only ever set on a lost bid: the price that won, never who offered it. */
   winningPrice: number | null;
@@ -179,6 +183,7 @@ export async function listMyBids(): Promise<MyBid[]> {
     note: row.note,
     status: toBidStatus(row.status),
     expiresAt: row.expires_at,
+    acceptDeadline: row.accept_deadline,
     createdAt: row.created_at,
     winningPrice: row.winning_price === null ? null : Number(row.winning_price),
     unreadCount: row.unread_count,
@@ -189,7 +194,9 @@ export async function listMyBids(): Promise<MyBid[]> {
 export type BidStats = {
   total: number;
   pending: number;
-  selected: number;
+  accepted: number;
+  /** Offers the customer has made this pro that they have not answered. */
+  awaitingAnswer: number;
   acceptancePct: number | null;
   avgResponseMinutes: number | null;
 };
@@ -203,7 +210,8 @@ export async function getMyBidStats(): Promise<BidStats> {
   return {
     total: row?.total ?? 0,
     pending: row?.pending ?? 0,
-    selected: row?.selected ?? 0,
+    accepted: row?.accepted ?? 0,
+    awaitingAnswer: row?.awaiting_answer ?? 0,
     acceptancePct: row?.acceptance_pct ?? null,
     avgResponseMinutes: row?.avg_response_minutes ?? null,
   };
@@ -260,8 +268,57 @@ export async function getSimilarBidRange(
  * function only advances rows the clock has already settled, and nothing in
  * the product depends on it having run — `select_bid()` re-reads the deadline
  * itself and every read function reports a lapsed bid as expired regardless.
+ * The same is true of `accept_job()` and the two-hour acceptance window.
  */
 export async function sweepExpiredBids(): Promise<void> {
   const supabase = await createClient();
-  await supabase.rpc("expire_stale_bids");
+  await Promise.all([
+    supabase.rpc("expire_stale_bids"),
+    // The second clock (Phase 10): an offer the pro never answered. Same
+    // trade — the screens read better for it, and nothing depends on it.
+    supabase.rpc("expire_stale_selections"),
+  ]);
+}
+
+/**
+ * "נבחרת" — the job a customer has offered this pro, and the fee that taking
+ * it will charge. design/screens/pro-2.4-my-bids.png, top of the list.
+ *
+ * `feeAmount` comes from the database rather than from ACCEPTANCE_FEE, so the
+ * number under the button is the one `accept_job()` will actually write.
+ */
+export type PendingAcceptance = {
+  bidId: string;
+  jobId: string;
+  description: string;
+  addressText: string;
+  categoryName: string;
+  customerName: string | null;
+  price: number;
+  etaMinutes: number;
+  acceptDeadline: string;
+  feeAmount: number;
+  photoPaths: string[];
+  selectedAt: string;
+};
+
+export async function listMyPendingAcceptances(): Promise<PendingAcceptance[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase.rpc("my_pending_acceptances");
+
+  return (data ?? []).map((row) => ({
+    bidId: row.bid_id,
+    jobId: row.job_id,
+    description: row.description,
+    addressText: row.address_text,
+    categoryName: row.category_name_he,
+    customerName: row.customer_name,
+    price: Number(row.price),
+    etaMinutes: row.eta_minutes,
+    acceptDeadline: row.accept_deadline,
+    feeAmount: Number(row.fee_amount),
+    photoPaths: row.photo_urls ?? [],
+    selectedAt: row.selected_at,
+  }));
 }

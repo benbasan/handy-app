@@ -376,9 +376,9 @@ insert into public.jobs (
   now() - interval '2 hours'
 );
 
--- Inserted already 'selected': the seed is not a client, and status has no
--- INSERT grant through PostgREST. A real bid can only reach this state through
--- select_bid().
+-- Inserted already 'accepted': the seed is not a client, and status has no
+-- INSERT grant through PostgREST. A real bid reaches this state through
+-- select_bid() and then the pro's own accept_job().
 insert into public.bids (
   id, job_id, pro_id, price, eta_minutes, note, status, expires_at, created_at
 ) values (
@@ -386,13 +386,23 @@ insert into public.bids (
   'd0000000-0000-4000-8000-000000000003',
   'a0000000-0000-4000-8000-000000000006',
   320, 25, 'מגיע עם צנרת חלופית. אחריות שנה.',
-  'selected', now() + interval '40 minutes', now() - interval '90 minutes'
+  'accepted', now() + interval '40 minutes', now() - interval '90 minutes'
 );
 
 update public.jobs
    set status = 'assigned',
        selected_bid_id = 'b0000000-0000-4000-8000-000000000005'
  where id = 'd0000000-0000-4000-8000-000000000003';
+
+-- Phase 10: an assigned job always carries a fee row, because accept_job() is
+-- the only way to become assigned and it writes one in the same statement.
+-- total_price and payment_method stay null — this job is still under way.
+insert into public.job_fees (job_id, pro_id, base_price, fee_amount, charged_at)
+values (
+  'd0000000-0000-4000-8000-000000000003',
+  'a0000000-0000-4000-8000-000000000006',
+  320, 35, now() - interval '85 minutes'
+);
 
 -- Roughly a kilometre out, moving in. `updated_at` is recent on purpose: the
 -- customer's screen calls a position older than a few minutes stale rather
@@ -469,21 +479,21 @@ insert into public.jobs (
     'flexible', 5, 'open', now() - interval '12 days' - interval '2 hours'
   );
 
--- 'selected' straight away, for the reason the Phase 5 block gives: the seed is
--- not a client, and through PostgREST a bid can only reach this state through
--- select_bid().
+-- 'accepted' straight away, for the reason the Phase 5 block gives: the seed is
+-- not a client, and through PostgREST a bid reaches this state only through
+-- select_bid() followed by the pro's own accept_job().
 insert into public.bids (
   id, job_id, pro_id, price, eta_minutes, note, status, expires_at, created_at
 ) values
   ('b0000000-0000-4000-8000-000000000006', 'd0000000-0000-4000-8000-000000000004',
    'a0000000-0000-4000-8000-000000000003', 380, 25, 'כולל חלקים ואחריות שנה.',
-   'selected', now() - interval '1 day', now() - interval '1 day' - interval '2 hours'),
+   'accepted', now() - interval '1 day', now() - interval '1 day' - interval '2 hours'),
   ('b0000000-0000-4000-8000-000000000007', 'd0000000-0000-4000-8000-000000000005',
    'a0000000-0000-4000-8000-000000000003', 260, 60, 'איטום פוליאוריטן, שתי שכבות.',
-   'selected', now() - interval '4 days', now() - interval '4 days' - interval '4 hours'),
+   'accepted', now() - interval '4 days', now() - interval '4 days' - interval '4 hours'),
   ('b0000000-0000-4000-8000-000000000008', 'd0000000-0000-4000-8000-000000000006',
    'a0000000-0000-4000-8000-000000000003', 320, 40, 'מגיע עם ברז חלופי.',
-   'selected', now() - interval '12 days', now() - interval '12 days' - interval '1 hour');
+   'accepted', now() - interval '12 days', now() - interval '12 days' - interval '1 hour');
 
 update public.jobs set status = 'completed',
        selected_bid_id = 'b0000000-0000-4000-8000-000000000006'
@@ -509,18 +519,28 @@ values (
   now() - interval '1 day' - interval '50 minutes'
 );
 
--- Written directly for the same reason the bids above are: through the app the
--- only path into this table is complete_job(), which computes every one of
--- these numbers itself. 12% of the total, to the agora.
-insert into public.commission_charges
-  (job_id, pro_id, base_price, total_price, commission_amount, payment_method, charged_at)
+-- Written directly for the same reason the bids above are: through the app a
+-- row here is opened by accept_job() and finished by complete_job(), and both
+-- read every number themselves.
+--
+-- `charged_at` is when the pro took the job and `completed_at` when they
+-- closed it — hours apart, as they are in life. The fee is the flat 35 ₪ on
+-- all three, whatever the job turned out to be worth: that is the whole point
+-- of the model, and a seed that quietly showed three different fees would hide
+-- it.
+insert into public.job_fees
+  (job_id, pro_id, base_price, total_price, fee_amount, payment_method,
+   charged_at, completed_at)
 values
   ('d0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000003',
-   380, 520, 62.40, 'cash',          now() - interval '1 day'),
+   380, 520, 35, 'cash',
+   now() - interval '1 day' - interval '2 hours',  now() - interval '1 day'),
   ('d0000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000003',
-   260, 260, 31.20, 'bit',           now() - interval '4 days'),
+   260, 260, 35, 'bit',
+   now() - interval '4 days' - interval '4 hours', now() - interval '4 days'),
   ('d0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000003',
-   320, 320, 38.40, 'bank_transfer', now() - interval '12 days');
+   320, 320, 35, 'bank_transfer',
+   now() - interval '12 days' - interval '1 hour', now() - interval '12 days');
 
 -- Two of the three are rated. The third is deliberately not: "ממתין לדירוג" is
 -- a real state on the wallet's table and the history tab, and an empty column
@@ -626,3 +646,60 @@ update public.reviews
    set pro_reply = 'תודה רבה דנה! שמח שהכול עובד. אם יחזור טפטוף — תתקשרי, זה תחת אחריות.',
        pro_replied_at = now() - interval '22 hours'
  where job_id = 'd0000000-0000-4000-8000-000000000004';
+
+-- ---------------------------------------------------------------------------
+-- Phase 10 — a job waiting for its pro to answer
+--
+-- The state the whole phase exists for, and one a fresh reset otherwise cannot
+-- reach: the customer has chosen, the two-hour clock is running, and nobody
+-- has answered. Signing in as the demo pro (972500000003) puts the "נבחרת"
+-- card on their dashboard immediately.
+--
+-- The second bid is the other half of the decision made on 8.9.2026: a rival
+-- offer that is still live while the first one is being thought about, so the
+-- customer's screen shows what "אפשר להתחרט" actually looks like.
+-- ---------------------------------------------------------------------------
+
+insert into public.jobs (
+  id, customer_id, category_id, description, photo_urls, location, address_text,
+  preferred_time, search_radius_km, status, created_at
+) values (
+  'd0000000-0000-4000-8000-000000000008',
+  'a0000000-0000-4000-8000-000000000001',
+  'c0000000-0000-4000-8000-000000000001',
+  'הניאגרה בשירותים ממשיכה לזרום ולא נעצרת.',
+  '{}',
+  extensions.st_point(34.7810, 32.0790)::extensions.geography,
+  'רחוב ארלוזורוב 21, תל אביב',
+  'today', 5, 'awaiting_pro', now() - interval '35 minutes'
+);
+
+-- Written directly, as every other bid in this file is: `status`,
+-- `accept_deadline` and `expires_at` have no INSERT grant for any client role.
+-- Through the app this row is select_bid()'s doing and nobody else's.
+insert into public.bids (
+  id, job_id, pro_id, price, eta_minutes, note, status,
+  expires_at, accept_deadline, created_at
+) values
+  (
+    'b0000000-0000-4000-8000-000000000009',
+    'd0000000-0000-4000-8000-000000000008',
+    'a0000000-0000-4000-8000-000000000003',
+    240, 40, 'מחליף מנגנון הדחה שלם, כולל אחריות שנה.',
+    'selected',
+    now() + interval '15 minutes',
+    now() + interval '1 hour' + interval '25 minutes',
+    now() - interval '30 minutes'
+  ),
+  -- Still pending, still choosable: the customer may change their mind at any
+  -- point in the window, and this is who they would change it to.
+  (
+    'b0000000-0000-4000-8000-000000000010',
+    'd0000000-0000-4000-8000-000000000008',
+    'a0000000-0000-4000-8000-000000000006',
+    290, 25, 'זמין מיד, מגיע עם מנגנון חלופי ברכב.',
+    'pending',
+    now() + interval '20 minutes',
+    null,
+    now() - interval '25 minutes'
+  );
