@@ -70,13 +70,37 @@ function OtpLoginFormAttempt({
       {sentTo ? (
         <form action={verifyAction} className="mt-6 space-y-4">
           <input type="hidden" name="phone" value={sentTo} />
+          {/*
+            Both only matter while real delivery is stood down
+            (lib/auth/bypass.ts): the bypass creates the account at this step,
+            so it needs to know which of the two self-service roles to ask for
+            and what to call the person. The ordinary path made the user in the
+            previous step and ignores them.
+          */}
+          <input type="hidden" name="role" value={role} />
+          {requestState.fullName && (
+            <input
+              type="hidden"
+              name="fullName"
+              value={requestState.fullName}
+            />
+          )}
 
-          <p className="text-sm text-muted">
-            שלחנו קוד בת 6 ספרות אל{" "}
-            <span dir="ltr" className="font-semibold">
-              {formatIsraeliMobile(sentTo)}
-            </span>
-          </p>
+          {requestState.bypass ? (
+            // One fact per line: the digits live in the field below, not in
+            // this sentence, so there is no Latin run inside the Hebrew to
+            // reorder. The screen must not claim an SMS was sent.
+            <p className="text-sm text-muted">
+              מצב הדגמה — לא נשלח SMS. קוד האימות כבר מולא, אפשר להמשיך.
+            </p>
+          ) : (
+            <p className="text-sm text-muted">
+              שלחנו קוד בת 6 ספרות אל{" "}
+              <span dir="ltr" className="font-semibold">
+                {formatIsraeliMobile(sentTo)}
+              </span>
+            </p>
+          )}
 
           <Field label="קוד אימות" htmlFor="token">
             <input
@@ -90,6 +114,7 @@ function OtpLoginFormAttempt({
               maxLength={6}
               required
               autoFocus
+              defaultValue={requestState.code ?? ""}
               dir="ltr"
               className={`${INPUT_CLASS} text-center font-mono text-lg tracking-[0.5em]`}
             />

@@ -31,6 +31,12 @@ export type DemoLoginState = {
  * session-forging primitive sitting in the codebase would be a far worse thing
  * to own than a publicly-known OTP. The OTP works for seven seeded numbers; a
  * forging primitive works for every user id there will ever be.
+ *
+ * That still holds. `lib/auth/bypass.ts` later made sign-in far wider than
+ * this — any phone number, one fixed code — but it did it without reversing
+ * the decision above: it holds a password and signs in through GoTrue's
+ * ordinary public API, so it can only ever reach accounts whose password it
+ * set itself. These four have none, which is why the bypass cannot touch them.
  */
 export async function signInAsDemoUser(
   _prevState: DemoLoginState,
