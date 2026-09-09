@@ -433,7 +433,7 @@
 **הגדרת סיום:**
 - [x] `ALLOW_NO_MAPS_KEY=1` מתועד ב-`.env.example` כמצב הנבחר, לא כמצב חירום — **וצריך להיות מוגדר ב-Vercel ולעבור פריסה מחדש**
 - [x] `npm run db:reset` נקי, `npm run db:test` (370 טענות, 10 חדשות ל-`saved_places`), `npm run db:types` מחודש ומקומט
-- [x] `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test` (388), `npm run test:e2e` (139) — כולם עוברים
+- [x] `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test` (388), `npm run test:e2e` (142, מהן שלוש חדשות ב-`e2e/address.spec.ts`) — כולם עוברים
 - [x] RTL: לוגיות בלבד, נסרק על ידי `tests/rtl.test.ts`
 - [x] `lib/content/cities.ts` הבטיח מאז Phase 8 שהקואורדינטות שלו תואמות לגזטיר; `citiesGazetteer.test.ts` הופך את זה לבדיקה
 - [ ] בדיקה ידנית בדפדפן, RTL — **ממתין לבדיקת המשתמש**: המיקום הנוכחי דורש הרשאה אמיתית ומכשיר אמיתי, ואי אפשר לשפוט אותו מבדיקה אוטומטית
