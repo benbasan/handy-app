@@ -2,11 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { geocodeAddress, toEwkt } from "@/lib/maps/geocode";
+import { addressToStore, geocodeAddress } from "@/lib/maps/geocode";
+import { toEwkt } from "@/lib/maps/geometry";
 import { fieldErrorsOf, optional } from "@/lib/actions/formData";
 import { INVALID_PRO_FORM } from "@/lib/actions/state";
 import type { ProFormState } from "@/lib/actions/state";
-import { logServerError } from "@/lib/observability";
+import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
@@ -78,11 +79,23 @@ async function writeProfile(
         : null,
     );
   } catch (cause) {
-    // As in jobs.postJob: a dead Maps key and a bad address fail identically.
+    // As in jobs.postJob, and split the same way: this branch is a missing
+    // Maps key or an unreachable Google, which is nothing the pro can fix.
     logServerError("pros.writeProfile.geocode", cause, { proId: userId });
+    return { error: "תקלה זמנית באיתור הכתובת. נסו שוב בעוד רגע." };
+  }
+
+  if (!point) {
+    logExpectedRefusal(
+      "pros.writeProfile.unknownAddress",
+      "no locality matched",
+      { proId: userId },
+    );
     return {
-      error: "לא הצלחנו לאתר את הכתובת על המפה. נסו כתובת מלאה יותר.",
-      fieldErrors: { addressText: "כתובת שלא ניתן לאתר" },
+      error: "לא זיהינו את היישוב בכתובת.",
+      fieldErrors: {
+        addressText: "הוסיפו עיר בסוף הכתובת, למשל: הרצל 5, נתניה",
+      },
     };
   }
 
@@ -96,7 +109,7 @@ async function writeProfile(
     .update({
       bio: input.bio ?? null,
       radius_km: input.radiusKm,
-      service_address_text: point.formattedAddress ?? input.addressText,
+      service_address_text: addressToStore(input.addressText, point),
       // EWKT: PostGIS parses it on the way into the geography column.
       service_point: toEwkt(point.lat, point.lng),
     })

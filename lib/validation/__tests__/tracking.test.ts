@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { haversineKm } from "@/lib/maps/geocode";
+import { haversineKm } from "@/lib/maps/geometry";
 import {
   isLocationFresh,
   LOCATION_STALE_AFTER_MS,

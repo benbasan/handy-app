@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ISRAEL_BOUNDS } from "@/lib/maps/geocode";
+import { ISRAEL_BOUNDS } from "@/lib/maps/geometry";
 
 /**
  * The pro's profile — product-spec.md 4.2 (the five onboarding steps) and 4.9

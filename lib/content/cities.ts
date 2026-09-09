@@ -9,10 +9,12 @@
  * about — a publishing decision, and publishing decisions belong in the repo
  * where they can be reviewed in a diff.
  *
- * Coordinates match the gazetteer in lib/maps/geocode.ts, which is the other
- * place in this codebase that knows where an Israeli city is. Keep them in
- * step: a page that counts pros around one point and a job placed at another
- * would quietly disagree about the same city.
+ * Coordinates agree with the gazetteer in lib/maps/localities.data.ts, which is
+ * the other place in this codebase that knows where an Israeli city is. Keep
+ * them in step: a page that counts pros around one point and a job placed at
+ * another would quietly disagree about the same city.
+ * lib/maps/__tests__/citiesGazetteer.test.ts is what makes that a promise
+ * rather than a comment.
  */
 export type City = {
   /** The URL segment: /services/plumbing/tel-aviv. */

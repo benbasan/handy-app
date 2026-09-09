@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ISRAEL_BOUNDS } from "@/lib/maps/geocode";
+import { ISRAEL_BOUNDS } from "@/lib/maps/geometry";
 
 /**
  * Posting a job (קריאה) — product-spec.md 3.2.
