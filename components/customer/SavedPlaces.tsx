@@ -17,13 +17,20 @@ import {
 } from "@/lib/validation/places";
 
 /**
- * "הכתובות שלי" on the personal area.
+ * "הכתובות שלי" — at the top of the personal area's main column, which is where
+ * the customer decided it should live.
  *
- * The list is where a saved address is managed; the job form is where it is
- * used. Adding one reuses `AddressField` in full — the same recognition, the
+ * Laid out as one row of chips rather than a list of cards, on purpose: this
+ * sits ABOVE "הקריאות שלי", and a management panel that pushes the product's
+ * actual content off the first screen would have bought findability with
+ * something worth more. A chip opens to reveal its address and its two
+ * controls; nothing else is on screen until it is asked for.
+ *
+ * Adding one here reuses `AddressField` in full — the same recognition, the
  * same device-location button, the same refusal — because an address saved
- * through a laxer control would be an address the job form then could not
- * place.
+ * through a laxer control is an address the job form would then refuse. It
+ * passes no `onSaved`: this component IS the form, and two save paths on one
+ * screen would be two things to keep in step.
  */
 export function SavedPlaces({
   places,
@@ -38,6 +45,7 @@ export function SavedPlaces({
   );
 
   const [adding, setAdding] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [address, setAddress] = useState<AddressValue>({
     text: "",
@@ -46,14 +54,19 @@ export function SavedPlaces({
   });
 
   const fieldErrors = state.fieldErrors ?? {};
+  const open = places.find((place) => place.id === openId) ?? null;
 
   return (
     <section>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-ink">הכתובות שלי</h2>
         <button
           type="button"
-          onClick={() => setAdding((open) => !open)}
+          aria-expanded={adding}
+          onClick={() => {
+            setAdding((wasOpen) => !wasOpen);
+            setOpenId(null);
+          }}
           className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
         >
           {adding ? "ביטול" : "הוספת כתובת"}
@@ -62,18 +75,34 @@ export function SavedPlaces({
 
       {places.length === 0 && !adding && (
         <p className="mt-2 text-sm text-muted">
-          כתובת שתשמרו כאן תופיע בטופס הקריאה בלחיצה אחת, עם המיקום המדויק שבו
-          נשמרה.
+          כתובת שתשמרו תופיע בטופס הקריאה בלחיצה אחת, עם המיקום המדויק שבו
+          נשמרה. אפשר לשמור אחת גם ישירות מטופס הקריאה, אחרי שהקלדתם את הכתובת.
         </p>
       )}
 
       {places.length > 0 && (
-        <ul className="mt-4 space-y-3">
+        <div className="mt-3 flex flex-wrap gap-2">
           {places.map((place) => (
-            <PlaceRow key={place.id} place={place} />
+            <button
+              key={place.id}
+              type="button"
+              aria-expanded={openId === place.id}
+              onClick={() =>
+                setOpenId((current) => (current === place.id ? null : place.id))
+              }
+              className={`rounded-full border px-3 py-1 text-sm ${
+                openId === place.id
+                  ? "border-brand bg-canvas text-brand"
+                  : "border-line bg-surface text-ink hover:bg-canvas"
+              }`}
+            >
+              {place.label}
+            </button>
           ))}
-        </ul>
+        </div>
       )}
+
+      {open && <PlacePanel key={open.id} place={open} />}
 
       {adding && (
         <form action={formAction} className="mt-4 space-y-4">
@@ -135,11 +164,11 @@ export function SavedPlaces({
 }
 
 /**
- * A saved address is renamed or removed, never edited: an address that changed
- * is a different address, and quietly rewriting the one behind a chip would
- * mean a call posted to somewhere the customer no longer meant.
+ * One saved address, opened. It is renamed or removed, never edited: an address
+ * that changed is a different address, and quietly rewriting the one behind a
+ * chip would mean a call posted to somewhere the customer no longer meant.
  */
-function PlaceRow({ place }: { place: SavedPlace }) {
+function PlacePanel({ place }: { place: SavedPlace }) {
   const [renameState, renameAction, renaming] = useActionState(
     renamePlace,
     EMPTY_SAVED_PLACE_STATE,
@@ -149,13 +178,14 @@ function PlaceRow({ place }: { place: SavedPlace }) {
     EMPTY_SAVED_PLACE_STATE,
   );
 
-  const [editing, setEditing] = useState(false);
   const error = renameState.error ?? removeState.error;
 
   return (
-    <li className="rounded-xl border border-line p-3">
-      {editing ? (
-        <form action={renameAction} className="flex flex-wrap gap-2">
+    <div className="mt-3 rounded-xl border border-line p-3">
+      <p className="text-sm text-ink">{place.addressText}</p>
+
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <form action={renameAction} className="flex flex-1 flex-wrap gap-2">
           <input type="hidden" name="placeId" value={place.id} />
           <input
             name="label"
@@ -164,58 +194,34 @@ function PlaceRow({ place }: { place: SavedPlace }) {
             maxLength={PLACE_LABEL_MAX}
             defaultValue={place.label}
             aria-label="שם הכתובת"
-            className={`${INPUT_CLASS} flex-1`}
+            className={`${INPUT_CLASS} min-w-32 flex-1`}
           />
           <button
             type="submit"
             disabled={renaming}
             className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
           >
-            שמירה
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
-          >
-            ביטול
-          </button>
-        </form>
-      ) : (
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="font-bold text-ink">{place.label}</p>
-            <p className="mt-0.5 truncate text-xs text-muted">
-              {place.addressText}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
-          >
             שינוי שם
           </button>
+        </form>
 
-          <form action={removeAction}>
-            <input type="hidden" name="placeId" value={place.id} />
-            <button
-              type="submit"
-              disabled={removing}
-              className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
-            >
-              מחיקה
-            </button>
-          </form>
-        </div>
-      )}
+        <form action={removeAction}>
+          <input type="hidden" name="placeId" value={place.id} />
+          <button
+            type="submit"
+            disabled={removing}
+            className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+          >
+            מחיקה
+          </button>
+        </form>
+      </div>
 
       {error && (
         <p role="alert" className="mt-2 text-sm font-medium text-red-700">
           {error}
         </p>
       )}
-    </li>
+    </div>
   );
 }

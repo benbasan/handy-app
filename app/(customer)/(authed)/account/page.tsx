@@ -58,29 +58,38 @@ export default async function CustomerAccountPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-        <Card className="p-0">
-          <h2 className="border-b border-line p-5 text-lg font-bold text-ink sm:p-6">
-            הקריאות שלי
-          </h2>
+        <div className="space-y-6">
+          {/* Above the calls, and compact: this is the shortcut that makes the
+              next call one tap, and it is no use in a sidebar nobody scrolls
+              to. Kept to a row of chips so it costs the list almost nothing. */}
+          <Card>
+            <SavedPlaces places={savedPlaces} mapsKey={getBrowserMapsKey()} />
+          </Card>
 
-          {jobs.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted">עוד לא פרסמתם קריאה.</p>
-              <Link
-                href="/new-request"
-                className={`${BUTTON_CTA} mt-4 inline-flex`}
-              >
-                פרסום קריאה ראשונה
-              </Link>
-            </div>
-          ) : (
-            <ul className="divide-y divide-line">
-              {jobs.map((job) => (
-                <JobRow key={job.id} job={job} />
-              ))}
-            </ul>
-          )}
-        </Card>
+          <Card className="p-0">
+            <h2 className="border-b border-line p-5 text-lg font-bold text-ink sm:p-6">
+              הקריאות שלי
+            </h2>
+
+            {jobs.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-muted">עוד לא פרסמתם קריאה.</p>
+                <Link
+                  href="/new-request"
+                  className={`${BUTTON_CTA} mt-4 inline-flex`}
+                >
+                  פרסום קריאה ראשונה
+                </Link>
+              </div>
+            ) : (
+              <ul className="divide-y divide-line">
+                {jobs.map((job) => (
+                  <JobRow key={job.id} job={job} />
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
 
         <aside className="space-y-6">
           <Card>
@@ -128,10 +137,6 @@ export default async function CustomerAccountPage() {
                 ))}
               </ul>
             )}
-          </Card>
-
-          <Card>
-            <SavedPlaces places={savedPlaces} mapsKey={getBrowserMapsKey()} />
           </Card>
 
           <CurrentUserCard user={user} />
