@@ -677,6 +677,41 @@ export type Database = {
           },
         ]
       }
+      saved_places: {
+        Row: {
+          address_text: string
+          created_at: string
+          customer_id: string
+          id: string
+          label: string
+          location: unknown
+        }
+        Insert: {
+          address_text: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          label: string
+          location: unknown
+        }
+        Update: {
+          address_text?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          label?: string
+          location?: unknown
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_places_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_pros: {
         Row: {
           created_at: string

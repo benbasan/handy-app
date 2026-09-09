@@ -12,6 +12,7 @@ import {
   nearestLocality,
 } from "@/lib/maps/gazetteer";
 import { coordinatesInIsrael } from "@/lib/maps/geometry";
+import type { SavedPlace } from "@/lib/validation/places";
 
 /**
  * The one address control in the product: the customer's job address
@@ -98,15 +99,6 @@ export type AddressValue = {
   text: string;
   lat: number | null;
   lng: number | null;
-};
-
-/** One of the customer's saved addresses. Shape mirrors `saved_places`. */
-export type SavedPlace = {
-  id: string;
-  label: string;
-  addressText: string;
-  lat: number;
-  lng: number;
 };
 
 /**

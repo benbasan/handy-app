@@ -2,6 +2,7 @@ import { PostJobForm } from "@/components/customer/PostJobForm";
 import { PAGE_TITLE } from "@/components/ui/primitives";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { listCategories } from "@/lib/supabase/jobs";
+import { mySavedPlaces } from "@/lib/supabase/places";
 import { requireRole } from "@/lib/supabase/session";
 
 export const metadata = { title: "פרסום קריאה חדשה — Handy" };
@@ -13,7 +14,10 @@ export const metadata = { title: "פרסום קריאה חדשה — Handy" };
  */
 export default async function NewRequestPage() {
   const user = await requireRole("customer");
-  const categories = await listCategories();
+  const [categories, savedPlaces] = await Promise.all([
+    listCategories(),
+    mySavedPlaces(),
+  ]);
 
   return (
     <>
@@ -28,6 +32,7 @@ export default async function NewRequestPage() {
         userId={user.id}
         categories={categories}
         mapsKey={getBrowserMapsKey()}
+        savedPlaces={savedPlaces}
       />
     </>
   );
