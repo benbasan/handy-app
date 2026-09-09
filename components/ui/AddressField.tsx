@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { savePlace } from "@/lib/actions/places";
+import { EMPTY_SAVED_PLACE_STATE } from "@/lib/actions/state";
 import {
   BUTTON_QUIET,
   FIELD_LABEL,
@@ -12,7 +14,11 @@ import {
   nearestLocality,
 } from "@/lib/maps/gazetteer";
 import { coordinatesInIsrael } from "@/lib/maps/geometry";
-import type { SavedPlace } from "@/lib/validation/places";
+import {
+  PLACE_LABEL_MAX,
+  PLACE_LABEL_SUGGESTIONS,
+  type SavedPlace,
+} from "@/lib/validation/places";
 
 /**
  * The one address control in the product: the customer's job address
@@ -23,7 +29,10 @@ import type { SavedPlace } from "@/lib/validation/places";
  * Three ways to answer it, in the order they cost the person anything:
  *
  *  1. A saved address — "בית", "עבודה". One tap, and it carries the exact point
- *     it was saved with, so nothing has to be parsed at all.
+ *     it was saved with, so nothing has to be parsed at all. Saving one happens
+ *     HERE too, not only on the personal area: the moment a customer has just
+ *     typed their address is the only moment saving it is a natural thing to
+ *     do, and until that existed nobody ever got a first chip to tap.
  *  2. The device's location. Also an exact point, and the town name is filled
  *     in from it so the customer only has to add a street and a number. A pro
  *     needs a door, not a dot on a map.
@@ -135,6 +144,7 @@ export function AddressField({
   placeholder = "רח׳ ברודצקי 18, תל אביב",
   hint,
   savedPlaces = [],
+  onSaved,
 }: {
   mapsKey: string | null;
   value: AddressValue;
@@ -150,9 +160,18 @@ export function AddressField({
    * service point, so their screens pass nothing and no chips are drawn.
    */
   savedPlaces?: readonly SavedPlace[];
+  /**
+   * Called with the row that was just saved from this field. Its PRESENCE is
+   * what puts the "save this address" control on screen — one prop rather than
+   * a pair, so there is no half-configured state where the button appears with
+   * nowhere to report to. The pro screens pass nothing, which is right:
+   * `savePlace` requires the customer role.
+   */
+  onSaved?: (place: SavedPlace) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
+  const saveLabelId = useId();
 
   // The Places widget is wired up once, but `onChange` is a fresh closure on
   // every render. Keeping the latest one in a ref lets the effect below depend
@@ -164,6 +183,11 @@ export function AddressField({
 
   const [autocompleteReady, setAutocompleteReady] = useState(false);
   const [location, setLocation] = useState<LocationState>({ status: "idle" });
+
+  const [savingPanel, setSavingPanel] = useState(false);
+  const [saveLabel, setSaveLabel] = useState("");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, startSaving] = useTransition();
 
   useEffect(() => {
     if (!mapsKey) return;
@@ -204,13 +228,60 @@ export function AddressField({
   }, [mapsKey]);
 
   /**
-   * What the gazetteer makes of what has been typed so far. Only consulted
-   * where the customer is typing rather than picking — with Autocomplete
-   * running, Google's answer is the better one and this would second-guess it.
+   * What the gazetteer makes of what has been typed so far.
+   *
+   * `recognised` is only shown where the customer is typing rather than
+   * picking — with Autocomplete running, Google's answer is the better one and
+   * this would second-guess it. `matched` is asked once and answers three
+   * different questions, because it is the most expensive thing on this render.
    */
-  const recognised = autocompleteReady ? null : matchLocality(value.text);
+  const matched = matchLocality(value.text);
+  const recognised = autocompleteReady ? null : matched;
   const unrecognised =
-    !autocompleteReady && value.text.trim().length > 0 && !recognised;
+    !autocompleteReady && value.text.trim().length > 0 && !matched;
+
+  /**
+   * Offer to save only an address that can actually be placed — either the
+   * device handed us a point, or the gazetteer found the town. Saving one that
+   * cannot be placed would put a chip on screen that the job form then refuses.
+   */
+  const savable =
+    onSaved !== undefined &&
+    value.text.trim().length >= 5 &&
+    ((value.lat !== null && value.lng !== null) || matched !== null);
+
+  function saveThisAddress() {
+    const label = saveLabel.trim();
+    if (!label || !onSaved) return;
+
+    setSaveError(null);
+    startSaving(async () => {
+      // A server action called from an event handler rather than through a
+      // <form>: this field sits INSIDE the job form's own <form>, and a nested
+      // one is invalid HTML.
+      const formData = new FormData();
+      formData.set("label", label);
+      formData.set("addressText", value.text);
+      if (value.lat !== null) formData.set("lat", String(value.lat));
+      if (value.lng !== null) formData.set("lng", String(value.lng));
+
+      const result = await savePlace(EMPTY_SAVED_PLACE_STATE, formData);
+
+      if (!result.savedPlace) {
+        setSaveError(
+          result.fieldErrors?.addressText ??
+            result.fieldErrors?.label ??
+            result.error ??
+            "לא הצלחנו לשמור את הכתובת.",
+        );
+        return;
+      }
+
+      onSaved(result.savedPlace);
+      setSavingPanel(false);
+      setSaveLabel("");
+    });
+  }
 
   function fillFromDeviceLocation() {
     if (!navigator.geolocation) {
@@ -262,24 +333,30 @@ export function AddressField({
       </label>
 
       {savedPlaces.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2">
-          {savedPlaces.map((place) => (
-            <button
-              key={place.id}
-              type="button"
-              onClick={() => {
-                onChange({
-                  text: place.addressText,
-                  lat: place.lat,
-                  lng: place.lng,
-                });
-                setLocation({ status: "idle" });
-              }}
-              className="rounded-full border border-line bg-surface px-3 py-1 text-sm text-ink hover:bg-canvas"
-            >
-              {place.label}
-            </button>
-          ))}
+        <div className="mb-3">
+          {/* A row of round buttons with no heading is a menu without a name. */}
+          <p className="mb-1 text-xs text-muted">כתובות שמורות</p>
+          <div className="flex flex-wrap gap-2">
+            {savedPlaces.map((place) => (
+              <button
+                key={place.id}
+                type="button"
+                title={place.addressText}
+                onClick={() => {
+                  onChange({
+                    text: place.addressText,
+                    lat: place.lat,
+                    lng: place.lng,
+                  });
+                  setLocation({ status: "idle" });
+                  setSavingPanel(false);
+                }}
+                className="rounded-full border border-line bg-surface px-3 py-1 text-sm text-ink hover:bg-canvas"
+              >
+                {place.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -321,12 +398,86 @@ export function AddressField({
         >
           השתמשו במיקום הנוכחי
         </button>
+
+        {savable && !savingPanel && (
+          <button
+            type="button"
+            aria-expanded={false}
+            onClick={() => {
+              setSaveError(null);
+              setSavingPanel(true);
+            }}
+            className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+          >
+            שמרו כתובת זו
+          </button>
+        )}
+
         {LOCATION_MESSAGE[location.status] && (
           <span className="text-xs text-muted">
             {LOCATION_MESSAGE[location.status]}
           </span>
         )}
       </div>
+
+      {savable && savingPanel && (
+        <div className="mt-3 rounded-xl border border-line p-3">
+          <label htmlFor={saveLabelId} className={FIELD_LABEL}>
+            שם לכתובת הזו
+          </label>
+
+          <div className="mb-2 flex flex-wrap gap-2">
+            {PLACE_LABEL_SUGGESTIONS.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => setSaveLabel(suggestion)}
+                className="rounded-full border border-line bg-surface px-3 py-1 text-sm text-ink hover:bg-canvas"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+
+          <input
+            id={saveLabelId}
+            type="text"
+            maxLength={PLACE_LABEL_MAX}
+            value={saveLabel}
+            placeholder="בית"
+            onChange={(event) => setSaveLabel(event.target.value)}
+            className={INPUT_CLASS}
+          />
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={saving || saveLabel.trim() === ""}
+              onClick={saveThisAddress}
+              className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+            >
+              {saving ? "שומרים…" : "שמירה"}
+            </button>
+            <button
+              type="button"
+              aria-expanded
+              onClick={() => {
+                setSavingPanel(false);
+                setSaveError(null);
+              }}
+              className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+            >
+              ביטול
+            </button>
+          </div>
+
+          {saveError && (
+            <p role="alert" className="mt-2 text-sm font-medium text-red-700">
+              {saveError}
+            </p>
+          )}
+        </div>
+      )}
 
       {unrecognised && (
         <div className="mt-3">

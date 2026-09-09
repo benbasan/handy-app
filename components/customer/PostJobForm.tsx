@@ -65,6 +65,13 @@ export function PostJobForm({
     lat: null,
     lng: null,
   });
+  /**
+   * Held locally, and seeded from the server's list, so that an address saved
+   * from the field itself becomes a chip immediately. The alternative — waiting
+   * for a revalidate — would re-render a half-filled five-step form under
+   * somebody who is standing in it.
+   */
+  const [places, setPlaces] = useState<readonly SavedPlace[]>(savedPlaces);
   const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_SEARCH_RADIUS_KM);
   const [media, setMedia] = useState<MediaValue>(EMPTY_MEDIA);
 
@@ -192,7 +199,10 @@ export function PostJobForm({
                   value={address}
                   onChange={setAddress}
                   error={fieldErrors.addressText}
-                  savedPlaces={savedPlaces}
+                  savedPlaces={places}
+                  onSaved={(place) =>
+                    setPlaces((current) => [...current, place])
+                  }
                 />
 
                 <fieldset className="mt-5">
