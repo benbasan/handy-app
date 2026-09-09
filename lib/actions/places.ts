@@ -78,12 +78,14 @@ export async function savePlace(
     };
   }
 
+  const addressText = addressToStore(input.addressText, point);
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("saved_places")
     .insert({
       label: input.label,
-      address_text: addressToStore(input.addressText, point),
+      address_text: addressText,
       location: toEwkt(point.lat, point.lng),
     })
     .select("id")
@@ -109,9 +111,24 @@ export async function savePlace(
     return { error: "לא הצלחנו לשמור את הכתובת. נסו שוב." };
   }
 
+  // Not `/new-request`: an address can now be saved from the job form itself,
+  // and revalidating the route the customer is standing on re-renders a
+  // half-filled multi-step form under them. The caller is handed the whole row
+  // below and adds the chip itself, so there is nothing to refetch.
   revalidatePath("/account");
-  revalidatePath("/new-request");
-  return { savedPlaceId: data.id };
+
+  return {
+    savedPlaceId: data.id,
+    savedPlace: {
+      id: data.id,
+      label: input.label,
+      // What was STORED, which is not always what was typed: addressToStore()
+      // appends the recognised town when the address does not end with it.
+      addressText,
+      lat: point.lat,
+      lng: point.lng,
+    },
+  };
 }
 
 /** Renaming is the only edit: an address that moved is a different address. */
@@ -145,7 +162,6 @@ export async function renamePlace(
   }
 
   revalidatePath("/account");
-  revalidatePath("/new-request");
   return { savedPlaceId: parsed.data.placeId };
 }
 
@@ -178,6 +194,5 @@ export async function removePlace(
   }
 
   revalidatePath("/account");
-  revalidatePath("/new-request");
   return { removed: true };
 }

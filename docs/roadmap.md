@@ -432,11 +432,22 @@
 
 **הגדרת סיום:**
 - [x] `ALLOW_NO_MAPS_KEY=1` מתועד ב-`.env.example` כמצב הנבחר, לא כמצב חירום — **וצריך להיות מוגדר ב-Vercel ולעבור פריסה מחדש**
-- [x] `npm run db:reset` נקי, `npm run db:test` (370 טענות, 10 חדשות ל-`saved_places`), `npm run db:types` מחודש ומקומט
-- [x] `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test` (388), `npm run test:e2e` (142, מהן שלוש חדשות ב-`e2e/address.spec.ts`) — כולם עוברים
+- [x] `npm run db:reset` נקי, `npm run db:test` (372 טענות, 12 חדשות ל-`saved_places`), `npm run db:types` מחודש ומקומט
+- [x] `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test` (388), `npm run test:e2e` (143, מהן ארבע ב-`e2e/address.spec.ts`) — כולם עוברים
 - [x] RTL: לוגיות בלבד, נסרק על ידי `tests/rtl.test.ts`
 - [x] `lib/content/cities.ts` הבטיח מאז Phase 8 שהקואורדינטות שלו תואמות לגזטיר; `citiesGazetteer.test.ts` הופך את זה לבדיקה
 - [ ] בדיקה ידנית בדפדפן, RTL — **ממתין לבדיקת המשתמש**: המיקום הנוכחי דורש הרשאה אמיתית ומכשיר אמיתי, ואי אפשר לשפוט אותו מבדיקה אוטומטית
+
+**מה שהתגלה בשימוש, ותוקן מיד אחרי:**
+- **`mySavedPlaces()` החזיר רשימה ריקה מאז ומעולם.** `saved_places.location` הוא
+  geography, ו-PostgREST מוסר אותו כמחרוזת hex EWKB; הקורא ציפה ל-GeoJSON, לא מצא
+  `coordinates`, והשמיט כל שורה. כתובת נשמרה נכון, אוחסנה נכון, הוגנה נכון על ידי
+  RLS — ומעולם לא הוצגה. `jobs` נתקל בזה ב-Phase 2 ופתר בעמודות מיוצרות
+  (`20260902121000_job_coordinates.sql`); אותו פתרון הוחל כאן
+  (`20260913120000_saved_places_coordinates.sql`) עם שתי טענות pgTAP.
+- **הלולאה הייתה שבורה בהתחלה.** הדרך היחידה ליצור כתובת הייתה `/account`, ושם היא
+  ישבה שלישית בסיידבר. עכשיו אפשר לשמור מטופס הקריאה עצמו — הרגע היחיד שבו שמירה
+  היא פעולה טבעית — והניהול עלה לעמודה הראשית של האזור האישי.
 
 **מה שמסומן בשלב הזה ולא נבנה בו:**
 1. **דיוק ברמת רחוב.** הגזטיר מזהה יישוב, לא דלת. GPS סוגר את רוב הפער בחינם, אבל השלמה אוטומטית ברמת רחוב ופין שאפשר לנווט אליו דורשים מפתח Google — נשאר פתוח ב-`CLAUDE.md` סעיף 9.

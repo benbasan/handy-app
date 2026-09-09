@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(370);
+select plan(372);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -3655,6 +3655,24 @@ select is(
   (select label from public.saved_places where address_text = 'הרצל 5, נתניה'),
   'בית',
   'customer A''s address survived both, untouched'
+);
+
+-- The generated columns, and the reason they exist: `location` reaches a
+-- client as a hex EWKB string, so a screen that reads the geography itself
+-- gets nothing it can use. Every saved address shipped invisible until these
+-- landed, and this is what would say so next time.
+select results_eq(
+  $$ select round(lat::numeric, 4), round(lng::numeric, 4)
+       from public.saved_places where address_text = 'הרצל 5, נתניה' $$,
+  $$ values (32.3200::numeric, 34.8500::numeric) $$,
+  'lat and lng are derived from the geography, and are the point that was written'
+);
+
+select throws_ok(
+  $$ update public.saved_places set lat = 0 where label = 'בית' $$,
+  '428C9',
+  null,
+  'and nobody can write them — a generated column answers the grant question by existing'
 );
 
 reset role;

@@ -1,3 +1,5 @@
+import type { SavedPlace } from "@/lib/validation/places";
+
 /**
  * The shapes `useActionState` passes back and forth, and their initial values.
  *
@@ -176,12 +178,16 @@ export const EMPTY_REVIEW_REPLY_STATE: ReviewReplyState = {};
 /**
  * כתובות שמורות — the customer's own addresses.
  *
- * `savedPlaceId` is set by the action that just added one, so the form can
- * clear itself and the list can say which chip is new.
+ * `savedPlace` is the whole row the action just wrote, not just its id, because
+ * the caller cannot reconstruct it: the address that was stored went through
+ * `addressToStore()` and may carry a town the customer did not type, and the
+ * point was resolved on the server. A form that guessed at either would put a
+ * chip on screen that does not match the row behind it.
  */
 export type SavedPlaceState = {
   error?: string;
   fieldErrors?: Record<string, string>;
+  savedPlace?: SavedPlace;
   savedPlaceId?: string;
   removed?: boolean;
 };
