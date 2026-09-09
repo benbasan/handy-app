@@ -9,39 +9,40 @@ import type { SavedPlace } from "@/lib/validation/places";
  * that says "your own". CLAUDE.md section 3 draws the line at aggregates — a
  * count across everybody's rows cannot be expressed as a policy, and this can.
  *
- * The point comes back as GeoJSON rather than as WKB, because the only thing
- * the browser does with it is hand it back as the `lat`/`lng` hint on a form.
+ * `lat`/`lng` are the generated columns from
+ * 20260913120000_saved_places_coordinates.sql, NOT `location`. That distinction
+ * is the whole reason this file was ever wrong: a PostGIS geography reaches
+ * PostgREST as a hex EWKB string, this read it as GeoJSON, and every row was
+ * silently discarded — the list was empty from the day it shipped. `jobs` had
+ * solved the same problem in Phase 2 and the answer was there to copy.
  */
 export type { SavedPlace };
-
-type GeoJsonPoint = { type: "Point"; coordinates: [number, number] };
 
 export async function mySavedPlaces(): Promise<SavedPlace[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("saved_places")
-    .select("id, label, address_text, location")
+    .select("id, label, address_text, lat, lng")
     .order("created_at", { ascending: true });
 
   if (error || !data) return [];
 
-  return data.flatMap((row) => {
-    // `location` arrives as GeoJSON through PostgREST. A row whose point did
-    // not survive the trip is dropped rather than rendered as a chip that
-    // silently fills in nothing.
-    const point = row.location as unknown as GeoJsonPoint | null;
-    const [lng, lat] = point?.coordinates ?? [];
-    if (typeof lat !== "number" || typeof lng !== "number") return [];
-
-    return [
-      {
-        id: row.id,
-        label: row.label,
-        addressText: row.address_text,
-        lat,
-        lng,
-      },
-    ];
-  });
+  return data.flatMap((row) =>
+    // `lat`/`lng` are nullable in the generated types because a generated
+    // column is, in principle, computable to null. It cannot be here —
+    // `location` is `not null` — but a row without a point would fill a form
+    // with nothing, so it is dropped rather than rendered as a dead chip.
+    row.lat === null || row.lng === null
+      ? []
+      : [
+          {
+            id: row.id,
+            label: row.label,
+            addressText: row.address_text,
+            lat: row.lat,
+            lng: row.lng,
+          },
+        ],
+  );
 }

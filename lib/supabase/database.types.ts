@@ -684,6 +684,8 @@ export type Database = {
           customer_id: string
           id: string
           label: string
+          lat: number | null
+          lng: number | null
           location: unknown
         }
         Insert: {
@@ -692,6 +694,8 @@ export type Database = {
           customer_id?: string
           id?: string
           label: string
+          lat?: number | null
+          lng?: number | null
           location: unknown
         }
         Update: {
@@ -700,6 +704,8 @@ export type Database = {
           customer_id?: string
           id?: string
           label?: string
+          lat?: number | null
+          lng?: number | null
           location?: unknown
         }
         Relationships: [
