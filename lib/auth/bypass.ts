@@ -47,12 +47,14 @@ export const BYPASS_CREATED_VIA = "otp_bypass";
 /**
  * Is the bypass on?
  *
- * Deliberately not a `NEXT_PUBLIC_` variable. `NEXT_PUBLIC_DEMO_LOGINS` is
- * inlined at build time, so turning it off in the Vercel dashboard changes
- * nothing until the next deploy (CLAUDE.md section 9). This one is read on the
- * server at request time, so unsetting it takes effect immediately — which is
- * the property you want from the switch that governs whether strangers can
- * sign in.
+ * Deliberately not a `NEXT_PUBLIC_` variable, though the benefit is narrower
+ * than it first looks. `NEXT_PUBLIC_DEMO_LOGINS` is inlined into the client
+ * bundle at build time; this one is read on the server and never reaches a
+ * browser. What it does **not** buy is a fast off switch: a Vercel deployment
+ * is immutable, so an env-var change applies only to new deployments and
+ * clearing this in the dashboard does nothing until you redeploy. Turning the
+ * bypass off in a hurry is a redeploy, not a toggle — plan for that rather
+ * than discovering it during an incident.
  *
  * Off unless explicitly set to "1": the failure mode of forgetting to set it
  * is a login that refuses, never a site that quietly stands open.
