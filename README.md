@@ -92,6 +92,35 @@ Two things about `supabase/config.toml` that cost time if you don't know them:
   so `[auth.sms.twilio]` is enabled with placeholder credentials it never
   actually uses locally.
 
+### Signing in as anybody (real delivery is off)
+
+Nothing is sent right now. Set both of these and a fixed code signs in **any**
+phone number, prefilled on the screen:
+
+```
+AUTH_BYPASS_OTP=1
+AUTH_BYPASS_PASSWORD=<any non-empty value>
+```
+
+The code is `123456`, the same as the seeded demo users'. Why this exists, and
+what it costs, is in `lib/auth/bypass.ts` and CLAUDE.md section 9 — the short
+version is that Twilio charges $0.2575 per SMS to Israel and there is no
+business entity yet for the WhatsApp alternative.
+
+The six digits are **not** a check. With the flag on, anybody who reaches the
+login screen can create an account. It cannot mint an admin and it cannot reach
+the seven seeded users — they still answer to `[auth.sms.test_otp]`, which is
+how `972500000005` stays out of its reach.
+
+Turning it off is two steps, because every account it made shares one password:
+
+```
+# 1. clear AUTH_BYPASS_OTP (and redeploy, if this is the hosted project)
+# 2. remove the accounts it created
+npm run auth:purge-bypass            # show what would go
+npm run auth:purge-bypass -- --yes   # delete them
+```
+
 ### Going live with Twilio
 
 Still outstanding — needs a Twilio account and a linked Supabase Cloud project.
