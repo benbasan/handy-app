@@ -70,6 +70,23 @@ export const verifyOtpSchema = z.object({
     .string()
     .trim()
     .regex(/^\d{6}$/, { error: "קוד האימות מורכב מ-6 ספרות" }),
+  /*
+   * Both optional, and both used only by the OTP bypass (lib/auth/bypass.ts),
+   * which creates the account at this step rather than the previous one and so
+   * needs to know which of the two self-service roles to ask for. The ordinary
+   * OTP path created the user back in `requestOtp` and ignores them.
+   *
+   * `role` is no more trusted here than it is there: it travels as user
+   * metadata and `handle_new_user` whitelists it down to customer/pro, so a
+   * forged value cannot mint an admin.
+   */
+  role: z.enum(SIGNUP_ROLES, { error: "תפקיד לא חוקי" }).optional(),
+  fullName: z
+    .string()
+    .trim()
+    .max(80, { error: "השם ארוך מדי" })
+    .optional()
+    .transform((value) => (value === "" ? undefined : value)),
 });
 
 /**
