@@ -75,6 +75,12 @@ export default defineConfig({
       // It belongs here rather than in CI's environment so that the suite is
       // self-contained: a fresh clone with no .env.local runs it the same way.
       ALLOW_NO_MAPS_KEY: "1",
+
+      // Pinned off, so the suite always exercises the real OTP screens against
+      // [auth.sms.test_otp]. A developer with AUTH_BYPASS_OTP=1 in .env.local
+      // would otherwise change what these tests actually cover without
+      // touching a test file — the same trap the maps flag above sprang.
+      AUTH_BYPASS_OTP: "0",
     },
   },
 });

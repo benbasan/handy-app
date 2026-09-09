@@ -24,6 +24,7 @@
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
     "perf:postgis": "node scripts/postgis-load-check.mjs",
+    "auth:purge-bypass": "node scripts/purge-bypass-users.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
