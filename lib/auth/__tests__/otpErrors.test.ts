@@ -22,6 +22,22 @@ const WRONG_CODE = {
   message: "Token has expired or is invalid",
 };
 
+/**
+ * Verbatim from the Vercel production log, 9.9.2026. The bypass creates the
+ * account at step 2 with `signUp`, and a hosted project whose phone
+ * confirmations are still on answers a *verify* with a failure to *send*:
+ *
+ *   {"operation":"auth.verifyOtp.bypass.signUp",
+ *    "message":"Unable to get SMS provider","code":"AuthRetryableFetchError"}
+ *
+ * supabase-js labels the 500 retryable, so there is no useful code to read —
+ * only the prose. That is why the predicate matches on it.
+ */
+const NO_SMS_PROVIDER = {
+  code: "AuthRetryableFetchError",
+  message: "Unable to get SMS provider",
+};
+
 describe("describeSendError", () => {
   it("never blames the code on the screen that has not asked for one", () => {
     // The regression. A new phone number with no SMS provider used to be
@@ -89,6 +105,25 @@ describe("describeVerifyError", () => {
     expect(describeVerifyError({ message: "Something entirely new" })).toBe(
       "Something entirely new",
     );
+  });
+
+  it("answers a missing SMS provider in Hebrew", () => {
+    // The regression: this reached a Hebrew screen as its own English, because
+    // step 2 had no branch for a failure about sending — and since the bypass
+    // creates the account here, a sending failure is exactly what arrives.
+    const message = describeVerifyError(NO_SMS_PROVIDER);
+
+    expect(message).toMatch(/[\u0590-\u05FF]/);
+    expect(message).not.toMatch(/SMS provider|Unable/);
+    expect(message).toMatch(/תמיכה/);
+  });
+
+  it("does not blame the code for a failure to send", () => {
+    // The ordering guarantee. GoTrue's send prose carries the word "invalid",
+    // which would otherwise match the mistyped-code rule and tell somebody who
+    // typed the right six digits that they got them wrong — the bug in this
+    // module's header, one step further along.
+    expect(describeVerifyError(SMS_PROVIDER_MISSING)).not.toMatch(/שגוי/);
   });
 });
 
@@ -159,6 +194,17 @@ describe("isExpectedVerifyFailure", () => {
     { code: null, message: "Too many requests" },
   ];
 
+  /**
+   * Recognised, answered in Hebrew, and still nobody's typo. This group is why
+   * the predicate can no longer be inferred from whether the sentence differs
+   * from the message: on these two it differs, and the answer is still "fault".
+   */
+  const SYSTEM_WITH_A_SENTENCE = [
+    NO_SMS_PROVIDER,
+    // A send failure arriving at step 2, via the bypass's `signUp`.
+    SMS_PROVIDER_MISSING,
+  ];
+
   const UNRECOGNISED = [
     { code: "unexpected_failure", message: "Database error finding user" },
     { code: null, message: "upstream connect error" },
@@ -170,26 +216,49 @@ describe("isExpectedVerifyFailure", () => {
     }
   });
 
+  it("calls a provider that cannot send a fault, however it is worded", () => {
+    // Both of these now get Hebrew. Neither may be filed as a typo: a wrong
+    // digit and an auth provider that has stopped working must not land in the
+    // log at the same weight.
+    for (const failure of SYSTEM_WITH_A_SENTENCE) {
+      expect(isExpectedVerifyFailure(failure)).toBe(false);
+    }
+  });
+
   it("calls anything it does not recognise a fault", () => {
     for (const failure of UNRECOGNISED) {
       expect(isExpectedVerifyFailure(failure)).toBe(false);
     }
   });
 
-  it("agrees with describeVerifyError on every input, by construction", () => {
-    for (const failure of [...RECOGNISED, ...UNRECOGNISED]) {
-      expect(isExpectedVerifyFailure(failure)).toBe(
-        describeVerifyError(failure) !== failure.message,
-      );
+  it("never calls the same failure both things at once", () => {
+    // The invariant, restated for a classification with two dimensions: every
+    // failure belongs to exactly one of the three groups above, and the
+    // predicate says "person" for the first and only the first.
+    const groups = [
+      [RECOGNISED, true],
+      [SYSTEM_WITH_A_SENTENCE, false],
+      [UNRECOGNISED, false],
+    ] as const;
+
+    for (const [failures, expected] of groups) {
+      for (const failure of failures) {
+        expect(isExpectedVerifyFailure(failure)).toBe(expected);
+      }
     }
   });
 
   it("does not hand a raw English message to a Hebrew screen unnoticed", () => {
-    // The two halves of the same rule: when the predicate says "fault", the
-    // message shown is the provider's own English. That is acceptable only
-    // because the fault is now recorded — before, it was neither.
+    // The two halves of the same rule: when the message shown is the provider's
+    // own English, the predicate must say "fault", so the line is recorded.
+    // That is now the only case left where English reaches the screen at all.
     for (const failure of UNRECOGNISED) {
       expect(describeVerifyError(failure)).toBe(failure.message);
+      expect(isExpectedVerifyFailure(failure)).toBe(false);
+    }
+
+    for (const failure of SYSTEM_WITH_A_SENTENCE) {
+      expect(describeVerifyError(failure)).not.toBe(failure.message);
     }
   });
 });
