@@ -1,7 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { FIELD_LABEL, INPUT_CLASS } from "@/components/ui/primitives";
+import { useEffect, useId, useRef, useState } from "react";
+import {
+  BUTTON_QUIET,
+  FIELD_LABEL,
+  INPUT_CLASS,
+} from "@/components/ui/primitives";
+import {
+  LOCALITY_NAMES,
+  matchLocality,
+  nearestLocality,
+} from "@/lib/maps/gazetteer";
+import { coordinatesInIsrael } from "@/lib/maps/geometry";
 
 /**
  * The one address control in the product: the customer's job address
@@ -9,15 +19,24 @@ import { FIELD_LABEL, INPUT_CLASS } from "@/components/ui/primitives";
  * `radius_km` is measured from (4.2). Both need the same behaviour, and both
  * feed the same server-side `geocodeAddress`.
  *
- * With a Maps key it is Google Places Autocomplete, and the chosen place's
- * coordinates ride along with the form so the server does not have to geocode
- * the same string twice. With no key — CI, a fresh clone, any deploy where the
- * key has not been issued yet — the same input is an ordinary text field and
- * the server geocodes it against the built-in gazetteer instead. The flow does
- * not branch anywhere else: `lat`/`lng` are simply absent.
+ * Three ways to answer it, in the order they cost the person anything:
  *
- * The coordinates are a hint, never the authority. lib/maps/geocode.ts
- * range-checks them before anything reaches `jobs.location`.
+ *  1. A saved address — "בית", "עבודה". One tap, and it carries the exact point
+ *     it was saved with, so nothing has to be parsed at all.
+ *  2. The device's location. Also an exact point, and the town name is filled
+ *     in from it so the customer only has to add a street and a number. A pro
+ *     needs a door, not a dot on a map.
+ *  3. Typing. With a Maps key this is Places Autocomplete; without one — which
+ *     is every deployment today (CLAUDE.md §2) — it is a plain input backed by
+ *     the built-in gazetteer, which recognises the town AS THE CUSTOMER TYPES
+ *     and offers a list of towns when it cannot. That last part is the whole
+ *     point: an address that cannot be placed used to be discovered by the
+ *     server, after the form was submitted, and reported as the customer's
+ *     fault.
+ *
+ * Whatever the route, the coordinates are a hint and never the authority.
+ * lib/maps/geocode.ts range-checks them again before anything reaches
+ * `jobs.location`.
  */
 
 type PlaceResult = {
@@ -81,6 +100,40 @@ export type AddressValue = {
   lng: number | null;
 };
 
+/** One of the customer's saved addresses. Shape mirrors `saved_places`. */
+export type SavedPlace = {
+  id: string;
+  label: string;
+  addressText: string;
+  lat: number;
+  lng: number;
+};
+
+/**
+ * A fix this coarse came from an IP lookup or a cell tower, not from GPS. It
+ * still places the town correctly, which is all the gazetteer would have given
+ * anyway — but it is not the door, and the screen says so rather than implying
+ * a precision that is not there.
+ */
+const COARSE_ACCURACY_METRES = 1000;
+
+type LocationState =
+  | { status: "idle" }
+  | { status: "locating" }
+  | { status: "coarse" }
+  | { status: "done" }
+  | { status: "denied" }
+  | { status: "failed" };
+
+const LOCATION_MESSAGE: Record<LocationState["status"], string | null> = {
+  idle: null,
+  locating: "מאתרים את המיקום…",
+  coarse: "המיקום שאותר מקורב. הוסיפו רחוב ומספר לדיוק.",
+  done: "המיקום אותר. הוסיפו רחוב ומספר.",
+  denied: "לא אישרתם גישה למיקום. אפשר להקליד את הכתובת ידנית.",
+  failed: "לא הצלחנו לקרוא את המיקום מהמכשיר. הקלידו את הכתובת ידנית.",
+};
+
 export function AddressField({
   mapsKey,
   value,
@@ -89,6 +142,7 @@ export function AddressField({
   label = "כתובת מלאה",
   placeholder = "רח׳ ברודצקי 18, תל אביב",
   hint,
+  savedPlaces = [],
 }: {
   mapsKey: string | null;
   value: AddressValue;
@@ -99,8 +153,14 @@ export function AddressField({
   placeholder?: string;
   /** Replaces the "how to fill this in" line under the input, when the screen needs its own. */
   hint?: string;
+  /**
+   * The customer's saved addresses, when the screen has any. A pro has one
+   * service point, so their screens pass nothing and no chips are drawn.
+   */
+  savedPlaces?: readonly SavedPlace[];
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
 
   // The Places widget is wired up once, but `onChange` is a fresh closure on
   // every render. Keeping the latest one in a ref lets the effect below depend
@@ -111,6 +171,7 @@ export function AddressField({
   });
 
   const [autocompleteReady, setAutocompleteReady] = useState(false);
+  const [location, setLocation] = useState<LocationState>({ status: "idle" });
 
   useEffect(() => {
     if (!mapsKey) return;
@@ -129,11 +190,11 @@ export function AddressField({
 
         widget.addListener("place_changed", () => {
           const place = widget.getPlace();
-          const location = place.geometry?.location;
+          const point = place.geometry?.location;
           onChangeRef.current({
             text: place.formatted_address ?? input.value,
-            lat: location ? location.lat() : null,
-            lng: location ? location.lng() : null,
+            lat: point ? point.lat() : null,
+            lng: point ? point.lng() : null,
           });
         });
 
@@ -150,11 +211,85 @@ export function AddressField({
     };
   }, [mapsKey]);
 
+  /**
+   * What the gazetteer makes of what has been typed so far. Only consulted
+   * where the customer is typing rather than picking — with Autocomplete
+   * running, Google's answer is the better one and this would second-guess it.
+   */
+  const recognised = autocompleteReady ? null : matchLocality(value.text);
+  const unrecognised =
+    !autocompleteReady && value.text.trim().length > 0 && !recognised;
+
+  function fillFromDeviceLocation() {
+    if (!navigator.geolocation) {
+      setLocation({ status: "failed" });
+      return;
+    }
+
+    setLocation({ status: "locating" });
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+
+        // The same box the server checks against. A device that reports a
+        // point in another country is answering a question we did not ask.
+        if (!coordinatesInIsrael(latitude, longitude)) {
+          setLocation({ status: "failed" });
+          return;
+        }
+
+        const town = nearestLocality(latitude, longitude);
+        const coarse = accuracy > COARSE_ACCURACY_METRES;
+
+        onChange({
+          // The town, so `job_city()` has something real to read and the pro
+          // can see where they are being sent. The street is still the
+          // customer's to add — which is why the input takes focus.
+          text: town ? `${town.name}` : value.text,
+          lat: latitude,
+          lng: longitude,
+        });
+
+        setLocation({ status: coarse ? "coarse" : "done" });
+        inputRef.current?.focus();
+      },
+      (cause) => {
+        setLocation({
+          status: cause.code === cause.PERMISSION_DENIED ? "denied" : "failed",
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }
+
   return (
     <div>
       <label htmlFor="addressText" className={`${FIELD_LABEL}`}>
         {label}
       </label>
+
+      {savedPlaces.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-2">
+          {savedPlaces.map((place) => (
+            <button
+              key={place.id}
+              type="button"
+              onClick={() => {
+                onChange({
+                  text: place.addressText,
+                  lat: place.lat,
+                  lng: place.lng,
+                });
+                setLocation({ status: "idle" });
+              }}
+              className="rounded-full border border-line bg-surface px-3 py-1 text-sm text-ink hover:bg-canvas"
+            >
+              {place.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <input
         ref={inputRef}
@@ -166,6 +301,7 @@ export function AddressField({
         required
         maxLength={200}
         value={value.text}
+        list={autocompleteReady ? undefined : listId}
         onChange={(event) =>
           // Typing after picking a place invalidates the picked coordinates.
           onChange({ text: event.target.value, lat: null, lng: null })
@@ -173,14 +309,69 @@ export function AddressField({
         className={INPUT_CLASS}
       />
 
+      {!autocompleteReady && (
+        <datalist id={listId}>
+          {LOCALITY_NAMES.map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
+      )}
+
       <input type="hidden" name="lat" value={value.lat ?? ""} />
       <input type="hidden" name="lng" value={value.lng ?? ""} />
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={fillFromDeviceLocation}
+          disabled={location.status === "locating"}
+          className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+        >
+          השתמשו במיקום הנוכחי
+        </button>
+        {LOCATION_MESSAGE[location.status] && (
+          <span className="text-xs text-muted">
+            {LOCATION_MESSAGE[location.status]}
+          </span>
+        )}
+      </div>
+
+      {unrecognised && (
+        <div className="mt-3">
+          <label htmlFor="addressCity" className={FIELD_LABEL}>
+            לא זיהינו את היישוב — בחרו אותו מהרשימה
+          </label>
+          <select
+            id="addressCity"
+            className={INPUT_CLASS}
+            value=""
+            onChange={(event) => {
+              const city = event.target.value;
+              if (!city) return;
+              // Appended rather than substituted: what was typed is the street,
+              // and the town goes where job_city() reads it — after the last
+              // comma.
+              const street = value.text.trim().replace(/,+$/, "");
+              onChange({ text: `${street}, ${city}`, lat: null, lng: null });
+            }}
+          >
+            <option value="">בחרו יישוב…</option>
+            {LOCALITY_NAMES.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <p className="mt-2 text-xs text-muted">
         {hint ??
           (autocompleteReady
             ? "בחרו כתובת מההשלמה האוטומטית לדיוק מרבי."
-            : "הזינו רחוב, מספר ועיר. נאתר את המיקום לפי מה שהזנתם.")}
+            : recognised
+              ? `זוהה: ${recognised.name}`
+              : "הזינו רחוב, מספר ועיר. נאתר את המיקום לפי מה שהזנתם.")}
       </p>
 
       {error && (
