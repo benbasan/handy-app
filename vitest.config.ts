@@ -32,7 +32,8 @@ export default defineConfig({
      *
      * Over the plain logic — the Zod schemas, the address gazetteer, the OTP
      * error mapping, the form helpers — it is 91%, and a threshold there fails
-     * for a real reason: a schema added without tests.
+     * for a real reason: a schema added without tests. Generated data is
+     * excluded for the same reason it is included at all — see below.
      *
      * `lib/actions/formData.ts` is in the list and the rest of `lib/actions` is
      * not, which is the line exactly: it is the one module in there that is
@@ -46,7 +47,16 @@ export default defineConfig({
         "lib/auth/**",
         "lib/actions/formData.ts",
       ],
-      exclude: ["**/__tests__/**"],
+      /*
+       * `localities.data.ts` is generated and is 313 object literals with no
+       * branch in them. Counted, it adds ~2,500 statements that are "covered"
+       * by importing the module at all, which would lift the percentage while
+       * saying nothing — the opposite of what a threshold is for. What is worth
+       * asserting about that file is asserted directly, in
+       * lib/maps/__tests__/gazetteer.test.ts: every locality inside the country
+       * box, every stored form already folded, no name twice.
+       */
+      exclude: ["**/__tests__/**", "lib/maps/localities.data.ts"],
       reporter: ["text-summary", "html"],
       thresholds: {
         statements: 85,

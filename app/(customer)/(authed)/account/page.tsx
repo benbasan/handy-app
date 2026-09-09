@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SavedPlaces } from "@/components/customer/SavedPlaces";
 import { CurrentUserCard } from "@/components/ui/CurrentUserCard";
 import {
   Badge,
@@ -7,9 +8,11 @@ import {
   Card,
 } from "@/components/ui/primitives";
 import { categoryIcon } from "@/lib/categories";
+import { getBrowserMapsKey } from "@/lib/maps/config";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import { listMySavedPros } from "@/lib/supabase/completion";
 import { listMyJobs, type JobSummary } from "@/lib/supabase/jobs";
+import { mySavedPlaces } from "@/lib/supabase/places";
 import { requireRole } from "@/lib/supabase/session";
 import {
   PREFERRED_TIME_LABEL,
@@ -24,7 +27,10 @@ export default async function CustomerAccountPage() {
   const user = await requireRole("customer");
   const jobs = await listMyJobs();
 
-  const savedPros = await listMySavedPros();
+  const [savedPros, savedPlaces] = await Promise.all([
+    listMySavedPros(),
+    mySavedPlaces(),
+  ]);
 
   const memberSince = new Date(user.createdAt).getFullYear();
 
@@ -122,6 +128,10 @@ export default async function CustomerAccountPage() {
                 ))}
               </ul>
             )}
+          </Card>
+
+          <Card>
+            <SavedPlaces places={savedPlaces} mapsKey={getBrowserMapsKey()} />
           </Card>
 
           <CurrentUserCard user={user} />

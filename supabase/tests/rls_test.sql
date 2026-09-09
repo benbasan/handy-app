@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(360);
+select plan(370);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -3582,6 +3582,89 @@ select lives_ok(
   $$ insert into public.support_tickets (full_name, phone, topic, body)
      values ('אלמוני', '+972501111111', 'other', 'פנייה רגילה') $$,
   'while opening an ordinary one still works — this is the only table anon may write to'
+);
+
+reset role;
+
+-- ===========================================================================
+-- Phase 11: saved_places — a customer's own addresses, private to them
+-- ===========================================================================
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select lives_ok(
+  $$ insert into public.saved_places (label, address_text, location)
+     values ('בית', 'הרצל 5, נתניה', 'SRID=4326;POINT(34.85 32.32)') $$,
+  'a customer saves an address of their own, with customer_id left to the default'
+);
+
+select is(
+  (select customer_id from public.saved_places where label = 'בית'),
+  :customer_a::uuid,
+  'and it is filed under them, because auth.uid() is the column default and no client may write it'
+);
+
+select throws_ok(
+  $$ insert into public.saved_places (customer_id, label, address_text, location)
+     values ('a0000000-0000-4000-8000-000000000002', 'לא שלי',
+             'הרצל 6, נתניה', 'SRID=4326;POINT(34.85 32.32)') $$,
+  '42501',
+  null,
+  'a customer cannot file an address into somebody else''s list — customer_id has no grant'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.saved_places),
+  0::bigint,
+  'customer B sees none of customer A''s saved addresses'
+);
+
+select is(
+  (select count(*) from public.saved_places
+    where address_text = 'הרצל 5, נתניה'),
+  0::bigint,
+  'not even by asking for one by its address'
+);
+
+select lives_ok(
+  $$ update public.saved_places set label = 'נחטף' where label = 'בית' $$,
+  'an update naming another customer''s row is not an error'
+);
+
+select is(
+  (select count(*) from public.saved_places where label = 'נחטף'),
+  0::bigint,
+  '— it simply matches no row, because the policy never showed it to them'
+);
+
+select lives_ok(
+  $$ delete from public.saved_places where label = 'בית' $$,
+  'and the same for a delete'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select label from public.saved_places where address_text = 'הרצל 5, נתניה'),
+  'בית',
+  'customer A''s address survived both, untouched'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.saved_places),
+  0::bigint,
+  'a pro sees no saved address at all — where a customer works from is not theirs to browse'
 );
 
 reset role;

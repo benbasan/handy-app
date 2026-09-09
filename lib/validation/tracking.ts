@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ISRAEL_BOUNDS } from "@/lib/maps/geocode";
+import { ISRAEL_BOUNDS } from "@/lib/maps/geometry";
 
 /**
  * מעקב חי — docs/architecture.md section 5, the customer's half of

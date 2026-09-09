@@ -1,136 +1,62 @@
 import { getServerMapsKey, mapsFallbackAllowed } from "./config";
+import { matchLocality } from "./gazetteer";
+import { coordinatesInIsrael } from "./geometry";
 
 /**
  * Turning an address into the point stored in `jobs.location`.
  *
  * Three sources, in descending order of trust:
  *
- *  1. Google's Geocoding API, called from the server with the server key.
- *  2. The coordinates the browser already resolved through Places
- *     Autocomplete, passed along with the form. Cheaper than geocoding the
- *     same string twice, and still validated here — see `coordinatesInIsrael`.
- *  3. The built-in city gazetteer, for a deployment with no Maps key at all.
- *     Approximate by construction, and the UI says so.
+ *  1. The coordinates the device already resolved — a GPS fix, a saved address,
+ *     or Places Autocomplete when a Maps key exists. Exact, and cheaper than
+ *     geocoding a string that describes a place somebody is standing in. Still
+ *     validated here — see `coordinatesInIsrael`: the browser is not trusted to
+ *     decide where a job is, only to suggest it.
+ *  2. Google's Geocoding API, called from the server with the server key.
+ *  3. The built-in gazetteer in ./gazetteer.ts, which is what runs in every
+ *     deployment of this product today, because there is no Maps key by choice
+ *     (CLAUDE.md §2). Locality-level by construction, and flagged `approximate`.
  *
  * Every result carries its `source`, so a screen can tell the customer that
- * their pin is a city centre rather than their door.
+ * their pin is a town centre rather than their door.
+ *
+ * WHAT THIS NO LONGER DOES. An address naming no locality anybody recognises
+ * used to come back as the middle of Tel Aviv. Nothing said so, the job was
+ * broadcast to the wrong pros, and the customer's only clue was that nobody
+ * bid. `null` is the answer now, and the caller asks the customer for a city.
  *
  * No `server-only` marker, so the pure parts stay unit-testable. Nothing leaks
  * by importing this from the client either: the server key is read through a
  * non-`NEXT_PUBLIC_` variable, which Next never inlines into a browser bundle.
  */
-export type GeocodeSource = "google" | "client" | "gazetteer" | "default";
+export type GeocodeSource = "google" | "client" | "gazetteer";
 
 export type GeocodeResult = {
   lat: number;
   lng: number;
   /** What Google called the place, when it had an opinion. */
   formattedAddress: string | null;
+  /** The town the gazetteer recognised, when that is how the point was found. */
+  locality: string | null;
   source: GeocodeSource;
-  /** True when the point is a city centre or the country default. */
+  /** True when the point is a town centre rather than the address itself. */
   approximate: boolean;
 };
 
 /**
- * A generous box around Israel. Its job is to reject nonsense — a swapped
- * lat/lng pair, a zero-zero default, an address that geocoded to another
- * country — not to draw a border.
- */
-export const ISRAEL_BOUNDS = {
-  minLat: 29.3,
-  maxLat: 33.4,
-  minLng: 34.2,
-  maxLng: 35.95,
-} as const;
-
-/** Central Tel Aviv: the last-resort pin, and the map's initial viewport. */
-export const DEFAULT_CENTER = { lat: 32.0853, lng: 34.7818 } as const;
-
-export function coordinatesInIsrael(lat: number, lng: number): boolean {
-  return (
-    Number.isFinite(lat) &&
-    Number.isFinite(lng) &&
-    lat >= ISRAEL_BOUNDS.minLat &&
-    lat <= ISRAEL_BOUNDS.maxLat &&
-    lng >= ISRAEL_BOUNDS.minLng &&
-    lng <= ISRAEL_BOUNDS.maxLng
-  );
-}
-
-/**
- * Enough of Israel's population centres to place a typed address in the right
- * city when there is no Maps key. Not a substitute for geocoding, and not
- * pretending to be one — a hit here is always flagged `approximate`.
- *
- * Ordered longest-name-first at match time so that "תל אביב יפו" does not lose
- * to a shorter substring, and "ראשון לציון" is not shadowed by "ציון".
- */
-const CITY_GAZETTEER: ReadonlyArray<{
-  names: readonly string[];
-  lat: number;
-  lng: number;
-}> = [
-  { names: ["תל אביב", "תל-אביב", "יפו"], lat: 32.0853, lng: 34.7818 },
-  { names: ["ירושלים"], lat: 31.7683, lng: 35.2137 },
-  { names: ["חיפה"], lat: 32.794, lng: 34.9896 },
-  { names: ["ראשון לציון", "ראשל״צ", "ראשלצ"], lat: 31.9642, lng: 34.8044 },
-  { names: ["פתח תקווה", "פתח תקוה"], lat: 32.0878, lng: 34.8878 },
-  { names: ["אשדוד"], lat: 31.8014, lng: 34.6435 },
-  { names: ["נתניה"], lat: 32.3215, lng: 34.8532 },
-  { names: ["באר שבע"], lat: 31.2518, lng: 34.7913 },
-  { names: ["בני ברק"], lat: 32.0807, lng: 34.8338 },
-  { names: ["חולון"], lat: 32.0117, lng: 34.7725 },
-  { names: ["רמת גן"], lat: 32.0684, lng: 34.8248 },
-  { names: ["אשקלון"], lat: 31.6688, lng: 34.5743 },
-  { names: ["רחובות"], lat: 31.8928, lng: 34.8113 },
-  { names: ["בת ים"], lat: 32.0171, lng: 34.7457 },
-  { names: ["הרצליה"], lat: 32.1624, lng: 34.8447 },
-  { names: ["כפר סבא"], lat: 32.175, lng: 34.907 },
-  { names: ["חדרה"], lat: 32.434, lng: 34.9196 },
-  { names: ["מודיעין"], lat: 31.8928, lng: 35.0104 },
-  { names: ["רעננה"], lat: 32.1848, lng: 34.8713 },
-  { names: ["רמלה"], lat: 31.9288, lng: 34.8667 },
-  { names: ["לוד"], lat: 31.9515, lng: 34.8953 },
-  { names: ["נצרת"], lat: 32.7009, lng: 35.2035 },
-  { names: ["עכו"], lat: 32.9281, lng: 35.0818 },
-  { names: ["אילת"], lat: 29.5577, lng: 34.9482 },
-  { names: ["טבריה"], lat: 32.7922, lng: 35.5312 },
-  { names: ["גבעתיים"], lat: 32.0723, lng: 34.8107 },
-  { names: ["קריית גת", "קרית גת"], lat: 31.61, lng: 34.7642 },
-  { names: ["נהריה"], lat: 33.0085, lng: 35.0947 },
-  { names: ["רהט"], lat: 31.3925, lng: 34.7542 },
-  { names: ["ביתר עילית"], lat: 31.6994, lng: 35.1136 },
-];
-
-/**
  * Best-effort placement of a hand-typed address, with no network call.
- * Exported so it can be unit-tested directly — it is the path CI and any
+ * Exported so it can be unit-tested directly — it is the path CI and every
  * key-less deployment actually take.
  */
-export function geocodeFromGazetteer(address: string): GeocodeResult {
-  const haystack = address.replace(/[־–—]/g, "-").trim();
-
-  const matches = CITY_GAZETTEER.flatMap((city) =>
-    city.names
-      .filter((name) => haystack.includes(name))
-      .map((name) => ({ city, name })),
-  ).sort((a, b) => b.name.length - a.name.length);
-
-  const best = matches[0];
-
-  if (!best) {
-    return {
-      ...DEFAULT_CENTER,
-      formattedAddress: null,
-      source: "default",
-      approximate: true,
-    };
-  }
+export function geocodeFromGazetteer(address: string): GeocodeResult | null {
+  const locality = matchLocality(address);
+  if (!locality) return null;
 
   return {
-    lat: best.city.lat,
-    lng: best.city.lng,
+    lat: locality.lat,
+    lng: locality.lng,
     formattedAddress: null,
+    locality: locality.name,
     source: "gazetteer",
     approximate: true,
   };
@@ -178,6 +104,7 @@ async function geocodeWithGoogle(
     lat,
     lng,
     formattedAddress: first?.formatted_address ?? null,
+    locality: null,
     source: "google",
     approximate: false,
   };
@@ -193,22 +120,27 @@ export class MapsNotConfiguredError extends Error {
 }
 
 /**
- * Resolve the point to store for a job.
+ * Resolve the point to store for a job, or `null` when the address names no
+ * place this product can find.
  *
- * `clientPoint` is what Places Autocomplete produced in the browser, when it
- * was available. It is preferred over a second round trip, but only after it
- * has been checked against the country box — the browser is not trusted to
- * decide where a job is.
+ * `clientPoint` is what the device produced — a GPS fix, a saved address, or
+ * Places Autocomplete. It is preferred over a round trip, but only after it has
+ * been checked against the country box.
+ *
+ * Throws `MapsNotConfiguredError` when there is no key AND running without one
+ * has not been asked for by name. That is an operations failure, not a bad
+ * address, and the two must not reach the customer as the same sentence.
  */
 export async function geocodeAddress(
   address: string,
   clientPoint?: { lat: number; lng: number } | null,
-): Promise<GeocodeResult> {
+): Promise<GeocodeResult | null> {
   if (clientPoint && coordinatesInIsrael(clientPoint.lat, clientPoint.lng)) {
     return {
       lat: clientPoint.lat,
       lng: clientPoint.lng,
       formattedAddress: null,
+      locality: null,
       source: "client",
       approximate: false,
     };
@@ -228,36 +160,26 @@ export async function geocodeAddress(
   return geocodeFromGazetteer(address);
 }
 
-/** EWKT for a PostGIS geography column. Longitude first — X before Y. */
-export function toEwkt(lat: number, lng: number): string {
-  return `SRID=4326;POINT(${lng} ${lat})`;
-}
-
 /**
- * Straight-line distance in kilometres.
+ * The string to write to `address_text`.
  *
- * Used by the tracking screens to say how far the pro still is. Deliberately
- * not a Distance Matrix call: this number is rendered beside a live pin that
- * moves every fifteen seconds, and a billed round trip per ping to turn "1.2
- * km away" into "4 minutes by road" is not a trade worth making. The pro's own
- * ETA, which they report from their device, is the number that carries that
- * meaning.
+ * A customer types "הרצל 12, דירה 4" and means Netanya; `job_city()` in the
+ * database reads the last comma-separated part and would file that job under
+ * "דירה 4". So when the gazetteer found a town the address does not end with,
+ * the town is appended — the admin console then groups by a real place, and the
+ * point that was stored and the city that is displayed come from one decision
+ * instead of two.
+ *
+ * Google's own `formatted_address` is left exactly as it came: it already ends
+ * with the locality, in Hebrew, and second-guessing it would be inventing.
  */
-export function haversineKm(
-  from: { lat: number; lng: number },
-  to: { lat: number; lng: number },
-): number {
-  const EARTH_RADIUS_KM = 6371;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
+export function addressToStore(typed: string, point: GeocodeResult): string {
+  if (point.formattedAddress) return point.formattedAddress;
+  if (!point.locality) return typed;
 
-  const dLat = toRad(to.lat - from.lat);
-  const dLng = toRad(to.lng - from.lng);
+  const parts = typed.split(",");
+  const lastPart = parts[parts.length - 1] ?? "";
+  if (matchLocality(lastPart)?.name === point.locality) return typed;
 
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(from.lat)) *
-      Math.cos(toRad(to.lat)) *
-      Math.sin(dLng / 2) ** 2;
-
-  return EARTH_RADIUS_KM * 2 * Math.asin(Math.sqrt(a));
+  return `${typed.trim().replace(/,+$/, "")}, ${point.locality}`;
 }

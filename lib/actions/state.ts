@@ -172,3 +172,18 @@ export type ReviewReplyState = {
 };
 
 export const EMPTY_REVIEW_REPLY_STATE: ReviewReplyState = {};
+
+/**
+ * כתובות שמורות — the customer's own addresses.
+ *
+ * `savedPlaceId` is set by the action that just added one, so the form can
+ * clear itself and the list can say which chip is new.
+ */
+export type SavedPlaceState = {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+  savedPlaceId?: string;
+  removed?: boolean;
+};
+
+export const EMPTY_SAVED_PLACE_STATE: SavedPlaceState = {};

@@ -20,6 +20,7 @@ import {
   SectionCard,
 } from "@/components/ui/primitives";
 import { AddressField, type AddressValue } from "@/components/ui/AddressField";
+import type { SavedPlace } from "@/lib/validation/places";
 import { EMPTY_MEDIA, MediaFields, type MediaValue } from "./MediaFields";
 
 /**
@@ -44,10 +45,13 @@ export function PostJobForm({
   userId,
   categories,
   mapsKey,
+  savedPlaces = [],
 }: {
   userId: string;
   categories: Category[];
   mapsKey: string | null;
+  /** The customer's own addresses, offered as one tap on the address step. */
+  savedPlaces?: readonly SavedPlace[];
 }) {
   const [state, formAction, pending] = useActionState(createJob, INITIAL);
 
@@ -188,6 +192,7 @@ export function PostJobForm({
                   value={address}
                   onChange={setAddress}
                   error={fieldErrors.addressText}
+                  savedPlaces={savedPlaces}
                 />
 
                 <fieldset className="mt-5">

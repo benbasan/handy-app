@@ -1,6 +1,6 @@
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { CARD_BASE } from "@/components/ui/primitives";
-import { haversineKm } from "@/lib/maps/geocode";
+import { haversineKm } from "@/lib/maps/geometry";
 import type { JobLocation } from "@/lib/supabase/tracking";
 import { isLocationFresh, sinceLabel } from "@/lib/validation/tracking";
 

@@ -2,8 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { geocodeAddress, toEwkt } from "@/lib/maps/geocode";
-import { logServerError } from "@/lib/observability";
+import { addressToStore, geocodeAddress } from "@/lib/maps/geocode";
+import { toEwkt } from "@/lib/maps/geometry";
+import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { optional } from "@/lib/actions/formData";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
@@ -95,16 +96,27 @@ export async function createJob(
         : null,
     );
   } catch (cause) {
-    // A Google Maps key that has expired, been rate-limited or lost its IP
-    // restriction fails exactly like a bad address, and only this line tells
-    // the two apart.
+    // Ours, not theirs: no Maps key where one was required, or Google
+    // unreachable. Telling the customer to write a fuller address would be
+    // asking them to fix a deployment.
     logServerError("jobs.postJob.geocode", cause, {
       categoryId: input.categoryId,
     });
+    return { error: "תקלה זמנית באיתור הכתובת. נסו שוב בעוד רגע." };
+  }
+
+  if (!point) {
+    // Theirs, and answerable: no locality in the address anybody recognises.
+    // Logged as a refusal rather than an error — it is the product working,
+    // and the rate of it is what would say the gazetteer has a gap.
+    logExpectedRefusal("jobs.postJob.unknownAddress", "no locality matched", {
+      categoryId: input.categoryId,
+    });
     return {
-      error:
-        "לא הצלחנו לאתר את הכתובת על המפה. נסו כתובת מלאה יותר, או פנו לתמיכה.",
-      fieldErrors: { addressText: "כתובת שלא ניתן לאתר" },
+      error: "לא זיהינו את היישוב בכתובת.",
+      fieldErrors: {
+        addressText: "הוסיפו עיר בסוף הכתובת, למשל: הרצל 5, נתניה",
+      },
     };
   }
 
@@ -119,7 +131,7 @@ export async function createJob(
       voice_note_url: input.voiceNotePath ?? null,
       // EWKT: PostGIS parses it on the way into the geography column.
       location: toEwkt(point.lat, point.lng),
-      address_text: point.formattedAddress ?? input.addressText,
+      address_text: addressToStore(input.addressText, point),
       preferred_time: input.preferredTime,
       search_radius_km: input.searchRadiusKm,
       // `status` is deliberately absent: Phase 9 revoked the INSERT grant on
