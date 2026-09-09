@@ -126,7 +126,11 @@ jobs:
 
       # No NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: the address field falls back to
       # manual entry without one (lib/maps/config.ts), which is the path CI
-      # exercises. Add the secret here when the key exists to cover the other.
+      # exercises. The server half of that fallback is refused in production
+      # unless asked for by name, so playwright.config.ts sets
+      # ALLOW_NO_MAPS_KEY on the web server it builds — the suite carries its
+      # own answer rather than depending on this job's environment. Add the
+      # secret here when the key exists to cover the other path.
       - name: End-to-end tests
         run: npm run test:e2e
 

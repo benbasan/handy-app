@@ -63,6 +63,18 @@ export default defineConfig({
       // production. NEXT_PUBLIC_* is inlined at build time — hence setting it
       // on the command that builds.
       NEXT_PUBLIC_SITE_URL: BASE_URL,
+
+      // The suite runs without a Google Maps key, so posting a call has to
+      // reach the built-in gazetteer instead. `mapsFallbackAllowed()` refuses
+      // that silently-approximate mode in production unless it is asked for by
+      // name (lib/maps/config.ts) — and this web server IS production: it is
+      // `next start` over a real build, not `next dev`. Without this the
+      // fallback is refused, `postJob` throws MapsNotConfiguredError, and the
+      // customer never leaves /new-request.
+      //
+      // It belongs here rather than in CI's environment so that the suite is
+      // self-contained: a fresh clone with no .env.local runs it the same way.
+      ALLOW_NO_MAPS_KEY: "1",
     },
   },
 });

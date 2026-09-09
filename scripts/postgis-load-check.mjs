@@ -39,6 +39,35 @@ const PROS = Number(process.env.PERF_PROS ?? 1_000);
 /** Multiplies every budget, for running the same checks at a larger PERF_JOBS. */
 const BUDGET_SCALE = Number(process.env.PERF_BUDGET_SCALE ?? 1);
 
+/**
+ * The machine the budgets below were written on, in one number.
+ *
+ * Five of the checks are wall-clock, because the functions they time are
+ * `security definer` and EXPLAIN sees nothing inside them. A millisecond
+ * budget is therefore a statement about a particular CPU — and this script
+ * runs on two very different ones. On the laptop the budgets were authored on,
+ * the pro feed answers in about 230 ms; on a shared CI runner the identical
+ * schema takes about 470 ms, and a gate that fails there is reporting the
+ * runner rather than a regression.
+ *
+ * So the budgets are held in reference-machine milliseconds and scaled by how
+ * slow *this* machine turns out to be. The yardstick is a fixed geography
+ * loop: no table, no row count and no app code, so nothing in this repo can
+ * ever move it — it measures the CPU and nothing else. It costs ~215 ms here,
+ * the same order as the queries being judged, which puts it well clear of
+ * timer noise (nine runs spread 1.06x).
+ *
+ * Re-pin REFERENCE_MS only when the yardstick itself changes — never to make a
+ * failing budget pass. A slower machine is already accounted for.
+ */
+const CALIBRATION = `select count(*) from generate_series(1, 200000) g
+   where extensions.st_distance(
+           extensions.st_point(34.70 + g / 1e7, 32.00)::extensions.geography,
+           extensions.st_point(34.7818, 32.0853)::extensions.geography
+         ) < 10000`;
+
+const REFERENCE_MS = 215;
+
 const CUSTOMER_A = "a0000000-0000-4000-8000-000000000001";
 const PRO_VERIFIED = "a0000000-0000-4000-8000-000000000003";
 const JOB_A = "d0000000-0000-4000-8000-000000000001";
@@ -257,6 +286,30 @@ function explain({ as, sql }) {
   return plan;
 }
 
+/**
+ * How much slower than the reference machine this one is.
+ *
+ * The minimum of three runs rather than the mean: a scheduler that steals the
+ * process mid-query can only ever make a timing worse, so the fastest run is
+ * the honest estimate of the cost and everything above it is noise. Floored at
+ * 1 — a machine faster than the reference keeps the authored budgets instead
+ * of earning stricter ones, so the gate never tightens by surprise.
+ *
+ * Runs before the synthetic load, which it does not touch and does not need.
+ */
+function calibrate() {
+  const runs = [];
+  for (let i = 0; i < 3; i += 1) {
+    const plan = explain({
+      as: { role: "postgres", uid: null },
+      sql: CALIBRATION,
+    });
+    runs.push(plan["Execution Time"]);
+  }
+  const measured = Math.min(...runs);
+  return { measured, factor: Math.max(1, measured / REFERENCE_MS) };
+}
+
 function indexesUsed(node, found = new Set()) {
   if (node["Index Name"]) found.add(node["Index Name"]);
   for (const child of node.Plans ?? []) indexesUsed(child, found);
@@ -269,7 +322,13 @@ function main() {
   console.log(
     `PostGIS load check — ${JOBS.toLocaleString("en-US")} jobs, ${PROS.toLocaleString("en-US")} pros`,
   );
-  console.log(`container: ${CONTAINER}\n`);
+  console.log(`container: ${CONTAINER}`);
+
+  const { measured, factor } = calibrate();
+  console.log(
+    `machine:   ${measured.toFixed(0)} ms on the ${REFERENCE_MS} ms yardstick` +
+      ` — budgets x${factor.toFixed(2)}\n`,
+  );
 
   // One transaction for the whole run: the load goes in, every query is
   // measured against it, and none of it is ever committed. `psql` runs each
@@ -285,7 +344,7 @@ function main() {
       const ms = plan["Execution Time"];
       const used = indexesUsed(plan.Plan);
 
-      const budget = check.budgetMs * BUDGET_SCALE;
+      const budget = check.budgetMs * BUDGET_SCALE * factor;
       const wantedIndex = check.kind !== "plan" || used.has(check.index);
       const withinBudget = ms <= budget;
       const ok = wantedIndex && withinBudget;
@@ -299,7 +358,7 @@ function main() {
 
       console.log(
         `${ok ? "ok  " : "FAIL"} ${check.name}\n` +
-          `       ${ms.toFixed(1)} ms (budget ${budget} ms)\n` +
+          `       ${ms.toFixed(1)} ms (budget ${budget.toFixed(0)} ms)\n` +
           detail,
       );
     }
