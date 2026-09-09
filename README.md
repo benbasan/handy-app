@@ -112,6 +112,16 @@ login screen can create an account. It cannot mint an admin and it cannot reach
 the seven seeded users — they still answer to `[auth.sms.test_otp]`, which is
 how `972500000005` stays out of its reach.
 
+**On a hosted project the flag is not enough on its own: phone confirmations
+have to be off there too.** The bypass creates each account itself, with
+`signUp` — which sends a confirmation SMS unless the auth server autoconfirms.
+`supabase/config.toml` sets `enable_confirmations = false` and the local stack
+follows it, but a Supabase Cloud project keeps whatever its dashboard says.
+Leave them on and every number that is not seeded fails at the second step with
+`Unable to get SMS provider`, because there is no provider to send with. Turn
+them off under **Authentication → Sign In / Providers → Phone**; it takes
+effect immediately, with no redeploy.
+
 Turning it off is two steps, because every account it made shares one password:
 
 ```
