@@ -1,7 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { createJob, type CreateJobState } from "@/lib/actions/jobs";
+import { useActionState, useEffect, useState } from "react";
+import {
+  countProsForRadius,
+  createJob,
+  type CreateJobState,
+} from "@/lib/actions/jobs";
 import { categoryIcon } from "@/lib/categories";
 import type { Category } from "@/lib/supabase/jobs";
 import {
@@ -82,6 +86,42 @@ export function PostJobForm({
   const [places, setPlaces] = useState<readonly SavedPlace[]>(savedPlaces);
   const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_SEARCH_RADIUS_KM);
   const [media, setMedia] = useState<MediaValue>(EMPTY_MEDIA);
+
+  /**
+   * How many pros would actually receive this call, at the address and radius
+   * currently on screen. `null` while unknown — either nothing has been typed
+   * yet or the count could not be taken, and neither is a zero.
+   *
+   * This used to be answered only on the offers screen, after publishing. On a
+   * thin market that is the wrong end: the number is most useful while the
+   * radius is still a choice.
+   */
+  const [prosNearby, setProsNearby] = useState<number | null>(null);
+
+  useEffect(() => {
+    const { lat, lng } = address;
+    if (lat === null || lng === null) return;
+
+    // The address field resolves a point on every keystroke, so a stale answer
+    // can outrun a fresh one. Ignore anything that comes back after the inputs
+    // have moved on.
+    let current = true;
+    void countProsForRadius(lat, lng, radiusKm).then((count) => {
+      if (current) setProsNearby(count);
+    });
+
+    return () => {
+      current = false;
+    };
+  }, [address, radiusKm]);
+
+  /*
+   * Whether there is a point to count around is derived, not stored. Clearing
+   * the state from inside the effect would be a synchronous setState in a
+   * render pass — and it would also mean the answer to "is this count still
+   * about the address on screen?" lived in two places instead of one.
+   */
+  const hasPoint = address.lat !== null && address.lng !== null;
 
   const selectedCategory = categories.find((c) => c.id === categoryId) ?? null;
   const fieldErrors = state.fieldErrors ?? {};
@@ -234,6 +274,21 @@ export function PostJobForm({
                       </button>
                     ))}
                   </div>
+
+                  {hasPoint && prosNearby !== null && (
+                    <p
+                      role="status"
+                      className={`mt-3 text-sm font-semibold ${
+                        prosNearby === 0 ? "text-alert" : "text-muted"
+                      }`}
+                    >
+                      {prosNearby === 0
+                        ? "אין כרגע בעל מקצוע מאומת שמכסה את הכתובת הזו ברדיוס הזה. אפשר להרחיב את הרדיוס — ואפשר לפרסם בכל מקרה, ההצעות יגיעו כשיצטרף מישהו באזור."
+                        : prosNearby === 1
+                          ? "בעל מקצוע מאומת אחד מכסה את הכתובת הזו ברדיוס הזה."
+                          : `${prosNearby} בעלי מקצוע מאומתים מכסים את הכתובת הזו ברדיוס הזה.`}
+                    </p>
+                  )}
                 </fieldset>
               </SectionCard>
             </div>

@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(372);
+select plan(380);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -3683,6 +3683,96 @@ select is(
   (select count(*) from public.saved_places),
   0::bigint,
   'a pro sees no saved address at all — where a customer works from is not theirs to browse'
+);
+
+reset role;
+
+-- ===========================================================================
+-- Phase 12: pros_near_point() and a widenable search radius
+--
+-- The count is the number the posting form shows before a job exists, and the
+-- grant is what lets a customer rescue a call that got no offers. Both are new
+-- surfaces on `pro_profiles` and `jobs`, so both are proved here rather than
+-- trusted to the screen that calls them.
+-- ===========================================================================
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+-- job_a sits in Tel Aviv and :pro_verified covers it — sections 3 and 10 lean
+-- on that fixture, so the same point is what makes this count non-zero.
+select ok(
+  public.pros_near_point(32.0853, 34.7818, 30) >= 1,
+  'a point a verified, accepting pro covers is counted'
+);
+
+select is(
+  public.pros_near_point(29.5581, 34.9482, 30),
+  0,
+  'and Eilat is counted as nobody — the gap the offers screen has to say out loud'
+);
+
+-- The parameter needs no clamp because each pro''s own radius bounds it. Asking
+-- about ten thousand kilometres must not turn every pro in the country into a
+-- neighbour.
+select is(
+  public.pros_near_point(29.5581, 34.9482, 10000),
+  0,
+  'an absurd radius is still bounded by each pro''s own — least(), the same as the RLS policy'
+);
+
+select lives_ok(
+  $$ update public.jobs set search_radius_km = 30
+      where id = 'd0000000-0000-4000-8000-000000000001' $$,
+  'the customer who posted the job may widen how far it is broadcast'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.jobs
+    where id = 'd0000000-0000-4000-8000-000000000001'),
+  0::bigint,
+  'another customer cannot even see the job, so the new grant widens nothing'
+);
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+-- The pro reads job_a through the feed policy, and the only UPDATE policy on
+-- `jobs` is the owner''s. So this does not raise — it matches no row and
+-- changes nothing, which is the outcome worth asserting rather than the
+-- mechanism: a silent no-op is exactly how RLS refuses a write.
+select lives_ok(
+  $$ update public.jobs set search_radius_km = 1
+      where id = 'd0000000-0000-4000-8000-000000000001' $$,
+  'a pro''s attempt to narrow a job they merely receive matches no row'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select search_radius_km from public.jobs
+    where id = 'd0000000-0000-4000-8000-000000000001'),
+  30,
+  'and the radius is still what its owner set'
+);
+
+reset role;
+
+-- anon holds no execute grant: the supply map is not public.
+set local role anon;
+
+select throws_ok(
+  $$ select public.pros_near_point(32.0853, 34.7818, 30) $$,
+  '42501',
+  null,
+  'an anonymous visitor cannot count the pros around an arbitrary point'
 );
 
 reset role;

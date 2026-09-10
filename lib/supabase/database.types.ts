@@ -1286,6 +1286,10 @@ export type Database = {
         Returns: boolean
       }
       pros_in_range: { Args: { p_job_id: string }; Returns: number }
+      pros_near_point: {
+        Args: { p_lat: number; p_lng: number; p_radius_km: number }
+        Returns: number
+      }
       public_pro_slugs: {
         Args: never
         Returns: {

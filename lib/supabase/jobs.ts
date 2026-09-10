@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { logServerError } from "@/lib/observability";
 import { JOB_MEDIA_BUCKET } from "./buckets";
 import { createClient } from "./server";
 
@@ -139,4 +140,39 @@ export async function signJobMedia(
   }
 
   return signed;
+}
+
+/**
+ * How many verified, accepting pros would receive a call posted at this point
+ * with this radius — asked before the call exists.
+ *
+ * `pros_in_range()` answers the same question of a saved row and checks
+ * ownership, which is right for the offers screen and unusable on the form.
+ * Both read `least(pro.radius_km, search_radius_km)`, so the number the
+ * customer sees while choosing a radius and the number they see afterwards are
+ * the same measurement.
+ *
+ * Returns null when the count could not be taken. The caller shows nothing
+ * rather than a zero, because "nobody covers you" and "we could not ask" are
+ * different sentences and only one of them is the customer's problem.
+ */
+export async function countProsNearPoint(
+  lat: number,
+  lng: number,
+  radiusKm: number,
+): Promise<number | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("pros_near_point", {
+    p_lat: lat,
+    p_lng: lng,
+    p_radius_km: radiusKm,
+  });
+
+  if (error) {
+    logServerError("jobs.countProsNearPoint", error, { radiusKm });
+    return null;
+  }
+
+  return data ?? 0;
 }
