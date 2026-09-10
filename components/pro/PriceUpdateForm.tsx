@@ -95,7 +95,7 @@ export function PriceUpdateForm({
         <p className="mt-2 text-sm text-ink">
           עד שהלקוח יאשר, העבודה ממשיכה במחיר המקורי —{" "}
           <span className="ltr-nums font-bold">{formatIls(originalPrice)}</span>{" "}
-          ₪. נעדכן כאן ברגע שתהיה החלטה.
+          ₪. נעדכן בהתראה ברגע שהלקוח יכריע.
         </p>
       </div>
     );

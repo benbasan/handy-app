@@ -299,3 +299,88 @@ test.describe("a call nobody covers", () => {
     expect(after).not.toBe(before);
   });
 });
+
+/**
+ * Notifications, from a browser.
+ *
+ * Two things are deliberately NOT here.
+ *
+ * **Push delivery.** `grantPermissions` hands over the permission, but a test
+ * browser has no push service behind it, so there is nothing to deliver to and
+ * nothing to assert. That half is verified by hand, once, in a real browser —
+ * the same posture the PDF receipt takes, and for the same reason.
+ *
+ * **Driving `select_bid()` from the UI.** The first version of this did, and it
+ * broke a neighbouring accessibility test: choosing a bid moves the seeded job
+ * to `awaiting_pro`, and the offers screen that another spec asserts against is
+ * a different screen after that. A suite whose order matters is a suite that
+ * fails for reasons unrelated to the change under test. Which kind
+ * `select_bid()` writes — and that it differs from `withdraw_bid_selection()`'s,
+ * which is the whole design argument — is proved in pgTAP, against the
+ * function, where it can be proved without a shared fixture.
+ *
+ * What is left is exactly what only a browser can answer: that the rows those
+ * triggers wrote reach a screen, and that the badge and the list are the same
+ * rows.
+ */
+test.describe("being told that something happened", () => {
+  test("the pro's centre shows what the seed's own triggers wrote", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      storageState: storageStatePath("pro"),
+    });
+    const page = await context.newPage();
+
+    await page.goto("/pro/notifications");
+    await expect(
+      page.getByRole("heading", { name: "התראות", level: 1 }),
+    ).toBeVisible();
+
+    // Nothing here is a fixture: the seed posts jobs and messages through the
+    // ordinary tables, and the triggers produced these rows on the way in.
+    await expect(page.getByRole("link", { name: "פתח" }).first()).toBeVisible();
+
+    await context.close();
+  });
+
+  test("the badge and the list are the same rows", async ({ browser }) => {
+    const context = await browser.newContext({
+      storageState: storageStatePath("pro"),
+    });
+    const page = await context.newPage();
+
+    await page.goto("/pro/notifications");
+
+    const badge = page.getByRole("link", { name: /^התראות/ });
+    await expect(badge).toContainText(/\d/);
+
+    await page.getByRole("button", { name: "סמן הכל כנקרא" }).click();
+
+    // Marking read clears both: the button has nothing left to do, and the
+    // header count is a `count`/`head` over the same rows under the same RLS.
+    await expect(
+      page.getByRole("button", { name: "סמן הכל כנקרא" }),
+    ).toHaveCount(0);
+    await expect(badge).not.toContainText(/\d/);
+
+    await context.close();
+  });
+
+  test("the customer's own centre is their own", async ({ browser }) => {
+    // Which rows they may read is proved in pgTAP against the policy. This is
+    // the half pgTAP cannot reach: that the app in front of it renders the
+    // caller's list rather than somebody else's.
+    const context = await browser.newContext({
+      storageState: storageStatePath("customer"),
+    });
+    const page = await context.newPage();
+
+    await page.goto("/account/notifications");
+    await expect(
+      page.getByRole("heading", { name: "התראות", level: 1 }),
+    ).toBeVisible();
+
+    await context.close();
+  });
+});
