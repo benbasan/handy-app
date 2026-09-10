@@ -31,7 +31,7 @@ export function LegalPage({
   return (
     <AppShell user={user}>
       <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-2">
+        <aside className="order-2 space-y-4 lg:order-2">
           <nav className="space-y-2">
             {LEGAL_DOCUMENTS.map((candidate) => {
               const active = candidate.slug === document.slug;

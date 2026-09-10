@@ -32,7 +32,7 @@ export default async function ProHelpPage() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-1">
+        <aside className="order-1 space-y-4 lg:order-1">
           <div className="rounded-2xl bg-ink p-5 text-white sm:p-6">
             <h2 className="text-lg font-bold">מנהל קהילת בעלי המקצוע</h2>
             <p className="mt-2 text-sm text-white/75">

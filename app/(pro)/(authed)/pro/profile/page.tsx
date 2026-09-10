@@ -56,7 +56,7 @@ export default async function ProPublicProfilePage() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-2">
+        <aside className="order-2 space-y-4 lg:order-2">
           <div className="rounded-2xl bg-ink p-5 text-white sm:p-6">
             <h2 className="text-base font-bold">חוזק הפרופיל</h2>
             <p className="ltr-nums mt-1 text-4xl font-bold text-cta">
@@ -103,7 +103,7 @@ export default async function ProPublicProfilePage() {
           </div>
         </aside>
 
-        <div className="lg:order-1">
+        <div className="order-1 lg:order-1">
           <PublicProfileForm
             userId={user.id}
             initial={{

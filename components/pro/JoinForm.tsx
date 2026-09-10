@@ -71,7 +71,7 @@ export function JoinForm({
   return (
     <form action={formAction}>
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
+        <aside className="order-2 space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
           <Card>
             <h2 className={SECTION_TITLE}>הפרופיל שלך</h2>
 
@@ -120,7 +120,7 @@ export function JoinForm({
           </div>
         </aside>
 
-        <div className="space-y-6 lg:order-1">
+        <div className="order-1 space-y-6 lg:order-1">
           <SectionCard step={1} tone="pro" title="פרטים ומסמכים">
             <ProProfileFields
               categories={categories}

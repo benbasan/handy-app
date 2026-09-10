@@ -202,7 +202,7 @@ export default async function PublicProProfilePage({
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-1">
+        <aside className="order-1 space-y-4 lg:order-1">
           <div className={`${CARD_CLASS}`}>
             <h2 className={SECTION_TITLE}>מסמכים שאומתו</h2>
             <ul className="mt-3 space-y-2 text-sm">
@@ -274,7 +274,7 @@ export default async function PublicProProfilePage({
           )}
         </aside>
 
-        <div className="space-y-6 lg:order-2">
+        <div className="order-2 space-y-6 lg:order-2">
           <section className={`${CARD_CLASS}`}>
             <h2 className={SECTION_TITLE}>על העבודה שלי</h2>
             <p className="mt-3 leading-relaxed whitespace-pre-line text-muted">

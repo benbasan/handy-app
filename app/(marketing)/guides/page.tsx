@@ -52,7 +52,7 @@ export default async function GuidesPage() {
       </section>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-start">
-        <ul className="space-y-3 lg:order-2">
+        <ul className="order-2 space-y-3 lg:order-2">
           {rest.map((guide) => (
             <li key={guide.slug}>
               <Link

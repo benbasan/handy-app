@@ -116,7 +116,7 @@ export default async function ProJobFeedPage({
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-2">
+        <aside className="order-2 space-y-4 lg:order-2">
           <Card className="overflow-hidden p-0">
             {mapsKey && profile?.serviceAddressText ? (
               <iframe
@@ -168,7 +168,7 @@ export default async function ProJobFeedPage({
           )}
         </aside>
 
-        <div className="lg:order-1">
+        <div className="order-1 lg:order-1">
           {profile && profile.verificationStatus !== "verified" ? (
             <ProStatusCard profile={profile} />
           ) : jobs.length === 0 ? (

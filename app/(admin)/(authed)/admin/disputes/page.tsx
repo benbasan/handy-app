@@ -66,7 +66,7 @@ export default async function AdminDisputesPage() {
         </header>
 
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="space-y-4 lg:order-2">
+          <div className="order-2 space-y-4 lg:order-2">
             <Card>
               <h2 className={SECTION_TITLE}>מדדי אמון</h2>
               <dl className="mt-3 space-y-3 text-sm">
@@ -114,7 +114,7 @@ export default async function AdminDisputesPage() {
             </section>
           </div>
 
-          <div className="space-y-4 lg:order-1 lg:col-span-2">
+          <div className="order-1 space-y-4 lg:order-1 lg:col-span-2">
             {disputes.length === 0 ? (
               <EmptyState
                 icon={CheckIcon}

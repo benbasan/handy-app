@@ -31,7 +31,7 @@ export default async function ContactPage() {
       </section>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-1">
+        <aside className="order-1 space-y-4 lg:order-1">
           <div className={`${CARD_CLASS}`}>
             <h2 className={SECTION_TITLE}>דרכי יצירת קשר</h2>
             <dl className="mt-3 space-y-3 text-sm">
@@ -71,7 +71,7 @@ export default async function ContactPage() {
           </div>
         </aside>
 
-        <div className="lg:order-2">
+        <div className="order-2 lg:order-2">
           <SupportForm
             defaultName={user?.fullName ?? undefined}
             defaultPhone={user?.phone}

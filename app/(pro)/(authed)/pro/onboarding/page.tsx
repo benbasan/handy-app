@@ -111,7 +111,7 @@ export default async function ProOnboardingPage({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
+        <aside className="order-2 space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
           <nav aria-label="שלבי ההרשמה" className="space-y-2">
             {STEPS.map((item) => {
               const done = (profile?.onboardingStep ?? 0) >= item.number;
@@ -160,7 +160,7 @@ export default async function ProOnboardingPage({
           </div>
         </aside>
 
-        <Card className="lg:order-1">
+        <Card className="order-1 lg:order-1">
           <h2 className="text-xl font-bold text-ink">
             {step === 1
               ? `ברוך הבא${user.fullName ? `, ${user.fullName}` : ""}`

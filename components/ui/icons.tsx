@@ -54,9 +54,9 @@ function Icon({ children, ...props }: IconProps) {
 /** אינסטלציה — a shower head over falling water. */
 export const ShowerIcon = (props: IconProps) => (
   <Icon {...props}>
-    <path d="M5 3v6a3 3 0 0 0 3 3h1.5" />
-    <path d="M9.5 10h10l-2.2 4.5H11.7z" />
-    <path d="M12 18v2M15 17.5v2M18 18v2" />
+    <path d="M12 2.5v4" />
+    <path d="M4.5 6.5h15l-2.5 4.5H7z" />
+    <path d="M8.5 14.5v3M12 14v4M15.5 14.5v3" />
   </Icon>
 );
 
@@ -70,18 +70,17 @@ export const BoltIcon = (props: IconProps) => (
 /** מיזוג — a snowflake. */
 export const SnowflakeIcon = (props: IconProps) => (
   <Icon {...props}>
-    <path d="M12 2v20M2 12h20" />
-    <path d="m4.9 4.9 14.2 14.2M19.1 4.9 4.9 19.1" />
-    <path d="M12 6.5 9.5 4M12 6.5 14.5 4M12 17.5 9.5 20M12 17.5l2.5 2.5" />
-    <path d="M6.5 12 4 9.5M6.5 12 4 14.5M17.5 12 20 9.5M17.5 12l2.5 2.5" />
+    <path d="M12 2.5v19M4 7.25l16 9.5M20 7.25l-16 9.5" />
+    <path d="M12 6 9.75 3.75M12 6l2.25-2.25M12 18l-2.25 2.25M12 18l2.25 2.25" />
   </Icon>
 );
 
 /** נגרות — a hammer. */
 export const HammerIcon = (props: IconProps) => (
   <Icon {...props}>
-    <path d="M14.5 3.5 11 7l2 2 3.5-3.5a2.5 2.5 0 0 1 3.5 0l-6 6a2.5 2.5 0 0 1 0-3.5z" />
-    <path d="m12.5 9.5-8 8a2.1 2.1 0 0 0 3 3l8-8" />
+    <path d="M9.5 3.5h7A1.5 1.5 0 0 1 18 5v3a1.5 1.5 0 0 1-1.5 1.5h-7z" />
+    <path d="M9.5 3.5 6 6.5l3.5 3" />
+    <path d="M13 9.5v11" />
   </Icon>
 );
 
