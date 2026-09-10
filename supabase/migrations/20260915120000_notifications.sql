@@ -187,7 +187,7 @@ create table public.push_subscriptions (
   auth_key text not null,
   user_agent text,
   created_at timestamptz not null default now(),
-  last_success_at timestamptz
+  last_seen_at timestamptz not null default now()
 );
 
 comment on table public.push_subscriptions is
@@ -254,7 +254,12 @@ begin
     set user_id = (select auth.uid()),
         p256dh = excluded.p256dh,
         auth_key = excluded.auth_key,
-        user_agent = excluded.user_agent
+        user_agent = excluded.user_agent,
+        -- The browser re-registers on every load, so this is "when this device
+        -- last opened the app". It is the only honest liveness signal
+        -- available: the dispatch route holds no database credential by
+        -- design, so it can never write back that a push landed.
+        last_seen_at = now()
   returning id into v_id;
 
   return v_id;
@@ -1256,9 +1261,10 @@ begin
   -- Nothing stale ever buzzes. A notification an hour old has been read on the
   -- screen already, or has stopped mattering.
   with due as (
-    select n.id, n.kind, n.job_id, n.payload,
+    select n.id, n.kind, n.job_id, n.payload, n.user_id, pr.role,
            s.endpoint, s.p256dh, s.auth_key
       from public.notifications n
+      join public.profiles pr on pr.id = n.user_id
       join public.push_subscriptions s on s.user_id = n.user_id
      where n.pushed_at is null
        and n.read_at is null
@@ -1304,15 +1310,14 @@ set search_path = ''
 as $$
   with gone as (
     delete from public.push_subscriptions
-     where last_success_at is null
-       and created_at < now() - interval '90 days'
+     where last_seen_at < now() - interval '90 days'
     returning 1
   )
   select count(*)::int from gone;
 $$;
 
 comment on function public.prune_push_subscriptions() is
-  'Drops endpoints that never once accepted a push. The browser is the first authority on a dead endpoint (pushsubscriptionchange) and the dispatch route the second (410 Gone); this is the backstop for a device that was simply thrown away.';
+  'Drops endpoints belonging to a device that has not opened the app in ninety days. The browser is the first authority on a dead endpoint (pushsubscriptionchange, and the reconcile in PushSetup); this is the backstop for a device that was simply thrown away, which never reports anything.';
 
 revoke execute on function public.prune_push_subscriptions() from public, anon, authenticated;
 
