@@ -1,8 +1,16 @@
+import { MessageIcon } from "@/components/ui/icons";
 import Link from "next/link";
 import { ChatPanel } from "@/components/ui/ChatPanel";
 import { ChatThreadList } from "@/components/ui/ChatThreadList";
 import { MarkThreadRead } from "@/components/ui/MarkThreadRead";
-import { BUTTON_QUIET, Card, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  BUTTON_COMPACT,
+  BUTTON_QUIET,
+  Card,
+  EmptyState,
+  PAGE_LEAD,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listMyThreads, listThreadMessages } from "@/lib/supabase/messages";
 import { requireRole } from "@/lib/supabase/session";
@@ -45,25 +53,23 @@ export default async function ProMessagesPage({
   return (
     <div className="space-y-6">
       <header>
-        <h1 className={`${PAGE_TITLE}`}>הודעות</h1>
-        <p className="mt-2 text-muted">
+        <h1 className={PAGE_TITLE}>הודעות</h1>
+        <p className={PAGE_LEAD}>
           שיחה אחת לכל קריאה שהגשתם עליה הצעה. הלקוח רואה רק את השיחה איתכם.
         </p>
       </header>
 
       {threads.length === 0 ? (
-        <Card className="p-10 text-center">
-          <p className="text-lg font-bold text-ink">אין עדיין שיחות</p>
-          <p className="mt-2 text-muted">
-            שיחה נפתחת ברגע שאתם מגישים הצעת מחיר על קריאה.
-          </p>
-          <Link
-            href={PRO_ROUTES.jobs}
-            className={`${BUTTON_QUIET} mt-5 inline-flex`}
-          >
-            לפיד הקריאות
-          </Link>
-        </Card>
+        <EmptyState
+          icon={MessageIcon}
+          title="אין עדיין שיחות"
+          body="שיחה נפתחת ברגע שאתם מגישים הצעת מחיר על קריאה."
+          action={
+            <Link href={PRO_ROUTES.jobs} className={BUTTON_QUIET}>
+              לפיד הקריאות
+            </Link>
+          }
+        />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
           <Card className="order-1 min-w-0 p-0">
@@ -84,7 +90,7 @@ export default async function ProMessagesPage({
 
                   <Link
                     href={PRO_ROUTES.offers}
-                    className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+                    className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
                   >
                     ההצעות שלי
                   </Link>

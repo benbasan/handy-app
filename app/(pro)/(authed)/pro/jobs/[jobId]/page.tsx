@@ -8,7 +8,15 @@ import { ChatDock } from "@/components/ui/ChatDock";
 import { ChatPanel } from "@/components/ui/ChatPanel";
 import { LiveMap } from "@/components/ui/LiveMap";
 import { MarkThreadRead } from "@/components/ui/MarkThreadRead";
-import { Badge, BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_COMPACT,
+  BUTTON_QUIET,
+  Badge,
+  Card,
+  PAGE_LEAD,
+  PAGE_TITLE,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { PRO_ROUTES } from "@/lib/routes";
 import { getJob } from "@/lib/supabase/jobs";
@@ -111,8 +119,8 @@ export default async function ProManageJobPage({
 
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-ink">ניהול עבודה</h1>
-          <p className="mt-2 text-muted">
+          <h1 className={PAGE_TITLE}>ניהול עבודה</h1>
+          <p className={PAGE_LEAD}>
             {active.categoryName} ·{" "}
             <span dir="ltr" className="font-mono">
               {jobReference(jobId)}
@@ -131,9 +139,7 @@ export default async function ProManageJobPage({
         <aside className="space-y-4">
           {pending ? (
             <section className="rounded-2xl border-2 border-alert bg-surface p-5">
-              <h2 className="text-lg font-bold text-ink">
-                בקשת עדכון מחיר נשלחה
-              </h2>
+              <h2 className={SECTION_TITLE}>בקשת עדכון מחיר נשלחה</h2>
               <p className="mt-2 text-sm text-ink">
                 ממתין להחלטת הלקוח:{" "}
                 <span className="ltr-nums text-muted line-through">
@@ -268,7 +274,7 @@ export default async function ProManageJobPage({
                 {contact && (
                   <a
                     href={`tel:+${contact.phone}`}
-                    className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+                    className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
                   >
                     ☎ חיוג
                   </a>

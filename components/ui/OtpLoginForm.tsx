@@ -11,6 +11,7 @@ import {
   BUTTON_CTA,
   FIELD_LABEL,
   INPUT_CLASS,
+  PAGE_TITLE,
 } from "@/components/ui/primitives";
 import { formatIsraeliMobile, type SignupRole } from "@/lib/validation/auth";
 
@@ -71,7 +72,7 @@ function OtpLoginFormAttempt({
 
   return (
     <div className="w-full">
-      <h1 className="text-3xl font-bold text-ink">{title}</h1>
+      <h1 className={PAGE_TITLE}>{title}</h1>
       <p className="mt-2 text-sm text-muted">{subtitle}</p>
 
       {sentTo ? (

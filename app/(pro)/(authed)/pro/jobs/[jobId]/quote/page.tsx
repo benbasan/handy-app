@@ -6,7 +6,9 @@ import {
   BUTTON_QUIET,
   Badge,
   Card,
+  PAGE_LEAD,
   PAGE_TITLE,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import {
@@ -74,10 +76,10 @@ export default async function SubmitBidPage({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className={`${PAGE_TITLE}`}>
+          <h1 className={PAGE_TITLE}>
             הגשת הצעה — {job.description.split("\n")[0]!.slice(0, 60)}
           </h1>
-          <p className="mt-2 text-muted">
+          <p className={PAGE_LEAD}>
             {job.addressText}
             {distanceKm !== null && (
               <>
@@ -98,7 +100,7 @@ export default async function SubmitBidPage({
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-ink">תיאור הלקוח</h2>
+            <h2 className={SECTION_TITLE}>תיאור הלקוח</h2>
             <p className="mt-1 text-sm text-muted">
               {job.categoryName ?? "קריאה"} ·{" "}
               <span dir="ltr" className="font-mono">

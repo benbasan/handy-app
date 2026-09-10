@@ -1,6 +1,12 @@
+import { CheckIcon } from "@/components/ui/icons";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ProApprovalRow } from "@/components/admin/ProApprovalRow";
-import { Card, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  EmptyState,
+  PAGE_LEAD,
+  PAGE_TITLE,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { ADMIN_ROUTES } from "@/lib/routes";
 import { listProApplications, signVerificationDocs } from "@/lib/supabase/pros";
 import { requireRole } from "@/lib/supabase/session";
@@ -40,8 +46,8 @@ export default async function AdminProApprovalsPage() {
     <AdminShell current={ADMIN_ROUTES.pros}>
       <div className="space-y-6">
         <header>
-          <h1 className={`${PAGE_TITLE}`}>אישור בעלי מקצוע</h1>
-          <p className="mt-2 text-muted">
+          <h1 className={PAGE_TITLE}>אישור בעלי מקצוע</h1>
+          <p className={PAGE_LEAD}>
             {pending.length === 0
               ? "אין בקשות ממתינות"
               : `${pending.length} בקשות ממתינות`}{" "}
@@ -50,13 +56,11 @@ export default async function AdminProApprovalsPage() {
         </header>
 
         {pending.length === 0 ? (
-          <Card className="p-10 text-center">
-            <p className="text-lg font-bold text-ink">התור ריק</p>
-            <p className="mt-2 text-muted">
-              כל הבקשות שהוגשו טופלו. בקשה חדשה תופיע כאן ברגע שבעל מקצוע ישלח
-              את הפרופיל שלו לאישור.
-            </p>
-          </Card>
+          <EmptyState
+            icon={CheckIcon}
+            title="התור ריק"
+            body="כל הבקשות שהוגשו טופלו. בקשה חדשה תופיע כאן ברגע שבעל מקצוע ישלח את הפרופיל שלו לאישור."
+          />
         ) : (
           <ul className="space-y-4">
             {pending.map((application) => (
@@ -71,7 +75,7 @@ export default async function AdminProApprovalsPage() {
 
         {decided.length > 0 && (
           <section>
-            <h2 className="mb-3 text-lg font-bold text-ink">בקשות שטופלו</h2>
+            <h2 className={`mb-3 ${SECTION_TITLE}`}>בקשות שטופלו</h2>
             <ul className="space-y-4">
               {decided.map((application) => (
                 <ProApprovalRow

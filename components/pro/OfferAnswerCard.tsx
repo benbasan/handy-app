@@ -1,11 +1,16 @@
 "use client";
 
 import { useActionState } from "react";
-import { BUTTON_PRO, ErrorText } from "@/components/ui/primitives";
+import {
+  BUTTON_PRO,
+  BUTTON_QUIET,
+  ErrorText,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { acceptOffer, declineOffer } from "@/lib/actions/acceptance";
 import { EMPTY_ANSWER_OFFER_STATE } from "@/lib/actions/state";
 import type { PendingAcceptance } from "@/lib/supabase/bids";
-import { timeLeftLabel } from "@/lib/validation/bids";
+import { Countdown } from "@/components/ui/Countdown";
 import { formatIls } from "@/lib/validation/priceUpdates";
 
 /**
@@ -37,13 +42,13 @@ export function OfferAnswerCard({ offer }: { offer: PendingAcceptance }) {
   const busy = pending || declining;
 
   return (
-    <section className="rounded-2xl border-2 border-pro bg-pro-soft p-5">
+    <section className="animate-attention rounded-2xl border-2 border-pro bg-pro-soft p-5 shadow-lift">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-56 flex-1">
           <p className="text-sm font-bold text-pro">
             הלקוח בחר בך — צריך את האישור שלך
           </p>
-          <h2 className="mt-1 text-lg font-bold text-ink">
+          <h2 className={`mt-1 ${SECTION_TITLE}`}>
             {offer.description.split("\n")[0]!.slice(0, 70)}
           </h2>
           {/* text-ink/75 rather than text-muted: #64748b on this card's
@@ -58,9 +63,11 @@ export function OfferAnswerCard({ offer }: { offer: PendingAcceptance }) {
           <p className="text-2xl font-bold text-ink">
             <span className="ltr-nums">{formatIls(offer.price)}</span> ₪
           </p>
-          <p className="mt-1 text-sm font-semibold text-alert">
-            {timeLeftLabel(offer.acceptDeadline)}
-          </p>
+          {/* Ticks. See components/ui/Countdown.tsx for why that reverses the
+              comment that used to be at the top of this file, and for the half
+              of it that still stands: accept_job() re-reads this deadline and
+              is the only thing that decides. */}
+          <Countdown deadline={offer.acceptDeadline} className="mt-1 text-sm" />
         </div>
       </div>
 
@@ -91,7 +98,7 @@ export function OfferAnswerCard({ offer }: { offer: PendingAcceptance }) {
           <button
             type="submit"
             disabled={busy}
-            className="rounded-xl border border-line bg-surface px-5 py-3 text-base font-semibold text-muted transition-colors hover:text-ink disabled:opacity-60"
+            className={`${BUTTON_QUIET} text-muted hover:text-ink`}
           >
             {declining ? "מוותר…" : "ויתור"}
           </button>

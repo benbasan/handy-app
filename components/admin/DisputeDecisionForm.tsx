@@ -79,7 +79,7 @@ export function DisputeDecisionForm({
           {DISPUTE_DECISIONS.map((candidate) => (
             <label
               key={candidate}
-              className={`cursor-pointer rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+              className={`inline-flex min-h-11 cursor-pointer items-center rounded-xl border px-4 text-sm font-semibold transition-colors ${
                 decision === candidate
                   ? "border-ink bg-ink text-white"
                   : "border-line bg-surface text-ink hover:bg-canvas"

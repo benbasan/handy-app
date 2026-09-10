@@ -2,7 +2,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AvailabilityToggle } from "@/components/pro/AvailabilityToggle";
 import { ProLogo } from "@/components/pro/ProLogo";
-import { BUTTON_PRO } from "@/components/ui/primitives";
+import { BUTTON_COMPACT, BUTTON_PRO } from "@/components/ui/primitives";
+import { MobileNav } from "@/components/ui/MobileNav";
+import { NavLink } from "@/components/ui/NavLink";
+import { ToastProvider } from "@/components/ui/Toast";
 import { signOut } from "@/lib/actions/auth";
 import { PRO_ROUTES } from "@/lib/routes";
 import type { ProProfile } from "@/lib/supabase/pros";
@@ -30,58 +33,54 @@ export function ProShell({
   children: ReactNode;
 }) {
   return (
-    <>
+    <ToastProvider>
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
           <ProLogo href={PRO_ROUTES.dashboard} />
 
-          <nav className="order-3 flex w-full flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium text-ink sm:order-none sm:w-auto">
-            <Link href={PRO_ROUTES.dashboard} className="hover:text-pro">
+          {/* Nine links. On a 390px screen this row wrapped to four lines
+              before Phase 13.5; below md the tab bar at the foot replaces it. */}
+          <nav className="order-3 hidden w-full flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium md:order-none md:flex md:w-auto">
+            <NavLink href={PRO_ROUTES.dashboard} accent="pro">
               דשבורד
-            </Link>
-            <Link href={PRO_ROUTES.jobs} className="hover:text-pro">
+            </NavLink>
+            <NavLink href={PRO_ROUTES.jobs} accent="pro">
               קריאות
-            </Link>
-            <Link href={PRO_ROUTES.offers} className="hover:text-pro">
+            </NavLink>
+            <NavLink href={PRO_ROUTES.offers} accent="pro">
               ההצעות שלי
-            </Link>
-            <Link href={PRO_ROUTES.myJobs} className="hover:text-pro">
+            </NavLink>
+            <NavLink href={PRO_ROUTES.myJobs} accent="pro">
               העבודות שלי
-            </Link>
-            <Link href={PRO_ROUTES.wallet} className="hover:text-pro">
+            </NavLink>
+            <NavLink href={PRO_ROUTES.wallet} accent="pro">
               ארנק
-            </Link>
-            <Link
-              href={PRO_ROUTES.messages}
-              className="inline-flex items-center gap-1.5 hover:text-pro"
-            >
+            </NavLink>
+            <NavLink href={PRO_ROUTES.messages} accent="pro">
               הודעות
               {unreadMessages > 0 && (
-                <span className="inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
+                <span className="ltr-nums inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
                   {unreadMessages}
                 </span>
               )}
-            </Link>
-            <Link
-              href={PRO_ROUTES.notifications}
-              className="inline-flex items-center gap-1.5 hover:text-pro"
-            >
+            </NavLink>
+            <NavLink href={PRO_ROUTES.notifications} accent="pro">
               התראות
               {unreadNotifications > 0 && (
-                <span className="inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
+                <span className="ltr-nums inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
                   {unreadNotifications}
                 </span>
               )}
-            </Link>
-            <Link href={PRO_ROUTES.profile} className="hover:text-pro">
+            </NavLink>
+            <NavLink href={PRO_ROUTES.profile} accent="pro">
               הפרופיל שלי
-            </Link>
-            <Link href={PRO_ROUTES.settings} className="hover:text-pro">
+            </NavLink>
+            <NavLink href={PRO_ROUTES.settings} accent="pro">
               זמינות והגדרות
-            </Link>
-            <Link href={PRO_ROUTES.help} className="hover:text-pro">
+            </NavLink>
+            <NavLink href={PRO_ROUTES.help} accent="pro">
               עזרה
-            </Link>
+            </NavLink>
           </nav>
 
           <div className="ms-auto flex flex-wrap items-center gap-3">
@@ -100,7 +99,7 @@ export function ProShell({
 
             <Link
               href={PRO_ROUTES.jobs}
-              className={`${BUTTON_PRO} px-4 py-2 text-sm`}
+              className={`${BUTTON_PRO} ${BUTTON_COMPACT}`}
             >
               פיד קריאות
             </Link>
@@ -108,9 +107,17 @@ export function ProShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+      {/* pb-28 clears the fixed tab bar plus the home indicator; above md the
+          bar is gone and the footer sits directly under the content. */}
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-28 sm:px-6 sm:pt-10 md:pb-10">
         {children}
       </main>
+
+      <MobileNav
+        role="pro"
+        unreadMessages={unreadMessages}
+        unreadNotifications={unreadNotifications}
+      />
 
       <footer className="border-t border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm text-muted sm:px-6">
@@ -118,6 +125,6 @@ export function ProShell({
           <p>עדכון מחיר בשטח מחייב תמונה ואישור של הלקוח.</p>
         </div>
       </footer>
-    </>
+    </ToastProvider>
   );
 }

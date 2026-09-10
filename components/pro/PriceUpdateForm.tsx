@@ -1,7 +1,11 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { ErrorText, INPUT_CLASS } from "@/components/ui/primitives";
+import {
+  ErrorText,
+  INPUT_CLASS,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { requestPriceUpdate } from "@/lib/actions/priceUpdates";
 import { EMPTY_PRICE_UPDATE_FORM_STATE } from "@/lib/actions/state";
 import {
@@ -91,7 +95,7 @@ export function PriceUpdateForm({
   if (state.sent) {
     return (
       <div className="rounded-2xl border-2 border-alert bg-alert-soft p-5">
-        <h2 className="text-lg font-bold text-ink">הבקשה נשלחה ללקוח</h2>
+        <h2 className={SECTION_TITLE}>הבקשה נשלחה ללקוח</h2>
         <p className="mt-2 text-sm text-ink">
           עד שהלקוח יאשר, העבודה ממשיכה במחיר המקורי —{" "}
           <span className="ltr-nums font-bold">{formatIls(originalPrice)}</span>{" "}
@@ -118,7 +122,7 @@ export function PriceUpdateForm({
         >
           !
         </span>
-        <h2 className="text-lg font-bold text-ink">עדכון מחיר בשטח</h2>
+        <h2 className={SECTION_TITLE}>עדכון מחיר בשטח</h2>
       </div>
 
       <p className="mt-4 rounded-xl bg-alert-soft p-3 text-sm font-medium text-ink">
@@ -187,7 +191,7 @@ export function PriceUpdateForm({
               type="button"
               onClick={() => setNote(reason)}
               aria-pressed={note === reason}
-              className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+              className={`inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold transition-colors ${
                 note === reason
                   ? "border-alert bg-alert text-white"
                   : "border-line bg-surface text-ink hover:border-alert/50"
@@ -228,7 +232,7 @@ export function PriceUpdateForm({
                 Math.max(MIN_PRICE_UPDATE_PRICE, price - PRICE_UPDATE_STEP),
               )
             }
-            className="size-10 rounded-xl border border-line text-lg font-bold text-ink hover:bg-canvas"
+            className={`size-10 rounded-xl border border-line ${SECTION_TITLE} hover:bg-canvas`}
           >
             −
           </button>
@@ -256,7 +260,7 @@ export function PriceUpdateForm({
                 Math.min(MAX_PRICE_UPDATE_PRICE, price + PRICE_UPDATE_STEP),
               )
             }
-            className="size-10 rounded-xl border border-line text-lg font-bold text-ink hover:bg-canvas"
+            className={`size-10 rounded-xl border border-line ${SECTION_TITLE} hover:bg-canvas`}
           >
             +
           </button>

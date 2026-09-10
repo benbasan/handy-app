@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { FeedJobCard } from "@/components/pro/FeedJobCard";
+import { ClipboardIcon, MapIcon } from "@/components/ui/icons";
 import { ProStatusCard } from "@/components/pro/ProStatusCard";
 import {
+  BUTTON_COMPACT,
   BUTTON_PRO,
   BUTTON_QUIET,
   Card,
+  EmptyState,
+  PAGE_LEAD,
   PAGE_TITLE,
 } from "@/components/ui/primitives";
 import { restoreDismissedJobs } from "@/lib/actions/pros";
@@ -83,8 +87,8 @@ export default async function ProJobFeedPage({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className={`${PAGE_TITLE}`}>קריאות בסביבה</h1>
-          <p className="mt-2 text-muted">
+          <h1 className={PAGE_TITLE}>קריאות בסביבה</h1>
+          <p className={PAGE_LEAD}>
             {myTrades.length > 0 ? myTrades.join(", ") : "כל התחומים"} ·{" "}
             {activeRadius
               ? SERVICE_RADIUS_LABEL[activeRadius]
@@ -112,7 +116,7 @@ export default async function ProJobFeedPage({
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-2">
+        <aside className="order-2 space-y-4 lg:order-2">
           <Card className="overflow-hidden p-0">
             {mapsKey && profile?.serviceAddressText ? (
               <iframe
@@ -127,7 +131,7 @@ export default async function ProJobFeedPage({
                  what is missing instead of showing an empty grey rectangle. */
               <div className="flex h-56 flex-col items-center justify-center gap-2 bg-canvas p-6 text-center">
                 <span aria-hidden className="text-3xl">
-                  🗺️
+                  <MapIcon className="size-8 text-muted" />
                 </span>
                 <p className="text-sm font-semibold text-ink">
                   {profile?.serviceAddressText
@@ -155,7 +159,7 @@ export default async function ProJobFeedPage({
               <form action={restoreDismissedJobs} className="mt-3">
                 <button
                   type="submit"
-                  className={`${BUTTON_QUIET} w-full px-4 py-2 text-sm`}
+                  className={`${BUTTON_QUIET} w-full ${BUTTON_COMPACT}`}
                 >
                   החזרת כולן לפיד
                 </button>
@@ -164,26 +168,24 @@ export default async function ProJobFeedPage({
           )}
         </aside>
 
-        <div className="lg:order-1">
+        <div className="order-1 lg:order-1">
           {profile && profile.verificationStatus !== "verified" ? (
             <ProStatusCard profile={profile} />
           ) : jobs.length === 0 ? (
-            <Card className="p-10 text-center">
-              <p className="text-lg font-bold text-ink">
-                אין כרגע קריאות פתוחות באזור שלך
-              </p>
-              <p className="mt-2 text-muted">
-                {profile?.acceptingJobs
+            <EmptyState
+              icon={ClipboardIcon}
+              title="אין כרגע קריאות פתוחות באזור שלך"
+              body={
+                profile?.acceptingJobs
                   ? "ברגע שלקוח יפרסם קריאה בתחומים וברדיוס שהגדרתם, היא תופיע כאן."
-                  : "קבלת הקריאות כבויה כרגע. הפעילו אותה כדי לקבל קריאות חדשות."}
-              </p>
-              <Link
-                href={PRO_ROUTES.settings}
-                className={`${BUTTON_PRO} mt-5 inline-flex`}
-              >
-                הרחבת התחומים או הרדיוס
-              </Link>
-            </Card>
+                  : "קבלת הקריאות כבויה כרגע. הפעילו אותה כדי לקבל קריאות חדשות."
+              }
+              action={
+                <Link href={PRO_ROUTES.settings} className={BUTTON_PRO}>
+                  הרחבת התחומים או הרדיוס
+                </Link>
+              }
+            />
           ) : (
             <ul className="space-y-4">
               {jobs.map((job) => (
@@ -219,7 +221,7 @@ function RadiusChip({
     <Link
       href={href}
       aria-current={active ? "true" : undefined}
-      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+      className={`inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold transition-colors ${
         active
           ? "border-ink bg-ink text-white"
           : "border-line bg-surface text-ink hover:border-pro/40"

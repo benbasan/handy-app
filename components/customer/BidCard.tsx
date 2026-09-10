@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import {
-  Badge,
   BUTTON_CTA,
   BUTTON_QUIET,
+  Badge,
   ErrorText,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { selectBid } from "@/lib/actions/bids";
+import { CheckIcon, StarIcon } from "@/components/ui/icons";
 import { EMPTY_SELECT_BID_STATE } from "@/lib/actions/state";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import type { JobBid } from "@/lib/supabase/bids";
@@ -16,8 +18,8 @@ import {
   BID_STATUS_LABEL,
   PRICE_INCLUDES_NOTE,
   initials,
-  timeLeftLabel,
 } from "@/lib/validation/bids";
+import { Countdown } from "@/components/ui/Countdown";
 
 /**
  * One offer on design/screens/customer-2.2-compare-bids.png: the price large
@@ -28,20 +30,34 @@ import {
  * call-out fees — and is written once in lib/validation/bids.ts so the two
  * screens that promise it cannot drift apart.
  *
- * The avatar is initials rather than a photo: the pro's profile picture lives
- * in the private verification-docs bucket, which no customer can read, and
- * the design's own card shows initials too. A public bucket for profile photos
- * belongs to the phase that builds the public profile (CLAUDE.md section 9).
+ * The avatar is initials rather than a photo, and the reason has expired.
+ * This comment used to say a photo was impossible because the only one lived
+ * in the private `verification-docs` bucket — but Phase 8 built `pro-media`,
+ * the public bucket, and `components/marketing/ProCard.tsx` has been drawing a
+ * real portrait from it ever since. So the trust decision is the one screen in
+ * the product still showing two grey letters.
+ *
+ * Fixing it is Phase 14's, not Phase 13.5's: `bids_for_job()` already joins
+ * `pro_profiles`, so it is a `create or replace` that adds `avatar_path` and
+ * `public_slug` — a migration, and this phase deliberately has none.
  */
 export function BidCard({
   bid,
   jobId,
   highlights,
   decided,
+  featured = false,
 }: {
   bid: JobBid;
   jobId: string;
   highlights: readonly string[];
+  /**
+   * The first card under the "מומלץ" sort — lifted off the page so the ranking
+   * the screen just performed is visible without reading three prices. Only
+   * ever one per screen, and never once a decision has been made: at that point
+   * the accepted offer is what matters and a recommendation is noise.
+   */
+  featured?: boolean;
   /**
    * True once a pro has actually taken this job: the rest go read-only.
    *
@@ -62,13 +78,29 @@ export function BidCard({
 
   return (
     <li
-      className={`rounded-2xl border bg-surface p-5 ${
+      /*
+       * A lapsed offer takes the canvas as its ground instead of white. It used
+       * to take `opacity-70`, and dimming a card that contains text is not a
+       * style choice — it multiplies through to every colour on it. `text-muted`
+       * on white is 4.51:1, which clears AA; at 70% opacity it renders #909cad
+       * on #fdfdfe, which is 2.73:1, and the verified badge went from 4.65:1 to
+       * 3.27:1. e2e/a11y.spec.ts catches it on this screen.
+       *
+       * Nothing is lost by saying it in one channel rather than all of them: the
+       * card already carries BID_STATUS_LABEL in a pill, which is the honest way
+       * to state a status.
+       */
+      className={`rounded-2xl border p-5 ${
         won
-          ? "border-cta ring-1 ring-cta/30"
+          ? "border-cta bg-surface shadow-lift ring-1 ring-cta/30"
           : waiting
-            ? "border-brand ring-1 ring-brand/30"
-            : "border-line"
-      } ${live || won || waiting ? "" : "opacity-70"}`}
+            ? "border-brand bg-surface shadow-lift ring-1 ring-brand/30"
+            : !live
+              ? "border-line bg-canvas"
+              : featured
+                ? "border-line bg-surface shadow-lift"
+                : "border-line bg-surface shadow-card"
+      }`}
     >
       {/* The pro at the leading edge with the price and its two actions at
           the trailing one, as in customer-2.2-compare-bids.png. They stack
@@ -84,10 +116,13 @@ export function BidCard({
 
           <div className="min-w-0 flex-1 text-start">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-bold text-ink">
-                {bid.proName ?? "בעל מקצוע"}
-              </h3>
-              {bid.proVerified && <Badge tone="done">✓ מאומת Handy</Badge>}
+              <h3 className={SECTION_TITLE}>{bid.proName ?? "בעל מקצוע"}</h3>
+              {bid.proVerified && (
+                <Badge tone="done">
+                  <CheckIcon className="me-1 size-3.5" />
+                  מאומת Handy
+                </Badge>
+              )}
               {highlights.map((label) => (
                 <Badge key={label} tone="open">
                   {label}
@@ -98,7 +133,11 @@ export function BidCard({
             <p className="mt-1 text-sm text-muted">
               {bid.proRating !== null && (
                 <>
-                  <span className="ltr-nums">★ {bid.proRating.toFixed(1)}</span>{" "}
+                  <StarIcon
+                    filled
+                    className="me-0.5 inline size-3.5 align-[-2px]"
+                  />
+                  <span className="ltr-nums">{bid.proRating.toFixed(1)}</span>{" "}
                   ·{" "}
                 </>
               )}
@@ -146,13 +185,14 @@ export function BidCard({
                 }`}
               >
                 {BID_STATUS_LABEL[bid.status]}
-                {waiting && bid.acceptDeadline && (
-                  <>
-                    {" · "}
-                    {timeLeftLabel(bid.acceptDeadline)}
-                  </>
-                )}
               </p>
+            )}
+
+            {waiting && bid.acceptDeadline && (
+              <Countdown
+                deadline={bid.acceptDeadline}
+                className="justify-center text-sm"
+              />
             )}
 
             <Link

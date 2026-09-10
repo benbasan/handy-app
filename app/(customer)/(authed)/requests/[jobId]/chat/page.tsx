@@ -1,9 +1,16 @@
+import { MessageIcon } from "@/components/ui/icons";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChatPanel } from "@/components/ui/ChatPanel";
 import { ChatThreadList } from "@/components/ui/ChatThreadList";
 import { MarkThreadRead } from "@/components/ui/MarkThreadRead";
-import { BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_QUIET,
+  Card,
+  EmptyState,
+  PAGE_LEAD,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import { getJob } from "@/lib/supabase/jobs";
 import { listMyThreads, listThreadMessages } from "@/lib/supabase/messages";
@@ -56,8 +63,8 @@ export default async function CustomerChatPage({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-ink">הודעות</h1>
-          <p className="mt-2 text-muted">
+          <h1 className={PAGE_TITLE}>הודעות</h1>
+          <p className={PAGE_LEAD}>
             {job.categoryName ?? "קריאה"} ·{" "}
             <span dir="ltr" className="font-mono">
               {jobReference(job.id)}
@@ -72,14 +79,11 @@ export default async function CustomerChatPage({
       </header>
 
       {threads.length === 0 ? (
-        <Card className="p-10 text-center">
-          <p className="text-lg font-bold text-ink">
-            אין עדיין עם מי לשוחח על הקריאה הזו
-          </p>
-          <p className="mt-2 text-muted">
-            שיחה נפתחת ברגע שבעל מקצוע מגיש הצעת מחיר. עד אז אין צד שני.
-          </p>
-        </Card>
+        <EmptyState
+          icon={MessageIcon}
+          title="אין עדיין עם מי לשוחח על הקריאה הזו"
+          body="שיחה נפתחת ברגע שבעל מקצוע מגיש הצעת מחיר. עד אז אין צד שני."
+        />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
           <Card className="order-1 min-w-0 p-0">

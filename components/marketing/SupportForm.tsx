@@ -11,6 +11,7 @@ import {
   CARD_CLASS,
   ErrorText,
   INPUT_CLASS,
+  PAGE_LEAD,
 } from "@/components/ui/primitives";
 import {
   SUPPORT_TOPICS,
@@ -47,7 +48,7 @@ export function SupportForm({
     return (
       <div className="rounded-2xl border border-cta bg-cta/10 p-6 text-center sm:p-8">
         <h2 className="text-xl font-bold text-ink">הפנייה נשלחה</h2>
-        <p className="mt-2 text-muted">
+        <p className={PAGE_LEAD}>
           קיבלנו אותה ונחזור אליכם לטלפון שהשארתם. בשעות הפעילות זמן המענה הוא
           כשעה.
         </p>

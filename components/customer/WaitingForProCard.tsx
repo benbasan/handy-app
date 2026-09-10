@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { BUTTON_QUIET, ErrorText } from "@/components/ui/primitives";
+import {
+  BUTTON_COMPACT,
+  BUTTON_QUIET,
+  ErrorText,
+} from "@/components/ui/primitives";
 import { withdrawSelection } from "@/lib/actions/bids";
 import { EMPTY_WITHDRAW_SELECTION_STATE } from "@/lib/actions/state";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import type { JobBid } from "@/lib/supabase/bids";
-import { timeLeftLabel } from "@/lib/validation/bids";
+import { Countdown } from "@/components/ui/Countdown";
 
 /**
  * "ממתינים לאישור בעל המקצוע" — the state Phase 10 put between choosing and
@@ -38,9 +42,16 @@ export function WaitingForProCard({
       <p className="text-sm font-semibold text-brand">
         בחרתם ב{bid.proName ?? "בעל המקצוע"} על סך{" "}
         <span className="ltr-nums">{bid.price.toLocaleString("he-IL")}</span> ₪.
-        ממתינים לאישור שלו
-        {bid.acceptDeadline ? ` · ${timeLeftLabel(bid.acceptDeadline)}` : ""}.
+        ממתינים לאישור שלו.
       </p>
+
+      {/* Its own line rather than trailing the sentence above. That sentence
+          already carries a name, a price and a currency mark — three bidi runs
+          — and hanging a fourth off it is exactly the construction CLAUDE.md
+          section 3 says reads in the wrong order to a person. */}
+      {bid.acceptDeadline && (
+        <Countdown deadline={bid.acceptDeadline} className="mt-2 text-sm" />
+      )}
 
       {/* One sentence per line: what happens if they answer, and what happens
           if they do not. */}
@@ -55,7 +66,7 @@ export function WaitingForProCard({
           <button
             type="submit"
             disabled={pending}
-            className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+            className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
           >
             {pending ? "מבטלים…" : "בטלו את הבחירה"}
           </button>

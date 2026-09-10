@@ -5,6 +5,8 @@ import {
   BUTTON_QUIET,
   CARD_BASE,
   Card,
+  PAGE_LEAD,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { MARKETING_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { JsonLd, organizationJsonLd, pageMetadata } from "@/lib/seo";
@@ -114,15 +116,13 @@ export default async function HowItWorksPage() {
 
       <section className="mt-14 grid gap-4 sm:grid-cols-3">
         <Card>
-          <h3 className="text-lg font-bold text-ink">אין דמי הגעה נסתרים</h3>
+          <h3 className={SECTION_TITLE}>אין דמי הגעה נסתרים</h3>
           <p className="mt-2 text-sm text-muted">
             כל הצעה כוללת את הביקור. אין תשלום נפרד על אבחון.
           </p>
         </Card>
         <Card>
-          <h3 className="text-lg font-bold text-ink">
-            תשלום רק על עבודה שנלקחה
-          </h3>
+          <h3 className={SECTION_TITLE}>תשלום רק על עבודה שנלקחה</h3>
           <p className="mt-2 text-sm text-muted">
             35 ₪ מבעל המקצוע, כשהוא מאשר שהוא לוקח את הקריאה. הלקוח לא משלם
             ל-Handy כלום, ואין דמי הרשמה.
@@ -141,7 +141,7 @@ export default async function HowItWorksPage() {
         <h2 className="text-2xl font-bold text-ink">
           רוצים לדעת כמה זה אמור לעלות?
         </h2>
-        <p className="mt-2 text-muted">
+        <p className={PAGE_LEAD}>
           מדריך העלויות שלנו בנוי מטווחי מחירים של עבודות שנסגרו בפועל ב-Handy.
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">

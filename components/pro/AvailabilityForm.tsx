@@ -7,8 +7,9 @@ import {
   ErrorText,
   FIELD_LABEL,
   INPUT_CLASS,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
-import { categoryIcon } from "@/lib/categories";
+import { CategoryIcon } from "@/lib/categories";
 import { saveAvailability } from "@/lib/actions/pros";
 import { EMPTY_PRO_FORM_STATE } from "@/lib/actions/state";
 import type { Category } from "@/lib/supabase/jobs";
@@ -90,7 +91,7 @@ export function AvailabilityForm({
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold text-ink">קבלת קריאות</h2>
+            <h2 className={SECTION_TITLE}>קבלת קריאות</h2>
             <p className="mt-1 text-sm text-muted">
               כיבוי מוציא אתכם מהפיד ומפסיק את ההתראות מיד, בלי לפגוע בדירוג.
             </p>
@@ -123,7 +124,7 @@ export function AvailabilityForm({
       </Card>
 
       <Card>
-        <h2 className="text-lg font-bold text-ink">ימי עבודה</h2>
+        <h2 className={SECTION_TITLE}>ימי עבודה</h2>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {WORK_DAYS.map((day) => {
@@ -194,7 +195,7 @@ export function AvailabilityForm({
       </Card>
 
       <Card>
-        <h2 className="text-lg font-bold text-ink">אזור פעילות</h2>
+        <h2 className={SECTION_TITLE}>אזור פעילות</h2>
         <p className="mt-1 text-sm text-muted">
           הרדיוס נמדד מכתובת הבסיס שלכם
           {profile.serviceAddressText ? ` — ${profile.serviceAddressText}` : ""}
@@ -227,7 +228,7 @@ export function AvailabilityForm({
       </Card>
 
       <Card>
-        <h2 className="text-lg font-bold text-ink">תחומי התמחות</h2>
+        <h2 className={SECTION_TITLE}>תחומי התמחות</h2>
         <div className="mt-4 flex flex-wrap gap-2">
           {categories.map((category) => {
             const on = trades.includes(category.id);
@@ -237,13 +238,13 @@ export function AvailabilityForm({
                 type="button"
                 aria-pressed={on}
                 onClick={() => toggleTrade(category.id)}
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors ${
                   on
                     ? "border-pro bg-pro text-white"
                     : "border-line bg-surface text-ink hover:border-pro/40"
                 }`}
               >
-                <span aria-hidden>{categoryIcon(category.slug)}</span>
+                <CategoryIcon slug={category.slug} className="size-5" />
                 {category.nameHe}
               </button>
             );

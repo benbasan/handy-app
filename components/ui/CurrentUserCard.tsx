@@ -1,5 +1,5 @@
 import { signOut } from "@/lib/actions/auth";
-import { CARD_BASE } from "@/components/ui/primitives";
+import { CARD_BASE, SECTION_TITLE } from "@/components/ui/primitives";
 import { USER_ROLE_LABEL } from "@/lib/routes";
 import type { CurrentUser } from "@/lib/supabase/session";
 import { formatIsraeliMobile } from "@/lib/validation/auth";
@@ -40,7 +40,7 @@ export function CurrentUserCard({
 }) {
   return (
     <div className={`w-full ${CARD_BASE} p-5`}>
-      <h2 className="text-lg font-bold text-ink">פרטי החשבון</h2>
+      <h2 className={SECTION_TITLE}>פרטי החשבון</h2>
 
       <dl className="mt-4 space-y-3 text-sm">
         <Row label="תפקיד">

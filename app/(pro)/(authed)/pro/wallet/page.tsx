@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { BUTTON_QUIET, Card, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  BUTTON_COMPACT,
+  BUTTON_QUIET,
+  Card,
+  PAGE_LEAD,
+  PAGE_TITLE,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { PRO_ROUTES, receiptPath } from "@/lib/routes";
 import { getMyBidStats } from "@/lib/supabase/bids";
 import {
@@ -66,8 +73,8 @@ export default async function ProWalletPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <header>
-          <h1 className={`${PAGE_TITLE}`}>הכנסות והיסטוריה</h1>
-          <p className="mt-2 text-muted">
+          <h1 className={PAGE_TITLE}>הכנסות והיסטוריה</h1>
+          <p className={PAGE_LEAD}>
             {profile?.verificationStatus === "verified"
               ? "פעיל ומאומת ב-Handy"
               : "הפרופיל עדיין לא אומת"}{" "}
@@ -199,12 +206,12 @@ export default async function ProWalletPage({
 
       <Card className="p-0">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-5 sm:p-6">
-          <h2 className="text-lg font-bold text-ink">
+          <h2 className={SECTION_TITLE}>
             עבודות שנסגרו · {EARNINGS_RANGE_LABEL[range]}
           </h2>
           <Link
             href={`${PRO_ROUTES.myJobs}?tab=history`}
-            className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+            className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
           >
             כל ההיסטוריה
           </Link>

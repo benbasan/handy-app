@@ -2,11 +2,13 @@
 
 import { useActionState, useState } from "react";
 import {
+  BUTTON_COMPACT,
   BUTTON_PRO,
   BUTTON_QUIET,
   CARD_CLASS,
   ErrorText,
   INPUT_CLASS,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { savePublicProfile } from "@/lib/actions/publicProfile";
 import { EMPTY_PRO_FORM_STATE, type ProFormState } from "@/lib/actions/state";
@@ -108,13 +110,13 @@ export function PublicProfileForm({
           )}
 
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-ink">תמונת פרופיל</h2>
+            <h2 className={SECTION_TITLE}>תמונת פרופיל</h2>
             <p className="mt-1 text-sm text-muted">
               זו התמונה שלקוחות רואים לפני שהם בוחרים. פנים בבירור, רקע נקי.
             </p>
 
             <label
-              className={`${BUTTON_QUIET} mt-3 cursor-pointer px-4 py-2 text-sm`}
+              className={`${BUTTON_QUIET} mt-3 cursor-pointer ${BUTTON_COMPACT}`}
             >
               <input
                 type="file"
@@ -147,7 +149,7 @@ export function PublicProfileForm({
       </section>
 
       <section className={`${CARD_CLASS}`}>
-        <h2 className="text-lg font-bold text-ink">כתובת הפרופיל</h2>
+        <h2 className={SECTION_TITLE}>כתובת הפרופיל</h2>
         <p className="mt-1 text-sm text-muted">
           הקישור שאתם שולחים ללקוחות. אותיות באנגלית, ספרות ומקפים.
         </p>
@@ -177,7 +179,7 @@ export function PublicProfileForm({
       </section>
 
       <section className={`${CARD_CLASS}`}>
-        <h2 className="text-lg font-bold text-ink">תיאור מקצועי</h2>
+        <h2 className={SECTION_TITLE}>תיאור מקצועי</h2>
         <textarea
           name="bio"
           rows={4}
@@ -211,7 +213,7 @@ export function PublicProfileForm({
       </section>
 
       <section className={`${CARD_CLASS}`}>
-        <h2 className="text-lg font-bold text-ink">גלריית עבודות</h2>
+        <h2 className={SECTION_TITLE}>גלריית עבודות</h2>
         <p className="mt-1 text-sm text-muted">
           עד {MAX_GALLERY_PHOTOS} תמונות, עד{" "}
           {Math.round(MAX_PRO_MEDIA_BYTES / (1024 * 1024))}MB לתמונה. תמונות

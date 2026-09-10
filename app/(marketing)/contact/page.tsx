@@ -1,5 +1,9 @@
 import { SupportForm } from "@/components/marketing/SupportForm";
-import { CARD_CLASS } from "@/components/ui/primitives";
+import {
+  CARD_CLASS,
+  HERO_TITLE,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { AppShell } from "@/components/ui/AppShell";
 import { SUPPORT_CHANNELS } from "@/lib/content/help";
 import { MARKETING_ROUTES } from "@/lib/routes";
@@ -22,16 +26,14 @@ export default async function ContactPage() {
   return (
     <AppShell user={user}>
       <section className="text-center">
-        <h1 className="text-3xl font-bold text-ink sm:text-5xl">
-          פנייה לתמיכה
-        </h1>
+        <h1 className={HERO_TITLE}>פנייה לתמיכה</h1>
         <p className="mt-3 text-muted">זמן מענה ממוצע: כשעה בשעות הפעילות.</p>
       </section>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-1">
+        <aside className="order-1 space-y-4 lg:order-1">
           <div className={`${CARD_CLASS}`}>
-            <h2 className="text-lg font-bold text-ink">דרכי יצירת קשר</h2>
+            <h2 className={SECTION_TITLE}>דרכי יצירת קשר</h2>
             <dl className="mt-3 space-y-3 text-sm">
               <div className="flex items-center justify-between gap-3 border-b border-line pb-3">
                 <dt className="text-muted">וואטסאפ</dt>
@@ -69,7 +71,7 @@ export default async function ContactPage() {
           </div>
         </aside>
 
-        <div className="lg:order-2">
+        <div className="order-2 lg:order-2">
           <SupportForm
             defaultName={user?.fullName ?? undefined}
             defaultPhone={user?.phone}

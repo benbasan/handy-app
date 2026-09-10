@@ -1,5 +1,5 @@
 import { JoinForm } from "@/components/pro/JoinForm";
-import { PAGE_TITLE } from "@/components/ui/primitives";
+import { PAGE_LEAD, PAGE_TITLE } from "@/components/ui/primitives";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { listCategories } from "@/lib/supabase/jobs";
 import {
@@ -29,8 +29,8 @@ export default async function ProJoinPage() {
   return (
     <>
       <header className="mb-6 text-center sm:text-start">
-        <h1 className={`${PAGE_TITLE}`}>פתיחת פרופיל מקצועי</h1>
-        <p className="mt-2 text-muted">{VERIFICATION_GATE_NOTE}</p>
+        <h1 className={PAGE_TITLE}>פתיחת פרופיל מקצועי</h1>
+        <p className={PAGE_LEAD}>{VERIFICATION_GATE_NOTE}</p>
       </header>
 
       <JoinForm

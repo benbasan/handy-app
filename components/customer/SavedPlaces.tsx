@@ -9,6 +9,7 @@ import {
   BUTTON_QUIET,
   FIELD_LABEL,
   INPUT_CLASS,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import {
   PLACE_LABEL_MAX,
@@ -59,7 +60,7 @@ export function SavedPlaces({
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-ink">הכתובות שלי</h2>
+        <h2 className={SECTION_TITLE}>הכתובות שלי</h2>
         <button
           type="button"
           aria-expanded={adding}

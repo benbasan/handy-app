@@ -5,6 +5,7 @@ import {
   BUTTON_CTA,
   BUTTON_QUIET,
   CARD_BASE,
+  HERO_TITLE,
 } from "@/components/ui/primitives";
 import { categoryCopy } from "@/lib/content/categories";
 import { CITIES, type City, inCity } from "@/lib/content/cities";
@@ -108,7 +109,7 @@ export function CategoryLanding({
       </nav>
 
       <section className="mt-4">
-        <h1 className="text-3xl font-bold text-ink sm:text-5xl">{heading}</h1>
+        <h1 className={HERO_TITLE}>{heading}</h1>
 
         <p className="mt-4 max-w-2xl text-lg text-muted">
           {copy.summary}{" "}

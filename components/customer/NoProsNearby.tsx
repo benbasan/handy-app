@@ -2,7 +2,13 @@
 
 import { useActionState } from "react";
 import { widenSearchRadius, type WidenRadiusState } from "@/lib/actions/jobs";
-import { BUTTON_CTA, Card, ErrorText } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  Card,
+  ErrorText,
+  PAGE_LEAD,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { nextSearchRadius } from "@/lib/validation/jobs";
 
 const INITIAL: WidenRadiusState = {};
@@ -36,10 +42,10 @@ export function NoProsNearby({
 
   return (
     <Card className="p-8 text-center">
-      <p className="text-lg font-bold text-ink">
+      <p className={SECTION_TITLE}>
         עוד אין בעל מקצוע מאומת שמכסה את הכתובת שלכם
       </p>
-      <p className="mt-2 text-muted">
+      <p className={PAGE_LEAD}>
         הקריאה פורסמה ונשמרה, אבל ברדיוס{" "}
         <span className="ltr-nums">{radiusKm}</span> ק״מ אין כרגע אף בעל מקצוע
         מאומת שמקבל קריאות. היא תישלח מעצמה לכל מי שיצטרף באזור.

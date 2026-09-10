@@ -4,8 +4,15 @@ import { BidCard } from "@/components/customer/BidCard";
 import { NoProsNearby } from "@/components/customer/NoProsNearby";
 import { WaitingForProCard } from "@/components/customer/WaitingForProCard";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
-import { BUTTON_CTA, BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_COMPACT,
+  BUTTON_CTA,
+  BUTTON_QUIET,
+  Card,
+  EmptyState,
+} from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
+import { ClockIcon, MapIcon } from "@/components/ui/icons";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import {
@@ -139,9 +146,7 @@ export default async function JobOffersPage({
               />
             ) : (
               <div className="flex h-56 flex-col items-center justify-center gap-2 bg-canvas p-6 text-center">
-                <span aria-hidden className="text-3xl">
-                  🗺️
-                </span>
+                <MapIcon className="size-8 text-muted" />
                 <p className="text-sm font-semibold text-ink">
                   המפה תוצג כשיוגדר מפתח Google Maps
                 </p>
@@ -189,17 +194,25 @@ export default async function JobOffersPage({
                   : `${bids.length} הצעות התקבלו`}
             </h2>
 
+            {/* A segmented control, not three loose chips: one border around
+                the set says these are the three states of one choice.
+                `min-h-11` because 34px was under the floor a thumb can hit, and
+                a focus ring because until Phase 13.5 there was none — on the
+                screen where the next press assigns work. */}
             {bids.length > 1 && !chosen && !waiting && (
-              <nav aria-label="מיון הצעות" className="flex flex-wrap gap-2">
+              <nav
+                aria-label="מיון הצעות"
+                className="inline-flex overflow-hidden rounded-xl border border-line bg-surface"
+              >
                 {BID_SORTS.map((option) => (
                   <Link
                     key={option}
                     href={`${CUSTOMER_ROUTES.offers(jobId)}?sort=${option}`}
                     aria-current={option === sort ? "true" : undefined}
-                    className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+                    className={`inline-flex min-h-11 items-center px-4 text-sm font-semibold transition-colors not-first:border-s not-first:border-line focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none focus-visible:ring-inset ${
                       option === sort
-                        ? "border-ink bg-ink text-white"
-                        : "border-line bg-surface text-ink hover:border-brand/40"
+                        ? "bg-ink text-white"
+                        : "text-ink hover:bg-canvas"
                     }`}
                   >
                     {BID_SORT_LABEL[option]}
@@ -220,7 +233,7 @@ export default async function JobOffersPage({
               </p>
               <Link
                 href={CUSTOMER_ROUTES.track(jobId)}
-                className={`${BUTTON_CTA} px-4 py-2 text-sm`}
+                className={`${BUTTON_CTA} ${BUTTON_COMPACT}`}
               >
                 מעקב חי
               </Link>
@@ -246,32 +259,42 @@ export default async function JobOffersPage({
             prosNearby === 0 ? (
               <NoProsNearby jobId={jobId} radiusKm={job.searchRadiusKm} />
             ) : (
-              <Card className="p-10 text-center">
-                <p className="text-lg font-bold text-ink">
-                  ההצעות הראשונות מגיעות תוך דקות
-                </p>
-                <p className="mt-2 text-muted">
-                  הקריאה נשלחה ל-<span className="ltr-nums">{prosNearby}</span>{" "}
-                  בעלי מקצוע מאומתים בסביבה. אין צורך לרענן — הצעה חדשה תופיע
-                  כאן מעצמה.
-                </p>
-                <Link
-                  href={CUSTOMER_ROUTES.account}
-                  className={`${BUTTON_QUIET} mt-5 inline-flex`}
-                >
-                  לאזור האישי
-                </Link>
-              </Card>
+              <EmptyState
+                icon={ClockIcon}
+                title="ההצעות הראשונות מגיעות תוך דקות"
+                body={
+                  <>
+                    הקריאה נשלחה ל-
+                    <span className="ltr-nums">{prosNearby}</span> בעלי מקצוע
+                    מאומתים בסביבה. אין צורך לרענן — הצעה חדשה תופיע כאן מעצמה.
+                  </>
+                }
+                action={
+                  <Link href={CUSTOMER_ROUTES.account} className={BUTTON_QUIET}>
+                    לאזור האישי
+                  </Link>
+                }
+              />
             )
           ) : (
             <ul className="space-y-4">
-              {ordered.map((bid) => (
+              {ordered.map((bid, index) => (
                 <BidCard
                   key={bid.id}
                   bid={bid}
                   jobId={jobId}
                   highlights={highlights.get(bid.id) ?? []}
                   decided={chosen !== null}
+                  /* Only under "מומלץ", and only while the choice is still
+                     open: lifting a card under a price sort would be the
+                     screen recommending something the sort did not. */
+                  featured={
+                    index === 0 &&
+                    sort === "recommended" &&
+                    !chosen &&
+                    !waiting &&
+                    ordered.length > 1
+                  }
                 />
               ))}
             </ul>

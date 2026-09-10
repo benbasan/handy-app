@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { ErrorText } from "@/components/ui/primitives";
+import { ErrorText, SECTION_TITLE } from "@/components/ui/primitives";
 import { decidePriceUpdate } from "@/lib/actions/priceUpdates";
 import { EMPTY_PRICE_DECISION_STATE } from "@/lib/actions/state";
 import type { PriceUpdate } from "@/lib/supabase/priceUpdates";
@@ -48,7 +48,7 @@ export function PriceUpdateDecision({
           approved ? "border-cta bg-cta/10" : "border-line bg-surface"
         }`}
       >
-        <h2 className="text-lg font-bold text-ink">
+        <h2 className={SECTION_TITLE}>
           {approved ? "אישרת את המחיר המעודכן" : "לא אישרת את השינוי"}
         </h2>
         <p className="mt-2 text-sm text-ink">
@@ -84,7 +84,7 @@ export function PriceUpdateDecision({
           !
         </span>
         <div>
-          <h2 className="text-lg font-bold text-ink">בקשת עדכון מחיר</h2>
+          <h2 className={SECTION_TITLE}>בקשת עדכון מחיר</h2>
           <p className="mt-1 text-sm text-muted">
             {proName ?? "בעל המקצוע"} מבקש לעדכן את המחיר לאחר שראה את התקלה.
           </p>
@@ -131,7 +131,7 @@ export function PriceUpdateDecision({
           </div>
           <div className="rounded-xl border border-line p-3">
             <dt className="text-xs text-muted">ההפרש</dt>
-            <dd className="ltr-nums mt-1 text-lg font-bold text-ink">
+            <dd className={`ltr-nums mt-1 ${SECTION_TITLE}`}>
               {delta > 0 ? "+" : ""}
               {formatIls(delta)} ₪
             </dd>

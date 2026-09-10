@@ -1,9 +1,10 @@
 import Link from "next/link";
 import {
-  Badge,
   BUTTON_PRO,
   BUTTON_QUIET,
+  Badge,
   Card,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import type { ProProfile } from "@/lib/supabase/pros";
@@ -40,7 +41,7 @@ export function ProStatusCard({ profile }: { profile: ProProfile }) {
   return (
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-ink">סטטוס הפרופיל</h2>
+        <h2 className={SECTION_TITLE}>סטטוס הפרופיל</h2>
         <Badge tone={status.tone}>{status.text}</Badge>
       </div>
 

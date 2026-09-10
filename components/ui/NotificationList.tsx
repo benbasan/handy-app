@@ -1,11 +1,14 @@
 "use client";
 
+import { BellIcon } from "@/components/ui/icons";
 import Link from "next/link";
 import { useActionState } from "react";
 import { markAllNotificationsRead } from "@/lib/actions/notifications";
 import {
+  BUTTON_COMPACT,
   BUTTON_QUIET,
   CARD_BASE,
+  EmptyState,
   ErrorText,
   PAGE_TITLE,
 } from "@/components/ui/primitives";
@@ -63,7 +66,7 @@ export function NotificationList({
             <button
               type="submit"
               disabled={pending}
-              className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+              className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
             >
               {pending ? "מסמן…" : "סמן הכל כנקרא"}
             </button>
@@ -74,12 +77,11 @@ export function NotificationList({
       {state?.error && <ErrorText>{state.error}</ErrorText>}
 
       {notifications.length === 0 ? (
-        <div className={`${CARD_BASE} p-10 text-center`}>
-          <p className="text-lg font-bold text-ink">אין עדיין התראות</p>
-          <p className="mt-2 text-muted">
-            כל דבר שקורה בקריאות שלכם יופיע כאן — גם כשהדפדפן סגור.
-          </p>
-        </div>
+        <EmptyState
+          icon={BellIcon}
+          title="אין עדיין התראות"
+          body="כל דבר שקורה בקריאות שלכם יופיע כאן — גם כשהדפדפן סגור."
+        />
       ) : (
         <ul className="space-y-3">
           {notifications.map((item) => {
@@ -93,8 +95,13 @@ export function NotificationList({
             return (
               <li
                 key={item.id}
+                /* Read rows take the canvas as their ground rather than 70%
+                   opacity — see the note in components/customer/BidCard.tsx:
+                   dimming a card multiplies through to every colour on it and
+                   takes `text-muted` from 4.51:1 to 2.73:1. The unread dot
+                   beside it may fade, because it carries no text. */
                 className={`${CARD_BASE} flex flex-wrap items-center gap-4 p-5 ${
-                  item.readAt === null ? "" : "opacity-70"
+                  item.readAt === null ? "" : "bg-canvas"
                 }`}
               >
                 <span
@@ -117,7 +124,7 @@ export function NotificationList({
 
                 <Link
                   href={view.href}
-                  className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+                  className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
                 >
                   פתח
                 </Link>

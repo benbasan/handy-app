@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { ProLogo } from "@/components/pro/ProLogo";
-import { BUTTON_PRO, CARD_BASE, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_COMPACT,
+  BUTTON_PRO,
+  CARD_BASE,
+  Card,
+} from "@/components/ui/primitives";
 import { PRO_ROUTES, ROLE_LOGIN } from "@/lib/routes";
 import { getCurrentUser } from "@/lib/supabase/session";
 import { ACCEPTANCE_FEE } from "@/lib/validation/pros";
@@ -54,7 +59,7 @@ export default async function ProLandingPage() {
             </Link>
             <Link
               href={primaryHref}
-              className={`${BUTTON_PRO} px-4 py-2 text-sm`}
+              className={`${BUTTON_PRO} ${BUTTON_COMPACT}`}
             >
               {primaryLabel}
             </Link>

@@ -1,7 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { CARD_CLASS, ErrorText } from "@/components/ui/primitives";
+import {
+  CARD_CLASS,
+  ErrorText,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { EMPTY_JOB_PROGRESS_STATE } from "@/lib/actions/state";
 import { markJobInProgress } from "@/lib/actions/tracking";
 import {
@@ -44,7 +48,7 @@ export function JobProgressPanel({
 
   return (
     <section className={`${CARD_CLASS}`}>
-      <h2 className="text-lg font-bold text-ink">התקדמות העבודה</h2>
+      <h2 className={SECTION_TITLE}>התקדמות העבודה</h2>
 
       <ol className="mt-4 grid grid-cols-3 gap-3">
         {JOB_PROGRESS_STEPS.map((step, index) => {

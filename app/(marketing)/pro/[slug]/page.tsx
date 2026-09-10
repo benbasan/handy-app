@@ -7,7 +7,9 @@ import {
   Badge,
   CARD_BASE,
   CARD_CLASS,
+  PAGE_LEAD,
   PAGE_TITLE,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import { JsonLd, absoluteUrl, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
@@ -138,14 +140,14 @@ export default async function PublicProProfilePage({
 
           <div className="min-w-64 flex-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className={`${PAGE_TITLE}`}>{name}</h1>
+              <h1 className={PAGE_TITLE}>{name}</h1>
               <Badge tone="done">✓ מאומת Handy</Badge>
               {!pro.acceptingJobs && (
                 <Badge tone="neutral">לא מקבל קריאות כרגע</Badge>
               )}
             </div>
 
-            <p className="mt-2 text-muted">
+            <p className={PAGE_LEAD}>
               {[
                 pro.categoryNames.join(", ") || null,
                 pro.serviceCity,
@@ -200,9 +202,9 @@ export default async function PublicProProfilePage({
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-1">
+        <aside className="order-1 space-y-4 lg:order-1">
           <div className={`${CARD_CLASS}`}>
-            <h2 className="text-lg font-bold text-ink">מסמכים שאומתו</h2>
+            <h2 className={SECTION_TITLE}>מסמכים שאומתו</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {documents.map((document) => (
                 <li
@@ -227,7 +229,7 @@ export default async function PublicProProfilePage({
           </div>
 
           <div className={`${CARD_CLASS}`}>
-            <h2 className="text-lg font-bold text-ink">זמינות השבוע</h2>
+            <h2 className={SECTION_TITLE}>זמינות השבוע</h2>
             <ul className="mt-3 flex flex-wrap gap-1.5">
               {WORK_DAYS.map((day) => {
                 const working = pro.workDays.includes(day);
@@ -255,7 +257,7 @@ export default async function PublicProProfilePage({
 
           {pro.paymentMethods.length > 0 && (
             <div className={`${CARD_CLASS}`}>
-              <h2 className="text-lg font-bold text-ink">אמצעי תשלום</h2>
+              <h2 className={SECTION_TITLE}>אמצעי תשלום</h2>
               <ul className="mt-3 flex flex-wrap gap-2">
                 {pro.paymentMethods.map((method) => (
                   <li key={method}>
@@ -272,9 +274,9 @@ export default async function PublicProProfilePage({
           )}
         </aside>
 
-        <div className="space-y-6 lg:order-2">
+        <div className="order-2 space-y-6 lg:order-2">
           <section className={`${CARD_CLASS}`}>
-            <h2 className="text-lg font-bold text-ink">על העבודה שלי</h2>
+            <h2 className={SECTION_TITLE}>על העבודה שלי</h2>
             <p className="mt-3 leading-relaxed whitespace-pre-line text-muted">
               {pro.bio ?? "בעל המקצוע עוד לא הוסיף תיאור."}
             </p>
@@ -297,7 +299,7 @@ export default async function PublicProProfilePage({
 
           {pro.galleryUrls.length > 0 && (
             <section className={`${CARD_CLASS}`}>
-              <h2 className="text-lg font-bold text-ink">גלריית עבודות</h2>
+              <h2 className={SECTION_TITLE}>גלריית עבודות</h2>
               <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {pro.galleryUrls.map((url) => (
                   <li key={url}>
@@ -315,7 +317,7 @@ export default async function PublicProProfilePage({
 
           <section className={`${CARD_BASE}`}>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
-              <h2 className="text-lg font-bold text-ink">ביקורות מאומתות</h2>
+              <h2 className={SECTION_TITLE}>ביקורות מאומתות</h2>
               {pro.reviewsCount > 0 && (
                 <p className="text-sm text-muted">
                   <span className="ltr-nums">

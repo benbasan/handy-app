@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvailabilityForm } from "@/components/pro/AvailabilityForm";
-import { BUTTON_QUIET, Card, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  BUTTON_COMPACT,
+  BUTTON_QUIET,
+  Card,
+  PAGE_LEAD,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
 import { getMyProProfile } from "@/lib/supabase/pros";
@@ -27,7 +33,7 @@ export default async function ProSettingsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className={`${PAGE_TITLE}`}>זמינות, אזור ולוח זמנים</h1>
+        <h1 className={PAGE_TITLE}>זמינות, אזור ולוח זמנים</h1>
         {/*
           This said "רק קריאות שמתאימות להגדרות האלה יגיעו אליך", which is true
           of two of the four settings on the page and false of the other two.
@@ -39,14 +45,14 @@ export default async function ProSettingsPage() {
           working hours would also hide a `this_week` job somebody wants to
           price on a Friday. Until then the screen says what is true.
         */}
-        <p className="mt-2 text-muted">
+        <p className={PAGE_LEAD}>
           קבלת הקריאות, הרדיוס והתחומים קובעים אילו קריאות מגיעות לפיד שלך. ימי
           ושעות העבודה מוצגים ללקוחות בפרופיל הציבורי שלך.
         </p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:order-2">
+        <aside className="order-2 space-y-4 lg:order-2">
           <div className="rounded-2xl bg-ink p-5 text-sm text-white/80">
             <h2 className="text-base font-bold text-white">
               חשבון בנק לתשלומים
@@ -97,14 +103,14 @@ export default async function ProSettingsPage() {
             </p>
             <Link
               href={PRO_ROUTES.join}
-              className={`${BUTTON_QUIET} mt-3 w-full px-4 py-2 text-sm`}
+              className={`${BUTTON_QUIET} mt-3 w-full ${BUTTON_COMPACT}`}
             >
               עריכת הפרופיל
             </Link>
           </Card>
         </aside>
 
-        <div className="lg:order-1">
+        <div className="order-1 lg:order-1">
           <AvailabilityForm profile={profile} categories={categories} />
         </div>
       </div>

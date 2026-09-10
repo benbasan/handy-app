@@ -7,7 +7,7 @@ import {
   FIELD_LABEL,
   INPUT_CLASS,
 } from "@/components/ui/primitives";
-import { categoryIcon } from "@/lib/categories";
+import { CategoryIcon } from "@/lib/categories";
 import type { Category } from "@/lib/supabase/jobs";
 import {
   BIO_MAX,
@@ -161,13 +161,13 @@ export function ProProfileFields({
                 type="button"
                 aria-pressed={on}
                 onClick={() => toggle(category.id)}
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors ${
                   on
                     ? "border-pro bg-pro text-white"
                     : "border-line bg-surface text-ink hover:border-pro/40"
                 }`}
               >
-                <span aria-hidden>{categoryIcon(category.slug)}</span>
+                <CategoryIcon slug={category.slug} className="size-5" />
                 {category.nameHe}
               </button>
             );

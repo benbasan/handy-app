@@ -77,6 +77,73 @@
   --color-background: var(--color-canvas);
   --color-foreground: var(--color-ink);
   --font-sans: var(--font-heebo), system-ui, sans-serif;
+
+  /*
+   * Depth, in three steps and no more.
+   *
+   * Until Phase 13.5 the whole app was a 1px `--color-line` border on white,
+   * over a canvas that is itself almost white — so a card carrying the screen's
+   * decision and a card carrying a footnote were drawn at identical weight. On
+   * the compare-bids screen, whose entire job is to rank three offers against
+   * each other, that is the one thing the page must not say.
+   *
+   * The border stays on every step. It is what separates #ffffff from #f7f9fc
+   * at all, and a shadow this soft cannot do that on its own.
+   *
+   * Tinted with the ink hue rather than pure black: a neutral-black shadow over
+   * a blue-grey canvas reads as dirt.
+   */
+  --shadow-card:
+    0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --shadow-lift:
+    0 4px 6px -1px rgb(15 23 42 / 0.07), 0 2px 4px -2px rgb(15 23 42 / 0.05);
+  --shadow-overlay:
+    0 20px 25px -5px rgb(15 23 42 / 0.1), 0 8px 10px -6px rgb(15 23 42 / 0.06);
+
+  /*
+   * Motion, in two named animations and no more — see the reduced-motion block
+   * at the foot of this file, which is what makes adding either one safe.
+   *
+   * `enter` is for something that genuinely appears on a screen somebody is
+   * already looking at — a toast, the phone's publish bar the moment a category
+   * is picked. Short enough to read as "this is new" rather than as an effect.
+   *
+   * It is deliberately **not** on the bid and feed cards, which was the first
+   * thing tried. Those are server-rendered lists, so it fired on every
+   * navigation rather than on arrival — it marked mount, not news — and its
+   * `opacity: 0` start also made axe measure the text inside a card against the
+   * page canvas rather than the card's own white, which failed the contrast
+   * audit on `/pro/jobs` and `/requests/[jobId]/offers`. Animating a genuinely
+   * new row needs client-side diffing against the previous list, which is a
+   * bigger thing than this phase.
+   *
+   * `attention` runs twice and stops. It is for the card that costs money to
+   * press — the pro's acceptance card — and a loop there would be a screen
+   * nagging somebody who is already deciding.
+   */
+  --animate-enter: enter 180ms ease-out both;
+  --animate-attention: attention 1.4s ease-out 2;
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes attention {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+    35% {
+      box-shadow: 0 0 0 4px var(--color-pro-soft);
+    }
+  }
 }
 
 body {
@@ -92,4 +159,43 @@ body {
 [dir="rtl"] .ltr-nums {
   direction: ltr;
   unicode-bidi: isolate;
+}
+
+/*
+ * A keyboard user has to be able to see where they are.
+ *
+ * Until Phase 13.5 `focus-visible` appeared exactly once in the whole app, and
+ * BUTTON_BASE carried no focus style at all — so tabbing through the compare-
+ * bids screen, where the choice costs money, moved an invisible cursor.
+ *
+ * The buttons declare their own ring in primitives.tsx, in each variant's own
+ * hue. This is the fallback for everything that is not one: a bare link, a
+ * category tile, a sort chip. `:focus-visible` rather than `:focus`, so a mouse
+ * press does not leave a ring behind it.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 0.35rem;
+}
+
+/*
+ * Motion is a preference, and it is declared at the operating system.
+ *
+ * This has to be the last rule in the file: it wins by specificity and order
+ * over every `animate-*` and `transition-*` utility Tailwind emits, including
+ * the two animations named in the @theme block above. Not `animation: none` —
+ * an animation that never runs never fires `animationend`, and anything
+ * waiting on that event would hang. A duration this short is instant to a
+ * person and still completes.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

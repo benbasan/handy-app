@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Badge, BUTTON_CTA, BUTTON_QUIET } from "@/components/ui/primitives";
-import { categoryIcon } from "@/lib/categories";
-import { dismissJob } from "@/lib/actions/pros";
+import { BUTTON_CTA, Badge, SECTION_TITLE } from "@/components/ui/primitives";
+import { DismissJobButton } from "@/components/pro/DismissJobButton";
+import { CategoryIcon } from "@/lib/categories";
 import { PRO_ROUTES } from "@/lib/routes";
 import type { FeedJob } from "@/lib/supabase/pros";
 import {
@@ -39,7 +39,7 @@ export function FeedJobCard({
   return (
     <li
       className={`overflow-hidden rounded-2xl border bg-surface ${
-        justArrived ? "border-alert" : "border-line"
+        justArrived ? "border-alert shadow-lift" : "border-line shadow-card"
       }`}
     >
       {justArrived && (
@@ -49,10 +49,7 @@ export function FeedJobCard({
       )}
 
       <div className="flex flex-wrap items-center gap-4 p-5">
-        <span
-          aria-hidden
-          className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-canvas text-3xl"
-        >
+        <span className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-canvas text-muted">
           {photoUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element -- a signed,
@@ -65,13 +62,13 @@ export function FeedJobCard({
               />
             </>
           ) : (
-            categoryIcon(job.categorySlug)
+            <CategoryIcon slug={job.categorySlug} className="size-9" />
           )}
         </span>
 
         <div className="min-w-56 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-lg font-bold text-ink">
+            <h3 className={SECTION_TITLE}>
               {job.description.split("\n")[0]!.slice(0, 70)}
             </h3>
             {when && (
@@ -117,12 +114,7 @@ export function FeedJobCard({
             הגש הצעת מחיר
           </Link>
 
-          <form action={dismissJob}>
-            <input type="hidden" name="jobId" value={job.id} />
-            <button type="submit" className={`${BUTTON_QUIET} w-full`}>
-              לא מתאים לי
-            </button>
-          </form>
+          <DismissJobButton jobId={job.id} />
         </div>
       </div>
     </li>
