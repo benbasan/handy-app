@@ -45,16 +45,14 @@ export function SiteHeader({
               is deliberately shown to everyone for a different reason — it is
               a request to sign in. */}
           {user?.role === "customer" && (
-            <span className="inline-flex items-center gap-1.5">
-              <NavLink href={CUSTOMER_ROUTES.notifications} exact>
-                התראות
-              </NavLink>
+            <NavLink href={CUSTOMER_ROUTES.notifications} exact>
+              התראות
               {unreadNotifications > 0 && (
                 <span className="ltr-nums inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
                   {unreadNotifications}
                 </span>
               )}
-            </span>
+            </NavLink>
           )}
           <NavLink href={MARKETING_ROUTES.help}>עזרה</NavLink>
           <NavLink href={PRO_ROUTES.landing} exact>

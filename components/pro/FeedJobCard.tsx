@@ -38,7 +38,7 @@ export function FeedJobCard({
 
   return (
     <li
-      className={`animate-enter overflow-hidden rounded-2xl border bg-surface ${
+      className={`overflow-hidden rounded-2xl border bg-surface ${
         justArrived ? "border-alert shadow-lift" : "border-line shadow-card"
       }`}
     >

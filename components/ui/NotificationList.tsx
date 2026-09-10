@@ -95,8 +95,13 @@ export function NotificationList({
             return (
               <li
                 key={item.id}
+                /* Read rows take the canvas as their ground rather than 70%
+                   opacity — see the note in components/customer/BidCard.tsx:
+                   dimming a card multiplies through to every colour on it and
+                   takes `text-muted` from 4.51:1 to 2.73:1. The unread dot
+                   beside it may fade, because it carries no text. */
                 className={`${CARD_BASE} flex flex-wrap items-center gap-4 p-5 ${
-                  item.readAt === null ? "" : "opacity-70"
+                  item.readAt === null ? "" : "bg-canvas"
                 }`}
               >
                 <span

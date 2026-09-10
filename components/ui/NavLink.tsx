@@ -13,6 +13,12 @@ import type { ReactNode } from "react";
  * app's fourteen signed-in screens gave no indication of where you were. This
  * is that admin pattern, extracted so all three rows share it.
  *
+ * A count belongs *inside* the link rather than beside it. Phase 13.5 briefly
+ * moved the unread badges out into a wrapping span, which looked identical and
+ * cost a screen-reader user the number: the link's accessible name went from
+ * "התראות 8" back to "התראות", and a bare "8" beside it announces nothing.
+ * e2e/access-control.spec.ts asserts the name carries the digit.
+ *
  * `exact` matters more than it looks. `/pro` is the *public* landing page and
  * `/pro/dashboard` the signed-in home, so a prefix match on the former would
  * mark it active on every screen a pro ever sees. The routes come from
@@ -45,11 +51,11 @@ export function NavLink({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={
+      className={`inline-flex items-center gap-1.5 ${
         active
           ? "font-bold text-ink underline decoration-2 underline-offset-8"
           : `text-muted ${hover}`
-      }
+      }`}
     >
       {children}
     </Link>

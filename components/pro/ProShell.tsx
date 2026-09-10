@@ -56,26 +56,22 @@ export function ProShell({
             <NavLink href={PRO_ROUTES.wallet} accent="pro">
               ארנק
             </NavLink>
-            <span className="inline-flex items-center gap-1.5">
-              <NavLink href={PRO_ROUTES.messages} accent="pro">
-                הודעות
-              </NavLink>
+            <NavLink href={PRO_ROUTES.messages} accent="pro">
+              הודעות
               {unreadMessages > 0 && (
                 <span className="ltr-nums inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
                   {unreadMessages}
                 </span>
               )}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <NavLink href={PRO_ROUTES.notifications} accent="pro">
-                התראות
-              </NavLink>
+            </NavLink>
+            <NavLink href={PRO_ROUTES.notifications} accent="pro">
+              התראות
               {unreadNotifications > 0 && (
                 <span className="ltr-nums inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
                   {unreadNotifications}
                 </span>
               )}
-            </span>
+            </NavLink>
             <NavLink href={PRO_ROUTES.profile} accent="pro">
               הפרופיל שלי
             </NavLink>

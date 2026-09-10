@@ -78,15 +78,29 @@ export function BidCard({
 
   return (
     <li
-      className={`animate-enter rounded-2xl border bg-surface p-5 ${
+      /*
+       * A lapsed offer takes the canvas as its ground instead of white. It used
+       * to take `opacity-70`, and dimming a card that contains text is not a
+       * style choice — it multiplies through to every colour on it. `text-muted`
+       * on white is 4.51:1, which clears AA; at 70% opacity it renders #909cad
+       * on #fdfdfe, which is 2.73:1, and the verified badge went from 4.65:1 to
+       * 3.27:1. e2e/a11y.spec.ts catches it on this screen.
+       *
+       * Nothing is lost by saying it in one channel rather than all of them: the
+       * card already carries BID_STATUS_LABEL in a pill, which is the honest way
+       * to state a status.
+       */
+      className={`rounded-2xl border p-5 ${
         won
-          ? "border-cta shadow-lift ring-1 ring-cta/30"
+          ? "border-cta bg-surface shadow-lift ring-1 ring-cta/30"
           : waiting
-            ? "border-brand shadow-lift ring-1 ring-brand/30"
-            : featured
-              ? "border-line shadow-lift"
-              : "border-line shadow-card"
-      } ${live || won || waiting ? "" : "opacity-70"}`}
+            ? "border-brand bg-surface shadow-lift ring-1 ring-brand/30"
+            : !live
+              ? "border-line bg-canvas"
+              : featured
+                ? "border-line bg-surface shadow-lift"
+                : "border-line bg-surface shadow-card"
+      }`}
     >
       {/* The pro at the leading edge with the price and its two actions at
           the trailing one, as in customer-2.2-compare-bids.png. They stack

@@ -104,9 +104,18 @@
    * Motion, in two named animations and no more — see the reduced-motion block
    * at the foot of this file, which is what makes adding either one safe.
    *
-   * `enter` is for a row that arrives on a screen somebody is already looking
-   * at: a bid landing through RealtimeRefresh, a toast. Short enough that it
-   * reads as "this is new" rather than as an effect.
+   * `enter` is for something that genuinely appears on a screen somebody is
+   * already looking at — a toast, the phone's publish bar the moment a category
+   * is picked. Short enough to read as "this is new" rather than as an effect.
+   *
+   * It is deliberately **not** on the bid and feed cards, which was the first
+   * thing tried. Those are server-rendered lists, so it fired on every
+   * navigation rather than on arrival — it marked mount, not news — and its
+   * `opacity: 0` start also made axe measure the text inside a card against the
+   * page canvas rather than the card's own white, which failed the contrast
+   * audit on `/pro/jobs` and `/requests/[jobId]/offers`. Animating a genuinely
+   * new row needs client-side diffing against the previous list, which is a
+   * bigger thing than this phase.
    *
    * `attention` runs twice and stops. It is for the card that costs money to
    * press — the pro's acceptance card — and a loop there would be a screen
