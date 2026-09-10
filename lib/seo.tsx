@@ -55,6 +55,22 @@ export function pageMetadata({
       title: fullTitle,
       description,
       url,
+      /*
+       * Named here rather than left to `app/opengraph-image.tsx` to inject.
+       * The file convention fills in `openGraph.images` only where a page has
+       * not written `openGraph` itself — and every page that calls this
+       * function has, which is why `/` carried a card and all fourteen public
+       * pages that most need one did not. Caught by reading the rendered HTML,
+       * not the source.
+       */
+      images: [
+        {
+          url: absoluteUrl("/opengraph-image"),
+          width: 1200,
+          height: 630,
+          alt: SITE_NAME,
+        },
+      ],
     },
   };
 }
