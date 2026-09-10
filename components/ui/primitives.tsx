@@ -68,12 +68,18 @@ export function Card({
  * pro's join screen reuses it with `tone="pro"` for the same job in indigo.
  */
 export function SectionCard({
+  id,
   step,
   title,
   hint,
   tone = "brand",
   children,
 }: {
+  /**
+   * An anchor for a form that has to bring somebody back to a step they got
+   * wrong. Optional: most sections are never the target of anything.
+   */
+  id?: string;
   step?: number;
   title: string;
   hint?: string;
@@ -81,7 +87,7 @@ export function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className={CARD_CLASS}>
+    <section id={id} className={CARD_CLASS}>
       <div className="mb-4 flex items-start gap-3">
         {step !== undefined && (
           <span

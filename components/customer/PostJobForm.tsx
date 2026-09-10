@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   countProsForRadius,
   createJob,
@@ -11,6 +11,7 @@ import type { Category } from "@/lib/supabase/jobs";
 import {
   DEFAULT_SEARCH_RADIUS_KM,
   DESCRIPTION_MAX,
+  DESCRIPTION_MIN,
   PREFERRED_TIMES,
   PREFERRED_TIME_LABEL,
   SEARCH_RADIUS_OPTIONS,
@@ -44,6 +45,21 @@ import { EMPTY_MEDIA, MediaFields, type MediaValue } from "./MediaFields";
  */
 
 const INITIAL: CreateJobState = {};
+
+/**
+ * Which numbered step each field belongs to, and the order to look in.
+ *
+ * The order is the schema's, which is the order the steps are numbered in —
+ * so "the first thing wrong" and "the earliest step" are the same answer.
+ */
+const SECTION_ID = {
+  categoryId: "job-step-category",
+  description: "job-step-description",
+  preferredTime: "job-step-time",
+  addressText: "job-step-address",
+} as const;
+
+const ERROR_ORDER = Object.keys(SECTION_ID) as (keyof typeof SECTION_ID)[];
 
 export function PostJobForm({
   userId,
@@ -126,15 +142,53 @@ export function PostJobForm({
   const selectedCategory = categories.find((c) => c.id === categoryId) ?? null;
   const fieldErrors = state.fieldErrors ?? {};
 
+  /**
+   * Bring somebody back to the step they got wrong.
+   *
+   * On a phone the two columns stack and the summary card — which is where the
+   * generic "יש למלא את כל השדות" lands — sits at the very bottom, below three
+   * optional upload tiles. So the form used to answer a failed submit by
+   * showing a message at the end of a long page and leaving the red text
+   * somewhere above it, unfound. In the schema's own field order, because that
+   * is the order the steps are numbered in.
+   */
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    // `state.fieldErrors` and not the defaulted `fieldErrors` below: the
+    // default is a fresh `{}` on every render, which would make this effect
+    // fire on every render and scroll the page out from under somebody who is
+    // typing. The state object only changes when the action returns.
+    const errors = state.fieldErrors;
+    const firstBadField = errors && ERROR_ORDER.find((field) => errors[field]);
+    if (!firstBadField) return;
+
+    const section = formRef.current?.querySelector<HTMLElement>(
+      `#${SECTION_ID[firstBadField]}`,
+    );
+    if (!section) return;
+
+    section.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // Focus what is wrong, not the card around it — but only where there is a
+    // real control. Steps 1 and 3 are ARIA radiogroups of buttons, and moving
+    // focus onto a button reads as "you pressed this".
+    section
+      .querySelector<HTMLElement>("textarea, input:not([type=hidden])")
+      ?.focus({ preventScroll: true });
+  }, [state.fieldErrors]);
+
+  const shortBy = DESCRIPTION_MIN - description.trim().length;
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       <input type="hidden" name="categoryId" value={categoryId ?? ""} />
       <input type="hidden" name="preferredTime" value={preferredTime ?? ""} />
       <input type="hidden" name="searchRadiusKm" value={radiusKm} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-6">
-          <SectionCard step={1} title="תחום">
+          <SectionCard id={SECTION_ID.categoryId} step={1} title="תחום">
             <div
               role="radiogroup"
               aria-label="תחום"
@@ -171,6 +225,7 @@ export function PostJobForm({
           </SectionCard>
 
           <SectionCard
+            id={SECTION_ID.description}
             step={2}
             title="תיאור התקלה"
             hint="ככל שהתיאור מדויק יותר, ההצעות שתקבלו מדויקות יותר."
@@ -187,8 +242,25 @@ export function PostJobForm({
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="לדוגמה: נזילה מתחת לכיור במטבח, המים מצטברים על הרצפה מהבוקר"
+              minLength={DESCRIPTION_MIN}
               className={INPUT_CLASS}
+              aria-describedby="description-length"
             />
+
+            {/*
+              The 15-character minimum is enforced by Zod on the server and had
+              no hint at all in the browser, so "נזילה בכיור" — eleven
+              characters and a perfectly clear sentence — cost a round trip and
+              came back as a generic error in a sidebar. Live, and silent once
+              it is satisfied: a counter that keeps talking after the rule is
+              met is just noise.
+            */}
+            <p id="description-length" className="mt-2 text-sm text-muted">
+              {shortBy > 0
+                ? `עוד ${shortBy} תווים לפחות — כמה מילים על מה קרה ומתי.`
+                : "\u00a0"}
+            </p>
+
             {fieldErrors.description && (
               <p className="mt-2">
                 <ErrorText>{fieldErrors.description}</ErrorText>
@@ -206,7 +278,11 @@ export function PostJobForm({
           <div className="grid gap-6 sm:grid-cols-5">
             {/* Two of five columns, matching the design's narrower card. */}
             <div className="sm:col-span-2">
-              <SectionCard step={3} title="מתי נוח לך?">
+              <SectionCard
+                id={SECTION_ID.preferredTime}
+                step={3}
+                title="מתי נוח לך?"
+              >
                 <div
                   role="radiogroup"
                   aria-label="מתי נוח לך"
@@ -241,7 +317,7 @@ export function PostJobForm({
             </div>
 
             <div className="sm:col-span-3">
-              <SectionCard step={4} title="כתובת">
+              <SectionCard id={SECTION_ID.addressText} step={4} title="כתובת">
                 <AddressField
                   mapsKey={mapsKey}
                   value={address}
