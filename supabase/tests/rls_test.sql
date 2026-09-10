@@ -83,14 +83,15 @@ select is(
   'customer A cannot see customer B''s job'
 );
 
--- Four, and every one of them theirs: the job this section is about, the two
+-- Five, and every one of them theirs: the job this section is about, the two
 -- Phase 6 added to the seed so the summary and receipt screens have finished
--- work to render, and the one Phase 10 added that is waiting for a pro to
--- answer. The number is not the point — "no row that is not mine" is, which is
--- why customer B's single job is asserted separately above.
+-- work to render, the one Phase 10 added that is waiting for a pro to answer,
+-- and the one Phase 12 added in Eilat, which no seeded pro covers. The number
+-- is not the point — "no row that is not mine" is, which is why customer B's
+-- single job is asserted separately above.
 select is(
   (select count(*) from public.jobs),
-  4::bigint,
+  5::bigint,
   'and nothing else — every job an unfiltered select returns to customer A is customer A''s'
 );
 
@@ -2235,9 +2236,12 @@ select is(
   'the admin sees every call in the system, across both customers'
 );
 
+-- Three since Phase 12 seeded a call in Eilat: the filter is derived from
+-- `job_city()`, so a new town in an address is a new option without anybody
+-- maintaining a list.
 select is(
   (select count(*) from public.admin_job_cities()),
-  2::bigint,
+  3::bigint,
   'the city filter offers the cities that actually have calls, derived from the address'
 );
 
@@ -2249,7 +2253,7 @@ select is(
 
 select is(
   (select count(*) from public.admin_jobs(null, null, 'hvac', null, null)),
-  1::bigint,
+  2::bigint,
   'as does filtering by trade'
 );
 
@@ -2276,9 +2280,12 @@ select is(
   'the overview counts the cases still waiting for a human'
 );
 
+-- Two since Phase 12: the Eilat call is two hours old and nobody covers it,
+-- which is exactly what this alert is for. The console notices a call the
+-- market cannot serve before the customer gives up on it.
 select is(
   (select jobs_without_bids from public.admin_overview()),
-  1,
+  2,
   'and the "קריאות ללא הצעות מעל שעה" alert counts a real call, not a placeholder'
 );
 

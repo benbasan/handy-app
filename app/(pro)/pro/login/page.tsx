@@ -9,13 +9,13 @@ export const metadata = { title: "כניסת בעלי מקצוע — Handy" };
 export default async function ProLoginPage({
   searchParams,
 }: PageProps<"/pro/login">) {
-  await redirectIfSignedIn();
-
   // Where the proxy bounced them from. Handed straight back to the
   // server on submit, which re-checks it against the role that
   // actually signed in — see `postLoginPath` in lib/routes.ts.
   const { next } = await searchParams;
   const nextPath = Array.isArray(next) ? next[0] : next;
+
+  await redirectIfSignedIn(nextPath);
 
   return (
     <AuthSplitLayout
