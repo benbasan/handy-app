@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/ui/AppShell";
+import { PushSetup } from "@/components/ui/PushSetup";
 import { countMyUnreadNotifications } from "@/lib/supabase/notifications";
 import { requireRole } from "@/lib/supabase/session";
 
@@ -19,6 +20,7 @@ export default async function CustomerAuthedLayout({
 
   return (
     <AppShell user={user} unreadNotifications={unreadNotifications}>
+      <PushSetup />
       {children}
     </AppShell>
   );

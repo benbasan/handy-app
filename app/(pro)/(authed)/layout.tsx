@@ -1,4 +1,5 @@
 import { ProShell } from "@/components/pro/ProShell";
+import { PushSetup } from "@/components/ui/PushSetup";
 import { listMyThreads, totalUnread } from "@/lib/supabase/messages";
 import { countMyUnreadNotifications } from "@/lib/supabase/notifications";
 import { getMyProProfile } from "@/lib/supabase/pros";
@@ -32,6 +33,9 @@ export default async function ProAuthedLayout({ children }: LayoutProps<"/">) {
       unreadMessages={totalUnread(threads)}
       unreadNotifications={unreadNotifications}
     >
+      {/* Registers the service worker, and reconciles a subscription the
+          browser may have dropped without telling anybody. Renders nothing. */}
+      <PushSetup />
       {children}
     </ProShell>
   );
