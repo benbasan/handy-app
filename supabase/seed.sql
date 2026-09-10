@@ -703,3 +703,29 @@ insert into public.bids (
     null,
     now() - interval '25 minutes'
   );
+
+-- ---------------------------------------------------------------------------
+-- Phase 12: a call nobody covers
+--
+-- Every other job in this file sits in Tel Aviv, where the seeded pros are, so
+-- the offers screen's zero state — the honest answer on launch day in most of
+-- the country — had nothing to render it against and no test could reach it.
+--
+-- Eilat is roughly 300 km from the nearest seeded `service_point`, which is
+-- past any radius the ladder in lib/validation/jobs.ts offers. So this row
+-- stays uncovered however wide the customer widens it, which is the state the
+-- card has to handle without promising that widening will help.
+-- ---------------------------------------------------------------------------
+insert into public.jobs (
+  id, customer_id, category_id, description, photo_urls, location, address_text,
+  preferred_time, search_radius_km, status, created_at
+) values (
+  'd0000000-0000-4000-8000-000000000009',
+  'a0000000-0000-4000-8000-000000000001',
+  'c0000000-0000-4000-8000-000000000003',
+  'המזגן בסלון מפסיק לקרר אחרי חצי שעה ומטפטף מים על הרצפה.',
+  '{}',
+  extensions.st_point(34.9482, 29.5581)::extensions.geography,
+  'שדרות התמרים 8, אילת',
+  'this_week', 10, 'open', now() - interval '2 hours'
+);

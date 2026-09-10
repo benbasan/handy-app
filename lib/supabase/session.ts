@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import { ROLE_HOME, ROLE_LOGIN } from "@/lib/routes";
+import { ROLE_HOME, ROLE_LOGIN, postLoginPath } from "@/lib/routes";
 import { isUserRole, type UserRole } from "@/lib/validation/auth";
 import { getSupabaseEnv } from "./env";
 import { createClient } from "./server";
@@ -77,9 +77,13 @@ export async function requireRole(role: UserRole): Promise<CurrentUser> {
 }
 
 /** For login pages: someone already signed in has no business seeing a form. */
-export async function redirectIfSignedIn(): Promise<void> {
+export async function redirectIfSignedIn(next?: string | null): Promise<void> {
   const user = await getCurrentUser();
-  if (user) redirect(ROLE_HOME[user.role]);
+  // Same filter the OTP step uses, so a `?next=` that survives to a login page
+  // somebody is already signed in on — a stale tab, a link followed twice —
+  // reaches the same destination it would have after typing a code, and is
+  // refused on the same grounds.
+  if (user) redirect(postLoginPath(user.role, next));
 }
 
 /**

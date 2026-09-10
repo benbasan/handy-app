@@ -12,10 +12,16 @@ const nextConfig: NextConfig = {
    *  - `outputFileTracingIncludes` packs the two Heebo TTF faces into the
    *    deployment. They are read with `fs` at request time, which the tracer
    *    cannot infer from a path built with `path.join`.
+   *
+   * Phase 12 added a second reader of those same faces: the Open Graph cards
+   * (`lib/og.tsx`). `ImageResponse` ships no Hebrew glyphs, so a card built
+   * without a font renders every letter as a box — silently. Each route that
+   * draws one needs its own entry here for the same reason the receipt does.
    */
   serverExternalPackages: ["@react-pdf/renderer"],
   outputFileTracingIncludes: {
     "/api/receipts/[jobId]": ["./assets/fonts/**"],
+    "/opengraph-image": ["./assets/fonts/**"],
   },
 };
 

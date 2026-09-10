@@ -167,6 +167,33 @@ export const withdrawSelectionSchema = z.object({
  */
 export const PRICE_INCLUDES_NOTE = "כולל ביקור וחלקים";
 
+/**
+ * Why answering fast matters — said without a number, because nothing in this
+ * product has ever measured one.
+ *
+ * Four screens carried "הצעה שנשלחת תוך 10 דקות מפרסום הקריאה נבחרת ב-64%
+ * מהמקרים": the feed sidebar, the quote screen, the empty offers tab and step
+ * 4 of onboarding. That figure came from the prototype, and publishing it as
+ * fact is exactly what CLAUDE.md section 3 forbids — it is the same rule that
+ * kept the design's "+4,200 קריאות" and "₪2,450 הכנסה שבועית" off the landing
+ * page, and the rule `pricing_guide()` obeys when it says a category has no
+ * data rather than inventing a range. A product whose pitch is transparency
+ * cannot coach its own supply side with a made-up statistic.
+ *
+ * What replaces it is not a softer number, it is the mechanism — and the
+ * mechanism is checkable in the schema. `select_bid()` refuses anything that
+ * is not still `pending`, and `accept_job()` rejects every rival in the same
+ * statement, so an offer that arrives after the customer has decided was never
+ * in the comparison at all.
+ *
+ * The measured version is Phase 16's, beside the pricing coach, where there
+ * will be closed jobs to measure. One constant for the same reason
+ * PRICE_INCLUDES_NOTE is one: four screens saying the same thing in four
+ * wordings is four chances to drift.
+ */
+export const BID_SPEED_NOTE =
+  "מהירות קובעת: הלקוח בוחר מתוך ההצעות שכבר לפניו, והצעה שמגיעה אחרי שבחר לא נכנסת להשוואה.";
+
 /** "לפני 4 דקות" — how every card in both designs stamps a time. */
 export function relativeTime(iso: string, now: number = Date.now()): string {
   const minutes = Math.round((now - new Date(iso).getTime()) / 60000);

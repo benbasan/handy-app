@@ -47,6 +47,21 @@ test.describe("an anonymous visitor", () => {
     });
   }
 
+  test("keeps where they were going, so the sign-in can put them back", async ({
+    page,
+  }) => {
+    // Before Phase 12 the proxy cleared the query string and set no `next`, so
+    // every deep link an anonymous visitor followed landed on the role's home
+    // — including a customer following a link to their own call.
+    await page.goto(`/requests/${JOB_OF_CUSTOMER_A}/chat?pro=abc`);
+
+    const url = new URL(page.url());
+    expect(url.pathname).toBe("/login");
+    expect(url.searchParams.get("next")).toBe(
+      `/requests/${JOB_OF_CUSTOMER_A}/chat?pro=abc`,
+    );
+  });
+
   test("still reaches every public page", async ({ page }) => {
     // The other half of the same rule: the gate must not have swallowed the
     // marketing site, which is the one part of this product with no session
@@ -185,5 +200,102 @@ test.describe("the admin", () => {
     const response = await page.request.get("/api/admin/report");
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("text/csv");
+  });
+});
+
+/**
+ * `?next=` is the only value in this app that turns something from the URL bar
+ * into a redirect, so it is the only place an open redirect could live. The
+ * unit tests in lib/__tests__/routes.test.ts prove the filter; these two prove
+ * that the filter is the thing the running app actually consults.
+ */
+test.describe("the destination carried through a sign-in", () => {
+  test.use({ storageState: storageStatePath("customer") });
+
+  test("is honoured when it belongs to the role that signed in", async ({
+    page,
+  }) => {
+    // Already signed in, so the login page bounces straight back out — through
+    // the same `postLoginPath` the OTP step uses.
+    await page.goto(
+      `/login?next=${encodeURIComponent(`/requests/${JOB_OF_CUSTOMER_A}/offers`)}`,
+    );
+    await expect(page).toHaveURL(
+      new RegExp(`/requests/${JOB_OF_CUSTOMER_A}/offers`),
+    );
+  });
+
+  test("is refused when it points at another role's area", async ({ page }) => {
+    await page.goto(`/login?next=${encodeURIComponent("/admin/disputes")}`);
+
+    // Not the admin console, and not an error either: the customer lands on
+    // their own home and is told nothing about a destination that was never
+    // theirs.
+    await expect(page).toHaveURL(/\/account/);
+  });
+
+  test("is refused when it points off the site", async ({ page }) => {
+    await page.goto(`/login?next=${encodeURIComponent("//example.com/")}`);
+    await expect(page).toHaveURL(/\/account/);
+  });
+});
+
+/**
+ * The offers screen when nobody covers the address.
+ *
+ * On launch day in most of the country this is not an edge case, it is the
+ * default — and until Phase 12 the screen answered it with
+ * "הקריאה נשלחה ל-0 בעלי מקצוע מאומתים בסביבה. אין צורך לרענן", which is an
+ * accurate number attached to an instruction to wait for ever.
+ *
+ * The seeded call is in Eilat, roughly 300 km from the nearest seeded
+ * `service_point` — further than the widest rung on the radius ladder — so it
+ * stays uncovered no matter how wide it is widened. That is deliberate: the
+ * card must offer the action without promising it will work.
+ */
+test.describe("a call nobody covers", () => {
+  test.use({ storageState: storageStatePath("customer") });
+
+  /** שדרות התמרים 8, אילת — supabase/seed.sql. */
+  const UNCOVERED_JOB = "d0000000-0000-4000-8000-000000000009";
+
+  test("says so, and offers the one thing that could change it", async ({
+    page,
+  }) => {
+    await page.goto(`/requests/${UNCOVERED_JOB}/offers`);
+
+    await expect(
+      page.getByText("עוד אין בעל מקצוע מאומת שמכסה את הכתובת שלכם"),
+    ).toBeVisible();
+
+    // Not "נשלחה ל-0": a zero dressed as a count reads as a bug.
+    await expect(page.getByText("נשלחה ל-0")).toHaveCount(0);
+
+    const widen = page.getByRole("button", { name: /הרחיבו את החיפוש/ });
+    await expect(widen).toBeVisible();
+  });
+
+  test("widens the radius when asked, and stays honest about the result", async ({
+    page,
+  }) => {
+    await page.goto(`/requests/${UNCOVERED_JOB}/offers`);
+
+    const before = await page
+      .getByRole("button", { name: /הרחיבו את החיפוש/ })
+      .textContent();
+
+    await page.getByRole("button", { name: /הרחיבו את החיפוש/ }).click();
+
+    // The header carries the radius, so the change is visible where the
+    // customer is already looking.
+    await expect(
+      page.getByText(/אין כרגע בעל מקצוע מאומת ברדיוס/),
+    ).toBeVisible();
+
+    // And the offer to widen has moved up a rung rather than repeating itself.
+    const after = await page
+      .getByRole("button", { name: /הרחיבו את החיפוש/ })
+      .textContent();
+    expect(after).not.toBe(before);
   });
 });

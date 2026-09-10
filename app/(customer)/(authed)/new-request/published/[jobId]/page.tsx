@@ -72,14 +72,16 @@ export default async function JobPublishedPage({
               : "—"}
           </Row>
           <Row label="רדיוס חיפוש">{job.searchRadiusKm} ק״מ</Row>
-          <Row label="מיקום שנשמר">
-            {hasPoint ? (
-              <span dir="ltr" className="font-mono">
-                {job.latitude!.toFixed(5)}, {job.longitude!.toFixed(5)}
-              </span>
-            ) : (
-              "—"
-            )}
+          {/*
+            This row printed `32.08123, 34.78012` under the heading "מיקום
+            שנשמר". It was a developer verifying that the geocode had worked,
+            shown to a customer who has no use for five decimal places and no
+            way to check them. What they actually need to know is whether the
+            point is exact or the middle of their town, which is what the
+            gazetteer's own accuracy answer says (CLAUDE.md section 9).
+          */}
+          <Row label="איתור על המפה">
+            {hasPoint ? "הכתובת אותרה" : "לא אותרה — ההצעות עדיין יגיעו"}
           </Row>
           <Row label="סטטוס">
             {job.status === "bidding" ? "מתקבלות הצעות" : "ממתין להצעות"}

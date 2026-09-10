@@ -9,7 +9,10 @@ import {
 } from "@/lib/supabase/pros";
 import { requireRole } from "@/lib/supabase/session";
 import { formatIsraeliMobile } from "@/lib/validation/auth";
-import { DEFAULT_SERVICE_RADIUS_KM } from "@/lib/validation/pros";
+import {
+  DEFAULT_SERVICE_RADIUS_KM,
+  VERIFICATION_GATE_NOTE,
+} from "@/lib/validation/pros";
 
 export const metadata = { title: "פתיחת פרופיל מקצועי — Handy" };
 
@@ -27,9 +30,7 @@ export default async function ProJoinPage() {
     <>
       <header className="mb-6 text-center sm:text-start">
         <h1 className={`${PAGE_TITLE}`}>פתיחת פרופיל מקצועי</h1>
-        <p className="mt-2 text-muted">
-          פרופיל מאומת מקבל פי 3 יותר עבודות. האישור נמסר תוך 24 שעות.
-        </p>
+        <p className="mt-2 text-muted">{VERIFICATION_GATE_NOTE}</p>
       </header>
 
       <JoinForm

@@ -8,7 +8,13 @@ import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { optional } from "@/lib/actions/formData";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
-import { createJobSchema } from "@/lib/validation/jobs";
+import { countProsNearPoint } from "@/lib/supabase/jobs";
+import { coordinatesInIsrael } from "@/lib/maps/geometry";
+import {
+  createJobSchema,
+  nextSearchRadius,
+  SEARCH_RADIUS_LADDER,
+} from "@/lib/validation/jobs";
 
 export type CreateJobState = {
   error?: string;
@@ -158,4 +164,119 @@ export async function createJob(
 
   revalidatePath("/account");
   redirect(`/new-request/published/${job.id}`);
+}
+
+/**
+ * "כמה בעלי מקצוע ברדיוס הזה" — the number under the radius chips, asked live
+ * while the customer is still choosing.
+ *
+ * It exists because the first time this product tells somebody how many pros
+ * cover them is currently *after* they have written a description, attached a
+ * photo and pressed publish — and on launch day, in most towns, that number is
+ * zero. Asking it a step earlier turns the radius from a guess into a choice.
+ *
+ * A read rather than a write, but the arguments are still checked: they come
+ * from a browser, and `coordinatesInIsrael()` is the same gate every point
+ * crosses before it reaches a `geography` column (CLAUDE.md section 3).
+ * Null means "we could not ask" and the screen says nothing — that is a
+ * different sentence from "nobody covers you", and only one of them is the
+ * customer's problem.
+ */
+export async function countProsForRadius(
+  lat: number,
+  lng: number,
+  radiusKm: number,
+): Promise<number | null> {
+  await requireRole("customer");
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (!coordinatesInIsrael(lat, lng)) return null;
+  if (!(SEARCH_RADIUS_LADDER as readonly number[]).includes(radiusKm)) {
+    return null;
+  }
+
+  return countProsNearPoint(lat, lng, radiusKm);
+}
+
+export type WidenRadiusState = { error?: string };
+
+/**
+ * "הרחיבו את הרדיוס" — one rung up the ladder, from the offers screen.
+ *
+ * This is the only action a customer has when the honest answer to "how many
+ * pros got my call" is none, and before it existed the screen said
+ * "אין צורך לרענן" to somebody who could wait for ever. `search_radius_km` was
+ * insertable and never updatable, so the one number that could rescue the call
+ * was frozen at posting time.
+ *
+ * A plain `update` under RLS rather than a `security definer` function, and
+ * that is the considered choice: how far to broadcast their own call is the
+ * customer's to say, in the same family as `description` — the column grant
+ * added in `20260914120000_liquidity_and_search_radius.sql` says so, the
+ * "customer updates own" policy scopes it to their row, and the check
+ * constraint bounds the value. Nothing here is a status somebody must not set
+ * themselves, which is what CLAUDE.md section 3 reserves a function for.
+ *
+ * The next rung is computed here rather than taken from the form: which radius
+ * follows 10 is not a decision a browser gets to make.
+ */
+export async function widenSearchRadius(
+  _prevState: WidenRadiusState,
+  formData: FormData,
+): Promise<WidenRadiusState> {
+  await requireRole("customer");
+
+  const jobId = String(formData.get("jobId") ?? "");
+  if (!jobId) return { error: "לא נמצאה הקריאה." };
+
+  const supabase = await createClient();
+
+  const { data: job, error: readError } = await supabase
+    .from("jobs")
+    .select("search_radius_km, status, selected_bid_id")
+    .eq("id", jobId)
+    .maybeSingle();
+
+  if (readError) {
+    logServerError("jobs.widenSearchRadius.read", readError, { jobId });
+    return { error: "לא הצלחנו לקרוא את הקריאה. נסו שוב." };
+  }
+
+  // RLS answers "not yours" as "no such row", which is the correct reply here
+  // too — the screen must not confirm that somebody else's job id exists.
+  if (!job) return { error: "לא נמצאה הקריאה." };
+
+  if (job.selected_bid_id !== null) {
+    logExpectedRefusal(
+      "jobs.widenSearchRadius",
+      new Error("job already assigned"),
+      { jobId },
+    );
+    return { error: "הקריאה כבר שובצה לבעל מקצוע — אין את מי להוסיף." };
+  }
+
+  const wider = nextSearchRadius(job.search_radius_km);
+
+  if (wider === null) {
+    logExpectedRefusal(
+      "jobs.widenSearchRadius",
+      new Error("already at the widest rung"),
+      { jobId, radiusKm: job.search_radius_km },
+    );
+    return { error: "הקריאה כבר משודרת ברדיוס הרחב ביותר." };
+  }
+
+  const { error } = await supabase
+    .from("jobs")
+    .update({ search_radius_km: wider })
+    .eq("id", jobId);
+
+  if (error) {
+    logServerError("jobs.widenSearchRadius", error, { jobId, radiusKm: wider });
+    return { error: "לא הצלחנו להרחיב את הרדיוס. נסו שוב." };
+  }
+
+  revalidatePath(`/requests/${jobId}/offers`);
+  revalidatePath("/account");
+  return {};
 }

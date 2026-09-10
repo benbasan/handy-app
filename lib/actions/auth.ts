@@ -14,7 +14,7 @@ import {
   isExpectedVerifyFailure,
 } from "@/lib/auth/otpErrors";
 import { logExpectedRefusal, logServerError } from "@/lib/observability";
-import { ROLE_HOME, ROLE_LOGIN } from "@/lib/routes";
+import { ROLE_LOGIN, postLoginPath } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/session";
 import { requestOtpSchema, verifyOtpSchema } from "@/lib/validation/auth";
@@ -131,6 +131,10 @@ export async function requestOtp(
  * The landing page comes from the freshly-read `profiles.role`, never from the
  * submitted form. Trusting the form here would hand back exactly the privilege
  * escalation the database whitelist just prevented.
+ *
+ * `next` is the one thing here that did come from the browser, and it is a
+ * destination somebody may have chosen for this person — so it is filtered by
+ * `postLoginPath()` against the freshly-read role, not merely followed.
  */
 export async function verifyOtp(
   _prevState: VerifyOtpState,
@@ -163,7 +167,7 @@ export async function verifyOtp(
     };
   }
 
-  redirect(ROLE_HOME[user.role]);
+  redirect(postLoginPath(user.role, parsed.data.next));
 }
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -218,8 +222,10 @@ async function signInWithDeliveredCode(
  */
 async function signInWithoutDelivery(
   supabase: SupabaseServerClient,
-  { phone, token, role, fullName }: VerifyInput,
+  input: VerifyInput,
 ): Promise<VerifyOtpState> {
+  const { phone, token, role, fullName } = input;
+
   if (token !== BYPASS_DISPLAY_CODE) {
     return { error: "הקוד שהוזן שגוי." };
   }
@@ -264,7 +270,7 @@ async function signInWithoutDelivery(
   if (!created.error) return {};
 
   if (created.error.code === "user_already_exists") {
-    return signInWithDeliveredCode(supabase, { phone, token, role, fullName });
+    return signInWithDeliveredCode(supabase, input);
   }
 
   logServerError("auth.verifyOtp.bypass.signUp", created.error, {

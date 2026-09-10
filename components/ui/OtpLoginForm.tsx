@@ -20,6 +20,12 @@ type Props = {
   subtitle: string;
   /** Ask for a name on first sign-up. Off for the admin screen. */
   askForName?: boolean;
+  /**
+   * Where the visitor was heading when the proxy bounced them here. Passed
+   * straight back to the server, which re-checks it — this component is not
+   * the thing that makes it safe (see `postLoginPath` in lib/routes.ts).
+   */
+  next?: string | null;
 };
 
 /**
@@ -49,6 +55,7 @@ function OtpLoginFormAttempt({
   title,
   subtitle,
   askForName = true,
+  next,
   onRestart,
 }: Props & { onRestart: () => void }) {
   const [requestState, requestAction, requestPending] = useActionState(
@@ -78,6 +85,7 @@ function OtpLoginFormAttempt({
             previous step and ignores them.
           */}
           <input type="hidden" name="role" value={role} />
+          {next && <input type="hidden" name="next" value={next} />}
           {requestState.fullName && (
             <input
               type="hidden"

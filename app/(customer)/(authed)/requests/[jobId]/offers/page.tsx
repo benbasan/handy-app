@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BidCard } from "@/components/customer/BidCard";
+import { NoProsNearby } from "@/components/customer/NoProsNearby";
 import { WaitingForProCard } from "@/components/customer/WaitingForProCard";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
 import { BUTTON_CTA, BUTTON_QUIET, Card } from "@/components/ui/primitives";
@@ -97,9 +98,22 @@ export default async function JobOffersPage({
                   : "הקריאה פורסמה — Handy מחפשת בעלי מקצוע בסביבה"}
             </h1>
             <p className="mt-2 text-white/85">
-              {job.categoryName ?? "קריאה"} · {job.addressText} · נמצאו{" "}
-              <span className="ltr-nums">{prosNearby}</span> בעלי מקצוע ברדיוס{" "}
-              <span className="ltr-nums">{job.searchRadiusKm}</span> ק״מ
+              {job.categoryName ?? "קריאה"} · {job.addressText} ·{" "}
+              {/* "נמצאו 0 בעלי מקצוע" is the default answer on a thin market,
+                  and reads as a bug rather than as a fact. Zero gets its own
+                  sentence — and the card below gets a button. */}
+              {prosNearby === 0 ? (
+                <>
+                  אין כרגע בעל מקצוע מאומת ברדיוס{" "}
+                  <span className="ltr-nums">{job.searchRadiusKm}</span> ק״מ
+                </>
+              ) : (
+                <>
+                  נמצאו <span className="ltr-nums">{prosNearby}</span> בעלי
+                  מקצוע ברדיוס{" "}
+                  <span className="ltr-nums">{job.searchRadiusKm}</span> ק״מ
+                </>
+              )}
             </p>
           </div>
           <span dir="ltr" className="font-mono text-sm text-white/80">
@@ -229,22 +243,26 @@ export default async function JobOffersPage({
           )}
 
           {bids.length === 0 ? (
-            <Card className="p-10 text-center">
-              <p className="text-lg font-bold text-ink">
-                ההצעות הראשונות מגיעות תוך דקות
-              </p>
-              <p className="mt-2 text-muted">
-                הקריאה נשלחה ל-<span className="ltr-nums">{prosNearby}</span>{" "}
-                בעלי מקצוע מאומתים בסביבה. אין צורך לרענן — הצעה חדשה תופיע כאן
-                מעצמה.
-              </p>
-              <Link
-                href={CUSTOMER_ROUTES.account}
-                className={`${BUTTON_QUIET} mt-5 inline-flex`}
-              >
-                לאזור האישי
-              </Link>
-            </Card>
+            prosNearby === 0 ? (
+              <NoProsNearby jobId={jobId} radiusKm={job.searchRadiusKm} />
+            ) : (
+              <Card className="p-10 text-center">
+                <p className="text-lg font-bold text-ink">
+                  ההצעות הראשונות מגיעות תוך דקות
+                </p>
+                <p className="mt-2 text-muted">
+                  הקריאה נשלחה ל-<span className="ltr-nums">{prosNearby}</span>{" "}
+                  בעלי מקצוע מאומתים בסביבה. אין צורך לרענן — הצעה חדשה תופיע
+                  כאן מעצמה.
+                </p>
+                <Link
+                  href={CUSTOMER_ROUTES.account}
+                  className={`${BUTTON_QUIET} mt-5 inline-flex`}
+                >
+                  לאזור האישי
+                </Link>
+              </Card>
+            )
           ) : (
             <ul className="space-y-4">
               {ordered.map((bid) => (

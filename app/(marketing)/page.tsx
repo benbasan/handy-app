@@ -8,7 +8,7 @@ import {
 import { DemoLoginPanel } from "@/components/marketing/DemoLoginPanel";
 import { categoryIcon } from "@/lib/categories";
 import { demoKeyForPhone, demoLoginsEnabled } from "@/lib/demo";
-import { PRO_ROUTES } from "@/lib/routes";
+import { CUSTOMER_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
 import { getCurrentUser } from "@/lib/supabase/session";
 
@@ -112,7 +112,7 @@ export default async function LandingPage() {
           {categories.map((category) => (
             <li key={category.id}>
               <Link
-                href="/new-request"
+                href={CUSTOMER_ROUTES.newRequestFor(category.slug)}
                 className={`flex flex-col items-center gap-2 ${CARD_BASE} p-6 text-sm font-bold text-ink transition-colors hover:border-brand hover:text-brand`}
               >
                 <span aria-hidden className="text-3xl">

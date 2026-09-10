@@ -10,7 +10,10 @@ import { updateSession } from "@/lib/supabase/proxy";
  * Two jobs, and deliberately no more:
  *
  *  1. Keep the Supabase session cookies fresh on every request.
- *  2. Bounce anonymous visitors off the signed-in areas before a page renders.
+ *  2. Bounce anonymous visitors off the signed-in areas before a page renders,
+ *     carrying where they were going as `?next=` so the sign-in can put them
+ *     back. Every deep link used to land on the role's home instead — which
+ *     included a customer following a link to their own call.
  *
  * It does NOT check roles. Roles live in `profiles`, and Next's guidance is
  * explicit that proxy runs on prefetched routes too and must stay off the
@@ -28,6 +31,12 @@ export async function proxy(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = loginPath;
       url.search = "";
+      // The destination is echoed back to the browser that asked for it, so it
+      // is re-checked before it is honoured — see `postLoginPath()`.
+      url.searchParams.set(
+        "next",
+        `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      );
       return NextResponse.redirect(url);
     }
   }

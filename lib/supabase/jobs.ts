@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { logServerError } from "@/lib/observability";
 import { JOB_MEDIA_BUCKET } from "./buckets";
 import { createClient } from "./server";
 
@@ -46,10 +47,37 @@ export type JobSummary = {
   voiceNotePath: string | null;
   latitude: number | null;
   longitude: number | null;
+  /**
+   * Offers still waiting on this customer, or null where the query did not ask.
+   *
+   * Null rather than 0 on purpose: the account list asks, and every other
+   * reader of a job does not. A zero that means "we did not look" is the kind
+   * of value a screen eventually renders as "0 הצעות" on a job with four.
+   */
+  liveBidsCount: number | null;
 };
 
 const JOB_COLUMNS =
   "id, description, address_text, status, preferred_time, search_radius_km, created_at, photo_urls, video_url, voice_note_url, latitude, longitude, categories(name_he, slug)";
+
+/**
+ * The list view asks for the offers alongside the jobs — one round trip, under
+ * the customer's own RLS ("bids: customer reads bids on own jobs"), rather
+ * than one `job_bid_count()` call per row.
+ *
+ * Only the two columns the count needs: a bid whose 45 minutes have run out
+ * still says `pending` in the row until a sweep touches it, so the status
+ * alone would overcount. This is the same reading `bid_effective_status()`
+ * does in SQL.
+ *
+ * **The constraint has to be named.** `jobs` and `bids` are joined twice —
+ * `bids.job_id` one way and `jobs.selected_bid_id` the other — so a bare
+ * `bids(...)` embed is ambiguous, and PostgREST resolves it to the
+ * many-to-one side: the single selected bid, or null. That would have counted
+ * "offers waiting for you" as at most one, and been silently right on every
+ * job with one offer. The generated types are what caught it.
+ */
+const JOB_LIST_COLUMNS = `${JOB_COLUMNS}, bids!bids_job_id_fkey(status, expires_at)`;
 
 type JobRow = {
   id: string;
@@ -65,7 +93,17 @@ type JobRow = {
   latitude: number | null;
   longitude: number | null;
   categories: { name_he: string; slug: string } | null;
+  bids?: { status: string; expires_at: string }[];
 };
+
+function liveBids(row: JobRow): number | null {
+  if (!row.bids) return null;
+
+  const now = Date.now();
+  return row.bids.filter(
+    (bid) => bid.status === "pending" && Date.parse(bid.expires_at) > now,
+  ).length;
+}
 
 function toSummary(row: JobRow): JobSummary {
   return {
@@ -83,6 +121,7 @@ function toSummary(row: JobRow): JobSummary {
     voiceNotePath: row.voice_note_url,
     latitude: row.latitude,
     longitude: row.longitude,
+    liveBidsCount: liveBids(row),
   };
 }
 
@@ -97,7 +136,7 @@ export async function listMyJobs(): Promise<JobSummary[]> {
 
   const { data } = await supabase
     .from("jobs")
-    .select(JOB_COLUMNS)
+    .select(JOB_LIST_COLUMNS)
     .order("created_at", { ascending: false });
 
   return ((data ?? []) as JobRow[]).map(toSummary);
@@ -139,4 +178,39 @@ export async function signJobMedia(
   }
 
   return signed;
+}
+
+/**
+ * How many verified, accepting pros would receive a call posted at this point
+ * with this radius — asked before the call exists.
+ *
+ * `pros_in_range()` answers the same question of a saved row and checks
+ * ownership, which is right for the offers screen and unusable on the form.
+ * Both read `least(pro.radius_km, search_radius_km)`, so the number the
+ * customer sees while choosing a radius and the number they see afterwards are
+ * the same measurement.
+ *
+ * Returns null when the count could not be taken. The caller shows nothing
+ * rather than a zero, because "nobody covers you" and "we could not ask" are
+ * different sentences and only one of them is the customer's problem.
+ */
+export async function countProsNearPoint(
+  lat: number,
+  lng: number,
+  radiusKm: number,
+): Promise<number | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("pros_near_point", {
+    p_lat: lat,
+    p_lng: lng,
+    p_radius_km: radiusKm,
+  });
+
+  if (error) {
+    logServerError("jobs.countProsNearPoint", error, { radiusKm });
+    return null;
+  }
+
+  return data ?? 0;
 }
