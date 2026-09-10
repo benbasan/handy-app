@@ -10,14 +10,21 @@ import type { CurrentUser } from "@/lib/supabase/session";
  */
 export function AppShell({
   user,
+  unreadNotifications = 0,
   children,
 }: {
   user: CurrentUser | null;
+  /**
+   * Supplied only by the customer's `(authed)` layout. The marketing pages
+   * render this shell too and have no session to count against, so the default
+   * is what an anonymous visitor gets — no badge, and no query to produce it.
+   */
+  unreadNotifications?: number;
   children: ReactNode;
 }) {
   return (
     <>
-      <SiteHeader user={user} />
+      <SiteHeader user={user} unreadNotifications={unreadNotifications} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
         {children}
       </main>

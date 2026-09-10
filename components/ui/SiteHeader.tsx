@@ -2,7 +2,7 @@ import Link from "next/link";
 import { signOut } from "@/lib/actions/auth";
 import { BUTTON_CTA } from "@/components/ui/primitives";
 import { Logo } from "@/components/ui/Logo";
-import { MARKETING_ROUTES, PRO_ROUTES } from "@/lib/routes";
+import { CUSTOMER_ROUTES, MARKETING_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import type { CurrentUser } from "@/lib/supabase/session";
 
 /**
@@ -18,7 +18,13 @@ import type { CurrentUser } from "@/lib/supabase/session";
  * is how the design draws it: an anonymous visitor who clicks it is asking to
  * sign in, and proxy.ts sends them to the door rather than to a dead end.
  */
-export function SiteHeader({ user }: { user: CurrentUser | null }) {
+export function SiteHeader({
+  user,
+  unreadNotifications = 0,
+}: {
+  user: CurrentUser | null;
+  unreadNotifications?: number;
+}) {
   return (
     <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
@@ -34,6 +40,23 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
           {user?.role !== "pro" && user?.role !== "admin" && (
             <Link href="/account" className="hover:text-brand">
               הקריאות שלי
+            </Link>
+          )}
+          {/* Only for somebody who is actually signed in as a customer: an
+              anonymous visitor has nothing to count, and "הקריאות שלי" above
+              is deliberately shown to everyone for a different reason — it is
+              a request to sign in. */}
+          {user?.role === "customer" && (
+            <Link
+              href={CUSTOMER_ROUTES.notifications}
+              className="inline-flex items-center gap-1.5 hover:text-brand"
+            >
+              התראות
+              {unreadNotifications > 0 && (
+                <span className="inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
+                  {unreadNotifications}
+                </span>
+              )}
             </Link>
           )}
           <Link href={MARKETING_ROUTES.help} className="hover:text-brand">

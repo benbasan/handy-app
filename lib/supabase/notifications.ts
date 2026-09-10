@@ -4,6 +4,7 @@ import {
   isNotificationKind,
   type NotificationKind,
 } from "@/lib/notifications/kinds";
+import { relativeTime } from "@/lib/validation/bids";
 
 /**
  * The read side, under the caller's own RLS.
@@ -21,6 +22,18 @@ export type NotificationRow = {
   payload: Record<string, unknown>;
   createdAt: string;
   readAt: string | null;
+  /**
+   * "לפני 2 דק׳", as the design writes it — rendered here rather than in the
+   * component.
+   *
+   * Not a stylistic choice. `Date.now()` during render is impure, and the
+   * consequence is concrete: the server renders "לפני 2 דק׳" and the browser
+   * hydrates a second later disagreeing with it. "When this list was read" is
+   * a fact about the read, so it is settled once, here, where the read
+   * happens. `relativeTime()` has taken `now` as an argument since Phase 4 for
+   * the same reason, which is also what makes it testable.
+   */
+  agoLabel: string;
 };
 
 const COLUMNS = "id, kind, job_id, payload, created_at, read_at";
@@ -49,6 +62,8 @@ export async function listMyNotifications(
     return [];
   }
 
+  const now = Date.now();
+
   return (data ?? [])
     .filter((row) => isNotificationKind(row.kind))
     .map((row) => ({
@@ -58,6 +73,7 @@ export async function listMyNotifications(
       payload: (row.payload ?? {}) as Record<string, unknown>,
       createdAt: row.created_at,
       readAt: row.read_at,
+      agoLabel: relativeTime(row.created_at, now),
     }));
 }
 
