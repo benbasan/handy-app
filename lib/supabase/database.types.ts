@@ -42,6 +42,7 @@ export type Database = {
           expires_at: string
           id: string
           job_id: string
+          lapse_warned_at: string | null
           note: string | null
           price: number
           pro_id: string
@@ -54,6 +55,7 @@ export type Database = {
           expires_at?: string
           id?: string
           job_id: string
+          lapse_warned_at?: string | null
           note?: string | null
           price: number
           pro_id: string
@@ -66,6 +68,7 @@ export type Database = {
           expires_at?: string
           id?: string
           job_id?: string
+          lapse_warned_at?: string | null
           note?: string | null
           price?: number
           pro_id?: string
@@ -433,6 +436,64 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          job_id: string | null
+          kind: string
+          payload: Json
+          pushed_at: string | null
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          kind: string
+          payload?: Json
+          pushed_at?: string | null
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          kind?: string
+          payload?: Json
+          pushed_at?: string | null
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_updates: {
         Row: {
           created_at: string
@@ -638,6 +699,47 @@ export type Database = {
           role?: string
         }
         Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_success_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_success_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_success_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reviews: {
         Row: {
@@ -1008,6 +1110,7 @@ export type Database = {
         Returns: string
       }
       decline_job: { Args: { p_bid_id: string }; Returns: undefined }
+      dispatch_pending_pushes: { Args: never; Returns: number }
       expire_stale_bids: { Args: never; Returns: number }
       expire_stale_selections: { Args: never; Returns: number }
       is_admin: { Args: never; Returns: boolean }
@@ -1206,6 +1309,16 @@ export type Database = {
           verified: boolean
         }[]
       }
+      notify_user: {
+        Args: {
+          p_actor_id?: string
+          p_job_id?: string
+          p_kind: string
+          p_payload?: Json
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       open_jobs_for_pro: {
         Args: { p_max_km?: number }
         Returns: {
@@ -1290,6 +1403,8 @@ export type Database = {
         Args: { p_lat: number; p_lng: number; p_radius_km: number }
         Returns: number
       }
+      pros_serving_job: { Args: { p_job_id: string }; Returns: string[] }
+      prune_push_subscriptions: { Args: never; Returns: number }
       public_pro_slugs: {
         Args: never
         Returns: {
@@ -1328,6 +1443,15 @@ export type Database = {
         }
         Returns: string
       }
+      save_push_subscription: {
+        Args: {
+          p_auth_key: string
+          p_endpoint: string
+          p_p256dh: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
       select_bid: { Args: { p_bid_id: string }; Returns: string }
       set_pro_enforcement: {
         Args: { p_action: string; p_pro_id: string }
@@ -1361,6 +1485,7 @@ export type Database = {
           sender_name: string
         }[]
       }
+      warn_expiring_selections: { Args: never; Returns: number }
       withdraw_bid_selection: { Args: { p_job_id: string }; Returns: undefined }
     }
     Enums: {

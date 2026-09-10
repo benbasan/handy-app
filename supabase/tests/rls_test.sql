@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(380);
+select plan(413);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -3780,6 +3780,386 @@ select throws_ok(
   '42501',
   null,
   'an anonymous visitor cannot count the pros around an arbitrary point'
+);
+
+reset role;
+
+-- ===========================================================================
+-- Phase 13: notifications
+--
+-- The rule this section exists to prove is the one the whole phase rests on:
+-- **a notification row is written inside the transaction that caused the
+-- event, by whoever already owns that transition, and no client role can forge
+-- one.** Everything else — the push, the sweep, the screen — sits on top of
+-- that and is allowed to fail.
+--
+-- The sharpest assertions are the pair around `select_bid()`. It releases the
+-- previous holder with an UPDATE that is byte-identical to the one in
+-- `withdraw_bid_selection()`, so a row trigger would see `selected -> pending`
+-- in both and could not tell them apart. Proving the two write different kinds
+-- is proving the design decision, not merely the code.
+-- ===========================================================================
+
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- Nobody writes one, and nobody reads somebody else's
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.notifications (user_id, kind)
+     values ('a0000000-0000-4000-8000-000000000001', 'bid_received') $$,
+  '42501',
+  null,
+  'no client role may create a notification — the same stance job_locations takes'
+);
+
+select ok(
+  (select count(*) from public.notifications) > 0,
+  'the seed produced real notifications through the triggers, not through fixtures'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where user_id <> 'a0000000-0000-4000-8000-000000000001'),
+  0::bigint,
+  'and an unfiltered select returns nothing that is not the caller''s'
+);
+
+select throws_ok(
+  $$ update public.notifications set pushed_at = now() $$,
+  '42501',
+  null,
+  'pushed_at belongs to the dispatcher, not to the person being notified'
+);
+
+select lives_ok(
+  $$ update public.notifications set read_at = now()
+      where id = (select id from public.notifications order by created_at limit 1) $$,
+  'the recipient may mark their own notification read'
+);
+
+reset role;
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.notifications
+    where user_id = 'a0000000-0000-4000-8000-000000000001'),
+  0::bigint,
+  'another customer sees none of them'
+);
+
+-- ---------------------------------------------------------------------------
+-- A fixture of this section's own.
+--
+-- Every seeded job has been walked somewhere by the sixteen sections above —
+-- section 16 takes the offered one all the way to accepted — and this whole
+-- file is a single transaction. A call that has already been taken cannot be
+-- offered again, so the exchange below needs a call nobody has touched.
+-- ---------------------------------------------------------------------------
+
+reset role;
+
+insert into public.jobs (
+  id, customer_id, category_id, description, location, address_text,
+  preferred_time, search_radius_km, status
+) values (
+  'd0000000-0000-4000-8000-00000000e0a1',
+  'a0000000-0000-4000-8000-000000000001',
+  'c0000000-0000-4000-8000-000000000001',
+  'ניקוז המקלחת סתום ומים עולים ברצפה.',
+  extensions.st_point(34.7818, 32.0853)::extensions.geography,
+  'ויצמן 4, תל אביב', 'today', 10, 'bidding'
+);
+
+-- ---------------------------------------------------------------------------
+-- A bid notifies the job's owner — written under the PRO's session, into a row
+-- the pro cannot read. That is the whole argument for a definer trigger.
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select lives_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+     values ('d0000000-0000-4000-8000-00000000e0a1',
+             'a0000000-0000-4000-8000-000000000003', 310, 30) $$,
+  'a pro bids on a job in their radius'
+);
+
+select is(
+  (select count(*) from public.notifications where kind = 'bid_received'),
+  0::bigint,
+  'and sees nothing of it — the row the trigger wrote is addressed to somebody else'
+);
+
+reset role;
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select ok(
+  exists (
+    select 1 from public.notifications
+     where job_id = 'd0000000-0000-4000-8000-00000000e0a1'
+       and kind in ('bid_received', 'first_bid_received')
+  ),
+  'the customer was told, by a trigger running under a session that could not read the result'
+);
+
+-- ---------------------------------------------------------------------------
+-- The pair a row trigger could not have told apart
+-- ---------------------------------------------------------------------------
+
+reset role;
+
+-- A rival, so there is somewhere for the customer to move the offer to.
+reset role;
+
+insert into public.bids (id, job_id, pro_id, price, eta_minutes, status)
+values (
+  'b0000000-0000-4000-8000-00000000e0a2',
+  'd0000000-0000-4000-8000-00000000e0a1',
+  'a0000000-0000-4000-8000-000000000006', 340, 25, 'pending'
+);
+
+-- Clear the decks so the counts below are about this exchange only.
+delete from public.notifications;
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.select_bid((select id from public.bids where job_id = 'd0000000-0000-4000-8000-00000000e0a1' and pro_id = 'a0000000-0000-4000-8000-000000000003')) $$,
+  'the customer offers the job to the pro who bid'
+);
+
+reset role;
+
+select is(
+  (select count(*) from public.notifications where kind = 'bid_selected'),
+  1::bigint,
+  'exactly one "you were chosen" — the notification this entire phase exists for'
+);
+
+select is(
+  (select user_id from public.notifications where kind = 'bid_selected'),
+  'a0000000-0000-4000-8000-000000000003'::uuid,
+  'addressed to the pro who was chosen, and to nobody else'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.select_bid('b0000000-0000-4000-8000-00000000e0a2') $$,
+  'the customer changes their mind and offers it to somebody else'
+);
+
+reset role;
+
+select is(
+  (select count(*) from public.notifications where kind = 'selection_moved'),
+  1::bigint,
+  'the released pro is told the offer moved on'
+);
+
+select is(
+  (select count(*) from public.notifications where kind = 'selection_withdrawn'),
+  0::bigint,
+  'and NOT that it was withdrawn — the distinction a row trigger could not have drawn'
+);
+
+-- The mirror image: the same statement, different news.
+delete from public.notifications;
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.withdraw_bid_selection('d0000000-0000-4000-8000-00000000e0a1') $$,
+  'the customer takes the offer back instead'
+);
+
+reset role;
+
+select is(
+  (select count(*) from public.notifications where kind = 'selection_withdrawn'),
+  1::bigint,
+  'this time the pro is told it was withdrawn'
+);
+
+select is(
+  (select count(*) from public.notifications where kind = 'selection_moved'),
+  0::bigint,
+  'and not that it moved on — two kinds from one statement, decided by the function'
+);
+
+-- ---------------------------------------------------------------------------
+-- Accepting is idempotent, and so is being told about it
+-- ---------------------------------------------------------------------------
+
+delete from public.notifications;
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+select public.select_bid('b0000000-0000-4000-8000-00000000e0a2');
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+-- Twice, as a phone with a slow connection does.
+select public.accept_job('b0000000-0000-4000-8000-00000000e0a2');
+select public.accept_job('b0000000-0000-4000-8000-00000000e0a2');
+
+reset role;
+
+select is(
+  (select count(*) from public.notifications where kind = 'pro_accepted'),
+  1::bigint,
+  'a button pressed twice tells the customer once, for the same reason it charges once'
+);
+
+-- ---------------------------------------------------------------------------
+-- The fan-out: everybody inside both radii, and nobody else
+-- ---------------------------------------------------------------------------
+
+delete from public.notifications;
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select lives_ok(
+  $$ insert into public.jobs
+       (customer_id, category_id, description, location, address_text,
+        preferred_time, search_radius_km)
+     values ('a0000000-0000-4000-8000-000000000001',
+             'c0000000-0000-4000-8000-000000000001',
+             'ברז נוטף במטבח כבר שלושה ימים.',
+             'SRID=4326;POINT(34.7818 32.0853)',
+             'דיזנגוף 100, תל אביב', 'today', 10) $$,
+  'a customer posts a call'
+);
+
+reset role;
+
+select ok(
+  (select count(*) from public.notifications where kind = 'job_in_radius') > 0,
+  'the pros who cover it are told, from inside the posting transaction'
+);
+
+select is(
+  (select count(*) from public.notifications n
+     join public.pro_profiles p on p.user_id = n.user_id
+    where n.kind = 'job_in_radius'
+      and (p.verification_status <> 'verified' or not p.accepting_jobs)),
+  0::bigint,
+  'and nobody unverified or unavailable is — the switch on /pro/settings finally means what it says'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where kind = 'job_in_radius'
+      and job_id = 'd0000000-0000-4000-8000-000000000009'),
+  0::bigint,
+  'the Eilat call notifies nobody, rather than everybody'
+);
+
+-- ---------------------------------------------------------------------------
+-- push_subscriptions: an endpoint is a capability, not a record
+-- ---------------------------------------------------------------------------
+
+reset role;
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.save_push_subscription('https://push.example/aaa', 'k1', 'a1', 'test') $$,
+  'a pro registers this browser for push'
+);
+
+select is(
+  (select user_id from public.push_subscriptions where endpoint = 'https://push.example/aaa'),
+  'a0000000-0000-4000-8000-000000000003'::uuid,
+  'and owns the row'
+);
+
+reset role;
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.push_subscriptions),
+  0::bigint,
+  'another pro cannot see it — where to reach somebody''s phone is not browsable'
+);
+
+-- The shared-device case a policy could not have arbitrated: this account
+-- cannot see the row it has to replace, so an upsert under RLS would have
+-- raised instead of taking ownership.
+select lives_ok(
+  $$ select public.save_push_subscription('https://push.example/aaa', 'k2', 'a2', 'test') $$,
+  'a second account on the same browser claims the endpoint'
+);
+
+reset role;
+
+select is(
+  (select user_id from public.push_subscriptions where endpoint = 'https://push.example/aaa'),
+  'a0000000-0000-4000-8000-000000000006'::uuid,
+  'and the endpoint now belongs to whoever is actually signed in on that device'
+);
+
+select is(
+  (select count(*) from public.push_subscriptions where endpoint = 'https://push.example/aaa'),
+  1::bigint,
+  'as one row, not two — the device is one device'
+);
+
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.push_subscriptions),
+  0::bigint,
+  'and not even an admin reads endpoints: they are adjudicated against nothing'
+);
+
+-- ---------------------------------------------------------------------------
+-- The warning sweep warns once, and the deadline holds without it
+-- ---------------------------------------------------------------------------
+
+reset role;
+
+delete from public.notifications;
+
+update public.bids
+   set status = 'selected',
+       accept_deadline = now() + interval '10 minutes',
+       lapse_warned_at = null
+ where job_id = 'd0000000-0000-4000-8000-00000000e0a1'
+   and pro_id = 'a0000000-0000-4000-8000-000000000003';
+
+select is(
+  public.warn_expiring_selections(),
+  1,
+  'a window with less than half an hour left produces one warning'
+);
+
+select is(
+  public.warn_expiring_selections(),
+  0,
+  'and running it again produces none — a pro is not nagged every five minutes'
+);
+
+select is(
+  (select count(*) from public.notifications where kind = 'selection_expiring'),
+  1::bigint,
+  'one row, addressed to the pro whose clock is running out'
 );
 
 reset role;
