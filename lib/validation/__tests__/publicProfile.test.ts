@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   MAX_GALLERY_PHOTOS,
@@ -42,15 +42,31 @@ describe("publicSlugSchema", () => {
    * the test that keeps the two copies the same list.
    */
   it("matches the check constraint in the migration, word for word", () => {
-    const sql = readFileSync(
-      "supabase/migrations/20260908120000_public_content_seo.sql",
-      "utf8",
-    );
-    const block = sql.slice(
-      sql.indexOf("public_slug not in ("),
-      sql.indexOf("pro_profiles_public_slug_key"),
-    );
+    // Whichever migration *last* defines the constraint, not the one that
+    // first did. Phase 8 created it; Phase 13 dropped and rebuilt it to
+    // reserve `/pro/notifications`, and a test hard-coded to the older file
+    // would have gone on passing against a list the database no longer used —
+    // which is the precise failure this test exists to prevent.
+    const migration = readdirSync("supabase/migrations")
+      .filter((file) => file.endsWith(".sql"))
+      .sort()
+      .reverse()
+      .find((file) =>
+        readFileSync(`supabase/migrations/${file}`, "utf8").includes(
+          "public_slug not in (",
+        ),
+      );
+
+    expect(
+      migration,
+      "no migration defines the reserved-slug list",
+    ).toBeDefined();
+
+    const sql = readFileSync(`supabase/migrations/${migration}`, "utf8");
+    const start = sql.indexOf("public_slug not in (");
+    const block = sql.slice(start, sql.indexOf(")", sql.indexOf("(", start)));
     const inSql = [...block.matchAll(/'([a-z-]+)'/g)].map((match) => match[1]);
+
     expect(new Set(inSql)).toEqual(new Set(RESERVED_SLUGS));
   });
 });

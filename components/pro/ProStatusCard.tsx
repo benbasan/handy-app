@@ -72,7 +72,7 @@ export function ProStatusCard({ profile }: { profile: ProProfile }) {
       {profile.verificationStatus === "pending" && (
         <p className="mt-3 text-sm text-muted">
           הפרופיל נשלח לאישור. צוות Handy בודק את המסמכים ידנית — יעד מענה 24
-          שעות. כדאי לבדוק את המסך הזה מחר; ההחלטה תופיע כאן.
+          שעות. תגיע התראה ברגע שתהיה החלטה.
         </p>
       )}
 

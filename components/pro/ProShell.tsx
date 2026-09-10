@@ -19,11 +19,14 @@ import type { ProProfile } from "@/lib/supabase/pros";
 export function ProShell({
   profile,
   unreadMessages = 0,
+  unreadNotifications = 0,
   children,
 }: {
   profile: ProProfile | null;
   /** Total across every thread — the orange badge in design/screens/pro-5.3. */
   unreadMessages?: number;
+  /** The same badge on design/screens/pro-5.4, for the notification centre. */
+  unreadNotifications?: number;
   children: ReactNode;
 }) {
   return (
@@ -56,6 +59,17 @@ export function ProShell({
               {unreadMessages > 0 && (
                 <span className="inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
                   {unreadMessages}
+                </span>
+              )}
+            </Link>
+            <Link
+              href={PRO_ROUTES.notifications}
+              className="inline-flex items-center gap-1.5 hover:text-pro"
+            >
+              התראות
+              {unreadNotifications > 0 && (
+                <span className="inline-flex size-5 items-center justify-center rounded-full bg-alert text-xs font-bold text-white">
+                  {unreadNotifications}
                 </span>
               )}
             </Link>

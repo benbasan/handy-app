@@ -37,6 +37,8 @@ export const PRO_ROUTES = {
   jobs: "/pro/jobs",
   offers: "/pro/offers",
   messages: "/pro/messages",
+  /** design/screens/pro-5.4-notifications.png, captured at handy.co.il/pro/notifications. */
+  notifications: "/pro/notifications",
   settings: "/pro/settings",
   /** design/screens/pro-3.2-my-jobs.png is captured at handy.co.il/pro/my-jobs. */
   myJobs: "/pro/my-jobs",
@@ -91,6 +93,14 @@ export const MARKETING_ROUTES = {
  */
 export const CUSTOMER_ROUTES = {
   account: "/account",
+  /**
+   * The customer's notification centre.
+   *
+   * Under `/account` on purpose: `PROTECTED_AREAS` already covers that prefix,
+   * so the proxy needs no new entry and cannot be left out of step with this
+   * map — which is the failure mode a top-level `/notifications` would invite.
+   */
+  notifications: "/account/notifications",
   newRequest: "/new-request",
   /**
    * Posting a call, carrying the choice the visitor has already made.
@@ -190,6 +200,7 @@ const PROTECTED_AREAS: ReadonlyArray<{ prefix: string; login: string }> = [
   { prefix: PRO_ROUTES.myJobs, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.offers, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.messages, login: ROLE_LOGIN.pro },
+  { prefix: PRO_ROUTES.notifications, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.settings, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.wallet, login: ROLE_LOGIN.pro },
   { prefix: PRO_ROUTES.profile, login: ROLE_LOGIN.pro },

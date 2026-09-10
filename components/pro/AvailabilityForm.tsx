@@ -26,10 +26,16 @@ import {
  * "זמינות, אזור ולוח זמנים" — design/screens/pro-5.2-availability-settings.png.
  *
  * The design's left column also carries notification switches and a bank
- * summary card. The switches wait for Phase 13, which is what builds the
- * `notifications` table they would control; the payout details are read-only
- * here and edited in onboarding step 5, so this screen shows them rather than
- * offering a second place to change them.
+ * summary card. Per-kind switches are still unbuilt — Phase 13 built the table
+ * and the channel, and which kinds a pro wants is a preference on top of that,
+ * not part of it. The payout details are read-only here and edited in
+ * onboarding step 5, so this screen shows them rather than offering a second
+ * place to change them.
+ *
+ * What DID change in Phase 13 is that `accepting_jobs` is read inside
+ * `pros_serving_job()`, the fan-out predicate. The switch has claimed to stop
+ * notifications since Phase 3 and there were none to stop; now there are, and
+ * it does.
  *
  * `accepting_jobs` and `radius_km` are not cosmetic: both are conditions
  * inside `pro_serves_job()`, so saving this form changes what the RLS policy
@@ -86,7 +92,7 @@ export function AvailabilityForm({
           <div>
             <h2 className="text-lg font-bold text-ink">קבלת קריאות</h2>
             <p className="mt-1 text-sm text-muted">
-              כיבוי מוציא אתכם מהפיד מיד, בלי לפגוע בדירוג.
+              כיבוי מוציא אתכם מהפיד ומפסיק את ההתראות מיד, בלי לפגוע בדירוג.
             </p>
           </div>
 

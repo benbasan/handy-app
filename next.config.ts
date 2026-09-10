@@ -23,6 +23,25 @@ const nextConfig: NextConfig = {
     "/api/receipts/[jobId]": ["./assets/fonts/**"],
     "/opengraph-image": ["./assets/fonts/**"],
   },
+
+  /*
+   * The service worker must never come from a cache.
+   *
+   * A stale one is uniquely bad: it keeps handling `push` with whatever code
+   * it was built with, so a fixed bug stays fixed for everybody except the
+   * people who already have the broken version — and there is no page load
+   * that would replace it, because the worker is what the browser consults
+   * before it asks the network. `updateViaCache: "none"` at registration is
+   * the other half of the same instruction.
+   */
+  async headers() {
+    return [
+      {
+        source: "/_next/static/service-worker/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

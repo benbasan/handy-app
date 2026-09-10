@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
+import { PushPermissionCard } from "@/components/ui/PushPermissionCard";
 import { BUTTON_BRAND, BUTTON_QUIET, Card } from "@/components/ui/primitives";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
@@ -105,6 +106,13 @@ export default async function JobPublishedPage({
           />
         </Card>
       )}
+
+      {/*
+        The customer is now waiting on strangers. This screen has no idea when
+        the first offer will land and neither do they, which is exactly the
+        situation a notification is for.
+      */}
+      <PushPermissionCard reason="נודיע לכם ברגע שתגיע ההצעה הראשונה, גם אם תסגרו את הדף." />
 
       <div className="flex flex-wrap gap-3">
         <Link href={CUSTOMER_ROUTES.offers(job.id)} className={BUTTON_BRAND}>

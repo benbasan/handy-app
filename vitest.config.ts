@@ -69,6 +69,21 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL(".", import.meta.url)),
+      /*
+       * `server-only` is a module whose entire job is to throw when a bundler
+       * pulls it into a client graph. Under Vitest there is no such graph and
+       * no bundler, so it throws at import time and takes down any suite that
+       * touches a server module — which since Phase 13 includes the
+       * notification provider registry, a piece of plain logic worth testing.
+       *
+       * Aliased to a no-op rather than dropped from the modules that import it:
+       * the guard is doing real work in `next build`, which is where a client
+       * component accidentally importing the push sender would actually be a
+       * problem.
+       */
+      "server-only": fileURLToPath(
+        new URL("./tests/stubs/server-only.ts", import.meta.url),
+      ),
     },
   },
 });

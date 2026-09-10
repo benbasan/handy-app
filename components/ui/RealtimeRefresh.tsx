@@ -68,7 +68,13 @@ export function RealtimeRefresh({
   filter,
   label,
 }: {
-  table: "bids" | "messages" | "jobs" | "price_updates" | "job_locations";
+  table:
+    | "bids"
+    | "messages"
+    | "jobs"
+    | "price_updates"
+    | "job_locations"
+    | "notifications";
   /** PostgREST filter syntax, e.g. `job_id=eq.<uuid>`. Omit to watch the table. */
   filter?: string;
   /**

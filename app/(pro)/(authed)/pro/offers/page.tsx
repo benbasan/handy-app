@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MyBidRow } from "@/components/pro/MyBidRow";
 import { OfferAnswerCard } from "@/components/pro/OfferAnswerCard";
 import { BUTTON_PRO, Card, PAGE_TITLE } from "@/components/ui/primitives";
+import { PushPermissionCard } from "@/components/ui/PushPermissionCard";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { PRO_ROUTES } from "@/lib/routes";
 import {
@@ -137,12 +138,26 @@ export default async function ProOffersPage({
       )}
 
       {justSent && (
-        <p
-          role="status"
-          className="rounded-2xl border border-cta bg-cta/10 p-4 text-sm font-semibold text-cta-strong"
-        >
-          ✓ ההצעה נשלחה ללקוח. היא תקפה 45 דקות — נעדכן כאן ברגע שתהיה החלטה.
-        </p>
+        <>
+          {/*
+            "נעדכן כאן" was the honest hedge for having no channel: this screen
+            was the only place a decision could reach anybody. Since Phase 13
+            it is not, and the sentence says so.
+          */}
+          <p
+            role="status"
+            className="rounded-2xl border border-cta bg-cta/10 p-4 text-sm font-semibold text-cta-strong"
+          >
+            ✓ ההצעה נשלחה ללקוח. היא תקפה 45 דקות — נעדכן ברגע שתהיה החלטה.
+          </p>
+
+          {/*
+            The primary moment to ask. From here on the pro is waiting on
+            somebody else's decision, and if it goes their way they have two
+            hours to answer it — which is the whole reason this feature exists.
+          */}
+          <PushPermissionCard reason="אם הלקוח יבחר בכם, יש שעתיים לאשר. התראה מגיעה גם כשהדפדפן סגור." />
+        </>
       )}
 
       {shown.length === 0 ? (

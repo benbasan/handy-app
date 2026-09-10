@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OfferAnswerCard } from "@/components/pro/OfferAnswerCard";
 import { ProStatusCard } from "@/components/pro/ProStatusCard";
+import { PushPermissionCard } from "@/components/ui/PushPermissionCard";
 import { CurrentUserCard } from "@/components/ui/CurrentUserCard";
 import { BUTTON_QUIET, Card } from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
@@ -81,8 +82,12 @@ export default async function ProDashboardPage({
           role="status"
           className="rounded-2xl border border-cta bg-cta/10 p-4 text-sm font-semibold text-cta-strong"
         >
-          ✓ הפרופיל נשלח לאישור — יעד מענה 24 שעות. ההחלטה תופיע כאן בדשבורד.
+          ✓ הפרופיל נשלח לאישור — יעד מענה 24 שעות. נעדכן בהתראה.
         </p>
+      )}
+
+      {justSubmitted && (
+        <PushPermissionCard reason="נודיע לכם ברגע שצוות Handy יכריע, בלי לבדוק את המסך." />
       )}
 
       {/* Above the stats and above "דורש טיפול", because this is the one

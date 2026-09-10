@@ -18,6 +18,7 @@ export const RESERVED_SLUGS: readonly string[] = [
   "jobs",
   "offers",
   "messages",
+  "notifications",
   "settings",
   "my-jobs",
   "wallet",

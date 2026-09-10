@@ -162,7 +162,7 @@ export function JoinForm({
                   there is no notifications table, no provider and no send
                   path. It says what actually happens instead, until Phase 13
                   gives it a channel to promise. */}
-              <li>· הסטטוס מתעדכן כאן ברגע שהפרופיל מאושר, והפיד נפתח מיד.</li>
+              <li>· תגיע התראה ברגע שהפרופיל מאושר, והפיד נפתח מיד.</li>
             </ol>
           </SectionCard>
         </div>
