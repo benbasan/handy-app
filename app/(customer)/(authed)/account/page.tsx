@@ -195,6 +195,19 @@ function JobRow({ job }: { job: JobSummary }) {
           {job.categoryName ? ` · ${job.categoryName}` : ""}
           {when ? ` · ${when}` : ""}
         </p>
+
+        {/*
+          How many offers are actually waiting. Without it this list said
+          "מתקבלות הצעות" on a call with four offers and on a call with none,
+          and the only way to tell them apart was to open each one.
+        */}
+        {job.liveBidsCount !== null && job.liveBidsCount > 0 && (
+          <p className="mt-1 text-sm font-semibold text-brand">
+            {job.liveBidsCount === 1
+              ? "הצעה אחת ממתינה לכם"
+              : `${job.liveBidsCount} הצעות ממתינות לכם`}
+          </p>
+        )}
       </div>
 
       <Badge tone={status.tone}>{status.text}</Badge>
