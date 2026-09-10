@@ -18,8 +18,8 @@ import {
   BID_STATUS_LABEL,
   PRICE_INCLUDES_NOTE,
   initials,
-  timeLeftLabel,
 } from "@/lib/validation/bids";
+import { Countdown } from "@/components/ui/Countdown";
 
 /**
  * One offer on design/screens/customer-2.2-compare-bids.png: the price large
@@ -30,20 +30,34 @@ import {
  * call-out fees — and is written once in lib/validation/bids.ts so the two
  * screens that promise it cannot drift apart.
  *
- * The avatar is initials rather than a photo: the pro's profile picture lives
- * in the private verification-docs bucket, which no customer can read, and
- * the design's own card shows initials too. A public bucket for profile photos
- * belongs to the phase that builds the public profile (CLAUDE.md section 9).
+ * The avatar is initials rather than a photo, and the reason has expired.
+ * This comment used to say a photo was impossible because the only one lived
+ * in the private `verification-docs` bucket — but Phase 8 built `pro-media`,
+ * the public bucket, and `components/marketing/ProCard.tsx` has been drawing a
+ * real portrait from it ever since. So the trust decision is the one screen in
+ * the product still showing two grey letters.
+ *
+ * Fixing it is Phase 14's, not Phase 13.5's: `bids_for_job()` already joins
+ * `pro_profiles`, so it is a `create or replace` that adds `avatar_path` and
+ * `public_slug` — a migration, and this phase deliberately has none.
  */
 export function BidCard({
   bid,
   jobId,
   highlights,
   decided,
+  featured = false,
 }: {
   bid: JobBid;
   jobId: string;
   highlights: readonly string[];
+  /**
+   * The first card under the "מומלץ" sort — lifted off the page so the ranking
+   * the screen just performed is visible without reading three prices. Only
+   * ever one per screen, and never once a decision has been made: at that point
+   * the accepted offer is what matters and a recommendation is noise.
+   */
+  featured?: boolean;
   /**
    * True once a pro has actually taken this job: the rest go read-only.
    *
@@ -64,12 +78,14 @@ export function BidCard({
 
   return (
     <li
-      className={`rounded-2xl border bg-surface p-5 ${
+      className={`animate-enter rounded-2xl border bg-surface p-5 ${
         won
-          ? "border-cta ring-1 ring-cta/30"
+          ? "border-cta shadow-lift ring-1 ring-cta/30"
           : waiting
-            ? "border-brand ring-1 ring-brand/30"
-            : "border-line"
+            ? "border-brand shadow-lift ring-1 ring-brand/30"
+            : featured
+              ? "border-line shadow-lift"
+              : "border-line shadow-card"
       } ${live || won || waiting ? "" : "opacity-70"}`}
     >
       {/* The pro at the leading edge with the price and its two actions at
@@ -155,13 +171,14 @@ export function BidCard({
                 }`}
               >
                 {BID_STATUS_LABEL[bid.status]}
-                {waiting && bid.acceptDeadline && (
-                  <>
-                    {" · "}
-                    {timeLeftLabel(bid.acceptDeadline)}
-                  </>
-                )}
               </p>
+            )}
+
+            {waiting && bid.acceptDeadline && (
+              <Countdown
+                deadline={bid.acceptDeadline}
+                className="justify-center text-sm"
+              />
             )}
 
             <Link

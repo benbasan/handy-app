@@ -120,7 +120,7 @@ export default async function JobSummaryPage({
                 return (
                   <li
                     key={method}
-                    className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
+                    className={`inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold ${
                       used
                         ? "border-cta bg-cta/10 text-cta-strong"
                         : "border-line bg-canvas text-muted"

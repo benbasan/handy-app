@@ -92,7 +92,7 @@ export function CompleteJobForm({
                   type="button"
                   onClick={() => setMethod(candidate)}
                   aria-pressed={chosen}
-                  className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+                  className={`inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold transition-colors ${
                     chosen
                       ? "border-pro bg-pro-soft text-pro"
                       : "border-line bg-surface text-ink hover:bg-canvas"

@@ -38,8 +38,8 @@ export function FeedJobCard({
 
   return (
     <li
-      className={`overflow-hidden rounded-2xl border bg-surface ${
-        justArrived ? "border-alert" : "border-line"
+      className={`animate-enter overflow-hidden rounded-2xl border bg-surface ${
+        justArrived ? "border-alert shadow-lift" : "border-line shadow-card"
       }`}
     >
       {justArrived && (

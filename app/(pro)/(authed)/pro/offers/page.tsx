@@ -123,7 +123,7 @@ export default async function ProOffersPage({
               key={option}
               href={`${PRO_ROUTES.offers}?tab=${option}`}
               aria-current={option === tab ? "true" : undefined}
-              className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+              className={`inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold transition-colors ${
                 option === tab
                   ? "border-pro bg-pro text-white"
                   : "border-line bg-surface text-ink hover:border-pro/40"

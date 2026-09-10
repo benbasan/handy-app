@@ -194,17 +194,25 @@ export default async function JobOffersPage({
                   : `${bids.length} הצעות התקבלו`}
             </h2>
 
+            {/* A segmented control, not three loose chips: one border around
+                the set says these are the three states of one choice.
+                `min-h-11` because 34px was under the floor a thumb can hit, and
+                a focus ring because until Phase 13.5 there was none — on the
+                screen where the next press assigns work. */}
             {bids.length > 1 && !chosen && !waiting && (
-              <nav aria-label="מיון הצעות" className="flex flex-wrap gap-2">
+              <nav
+                aria-label="מיון הצעות"
+                className="inline-flex overflow-hidden rounded-xl border border-line bg-surface"
+              >
                 {BID_SORTS.map((option) => (
                   <Link
                     key={option}
                     href={`${CUSTOMER_ROUTES.offers(jobId)}?sort=${option}`}
                     aria-current={option === sort ? "true" : undefined}
-                    className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+                    className={`inline-flex min-h-11 items-center px-4 text-sm font-semibold transition-colors not-first:border-s not-first:border-line focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none focus-visible:ring-inset ${
                       option === sort
-                        ? "border-ink bg-ink text-white"
-                        : "border-line bg-surface text-ink hover:border-brand/40"
+                        ? "bg-ink text-white"
+                        : "text-ink hover:bg-canvas"
                     }`}
                   >
                     {BID_SORT_LABEL[option]}
@@ -270,13 +278,23 @@ export default async function JobOffersPage({
             )
           ) : (
             <ul className="space-y-4">
-              {ordered.map((bid) => (
+              {ordered.map((bid, index) => (
                 <BidCard
                   key={bid.id}
                   bid={bid}
                   jobId={jobId}
                   highlights={highlights.get(bid.id) ?? []}
                   decided={chosen !== null}
+                  /* Only under "מומלץ", and only while the choice is still
+                     open: lifting a card under a price sort would be the
+                     screen recommending something the sort did not. */
+                  featured={
+                    index === 0 &&
+                    sort === "recommended" &&
+                    !chosen &&
+                    !waiting &&
+                    ordered.length > 1
+                  }
                 />
               ))}
             </ul>

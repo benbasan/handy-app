@@ -18,6 +18,7 @@ import {
   type PreferredTime,
 } from "@/lib/validation/jobs";
 import {
+  BUTTON_COMPACT,
   BUTTON_CTA,
   Card,
   ErrorText,
@@ -339,7 +340,7 @@ export function PostJobForm({
                         type="button"
                         aria-pressed={option === radiusKm}
                         onClick={() => setRadiusKm(option)}
-                        className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                        className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors ${
                           option === radiusKm
                             ? "border-brand bg-brand-soft text-brand"
                             : "border-line bg-surface text-muted hover:border-brand/40"
@@ -417,6 +418,40 @@ export function PostJobForm({
           </div>
         </aside>
       </div>
+
+      {/*
+        The publish button lives in the summary card, which on a phone lands
+        after four numbered sections and three upload tiles — the comment at the
+        top of this file has admitted that since Phase 2. So below `md` there is
+        a second one, pinned, carrying the only two things worth pinning: what is
+        being published and the button.
+
+        It appears once a category is chosen rather than immediately, because
+        before that there is nothing to publish and a permanently disabled bar is
+        just a smaller screen. `pb-24` on the summary card's own container is not
+        needed — the bar is `fixed`, and the shell already reserves `pb-28`.
+      */}
+      {categoryId && (
+        <div className="fixed inset-x-0 bottom-16 z-30 animate-enter border-t border-line bg-surface/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:hidden">
+          <div className="mx-auto flex max-w-6xl items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-ink">
+                {selectedCategory?.nameHe}
+              </p>
+              <p className="truncate text-xs text-muted">
+                {address.text || "עוד לא נבחרה כתובת"}
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={pending}
+              className={`${BUTTON_CTA} ${BUTTON_COMPACT} shrink-0`}
+            >
+              {pending ? "מפרסם…" : "פרסם קריאה"}
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
