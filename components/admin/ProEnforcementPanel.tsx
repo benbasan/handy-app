@@ -1,7 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { BUTTON_BASE, ErrorText } from "@/components/ui/primitives";
+import {
+  BUTTON_BASE,
+  BUTTON_COMPACT,
+  ErrorText,
+} from "@/components/ui/primitives";
 import {
   applyProEnforcement,
   decideProVerification,
@@ -77,7 +81,7 @@ export function ProEnforcementPanel({
             name="status"
             value={suspended ? "verified" : "suspended"}
             disabled={verificationPending}
-            className={`${BUTTON_BASE} px-4 py-2 text-sm ${
+            className={`${BUTTON_BASE} ${BUTTON_COMPACT} ${
               suspended
                 ? "bg-cta text-white hover:bg-cta-strong"
                 : "bg-danger text-white hover:bg-danger-strong"

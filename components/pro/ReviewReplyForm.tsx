@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import {
+  BUTTON_COMPACT,
   BUTTON_QUIET,
   ErrorText,
   INPUT_CLASS,
@@ -58,7 +59,7 @@ export function ReviewReplyForm({
         <button
           type="submit"
           disabled={pending}
-          className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+          className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
         >
           {pending ? "שולח…" : existing ? "עדכן תגובה" : "השב"}
         </button>

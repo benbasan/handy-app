@@ -9,6 +9,7 @@ import { ChatPanel } from "@/components/ui/ChatPanel";
 import { LiveMap } from "@/components/ui/LiveMap";
 import { MarkThreadRead } from "@/components/ui/MarkThreadRead";
 import {
+  BUTTON_COMPACT,
   BUTTON_QUIET,
   Badge,
   Card,
@@ -273,7 +274,7 @@ export default async function ProManageJobPage({
                 {contact && (
                   <a
                     href={`tel:+${contact.phone}`}
-                    className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+                    className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
                   >
                     ☎ חיוג
                   </a>

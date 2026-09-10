@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import {
+  BUTTON_COMPACT,
   BUTTON_PRO,
   BUTTON_QUIET,
   CARD_CLASS,
@@ -115,7 +116,7 @@ export function PublicProfileForm({
             </p>
 
             <label
-              className={`${BUTTON_QUIET} mt-3 cursor-pointer px-4 py-2 text-sm`}
+              className={`${BUTTON_QUIET} mt-3 cursor-pointer ${BUTTON_COMPACT}`}
             >
               <input
                 type="file"

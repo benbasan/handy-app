@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SubmitBidForm } from "@/components/pro/SubmitBidForm";
-import { BUTTON_QUIET, Badge, CARD_BASE } from "@/components/ui/primitives";
+import {
+  BUTTON_COMPACT,
+  BUTTON_QUIET,
+  Badge,
+  CARD_BASE,
+} from "@/components/ui/primitives";
 import { CategoryIcon } from "@/lib/categories";
 import { PRO_ROUTES } from "@/lib/routes";
 import type { MyBid } from "@/lib/supabase/bids";
@@ -140,7 +145,7 @@ export function MyBidRow({
 
           <Link
             href={`${PRO_ROUTES.messages}?job=${bid.jobId}`}
-            className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+            className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
           >
             הודעות
             {bid.unreadCount > 0 && (

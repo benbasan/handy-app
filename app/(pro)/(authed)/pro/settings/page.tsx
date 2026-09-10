@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvailabilityForm } from "@/components/pro/AvailabilityForm";
 import {
+  BUTTON_COMPACT,
   BUTTON_QUIET,
   Card,
   PAGE_LEAD,
@@ -102,7 +103,7 @@ export default async function ProSettingsPage() {
             </p>
             <Link
               href={PRO_ROUTES.join}
-              className={`${BUTTON_QUIET} mt-3 w-full px-4 py-2 text-sm`}
+              className={`${BUTTON_QUIET} mt-3 w-full ${BUTTON_COMPACT}`}
             >
               עריכת הפרופיל
             </Link>

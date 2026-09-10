@@ -3,6 +3,7 @@ import { FeedJobCard } from "@/components/pro/FeedJobCard";
 import { ClipboardIcon, MapIcon } from "@/components/ui/icons";
 import { ProStatusCard } from "@/components/pro/ProStatusCard";
 import {
+  BUTTON_COMPACT,
   BUTTON_PRO,
   BUTTON_QUIET,
   Card,
@@ -158,7 +159,7 @@ export default async function ProJobFeedPage({
               <form action={restoreDismissedJobs} className="mt-3">
                 <button
                   type="submit"
-                  className={`${BUTTON_QUIET} w-full px-4 py-2 text-sm`}
+                  className={`${BUTTON_QUIET} w-full ${BUTTON_COMPACT}`}
                 >
                   החזרת כולן לפיד
                 </button>

@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { markAllNotificationsRead } from "@/lib/actions/notifications";
 import {
+  BUTTON_COMPACT,
   BUTTON_QUIET,
   CARD_BASE,
+  EmptyState,
   ErrorText,
   PAGE_TITLE,
-  EmptyState,
 } from "@/components/ui/primitives";
 import { notificationView } from "@/lib/notifications/messages";
 import type { NotificationRow } from "@/lib/supabase/notifications";
@@ -65,7 +66,7 @@ export function NotificationList({
             <button
               type="submit"
               disabled={pending}
-              className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+              className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
             >
               {pending ? "מסמן…" : "סמן הכל כנקרא"}
             </button>
@@ -118,7 +119,7 @@ export function NotificationList({
 
                 <Link
                   href={view.href}
-                  className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+                  className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
                 >
                   פתח
                 </Link>

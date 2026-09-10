@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BUTTON_COMPACT,
   BUTTON_QUIET,
   Card,
   PAGE_LEAD,
@@ -210,7 +211,7 @@ export default async function ProWalletPage({
           </h2>
           <Link
             href={`${PRO_ROUTES.myJobs}?tab=history`}
-            className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+            className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
           >
             כל ההיסטוריה
           </Link>

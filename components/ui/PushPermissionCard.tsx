@@ -2,7 +2,11 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { savePushSubscription } from "@/lib/actions/notifications";
-import { BUTTON_QUIET, CARD_BASE } from "@/components/ui/primitives";
+import {
+  BUTTON_COMPACT,
+  BUTTON_QUIET,
+  CARD_BASE,
+} from "@/components/ui/primitives";
 
 /**
  * The ask.
@@ -154,7 +158,7 @@ export function PushPermissionCard({ reason }: { reason: string }) {
           type="button"
           onClick={enable}
           disabled={outcome === "asking"}
-          className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+          className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
         >
           {outcome === "asking" ? "מפעיל…" : "הפעלת התראות"}
         </button>

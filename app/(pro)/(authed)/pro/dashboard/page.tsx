@@ -5,6 +5,7 @@ import { ProStatusCard } from "@/components/pro/ProStatusCard";
 import { PushPermissionCard } from "@/components/ui/PushPermissionCard";
 import { CurrentUserCard } from "@/components/ui/CurrentUserCard";
 import {
+  BUTTON_COMPACT,
   BUTTON_QUIET,
   Card,
   PAGE_LEAD,
@@ -173,7 +174,7 @@ export default async function ProDashboardPage({
               <h2 className={SECTION_TITLE}>זמינות ולוח זמנים</h2>
               <Link
                 href={PRO_ROUTES.settings}
-                className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+                className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
               >
                 עריכה
               </Link>

@@ -26,7 +26,9 @@ export function AppShell({
   return (
     <ToastProvider>
       <SiteHeader user={user} unreadNotifications={unreadNotifications} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+      {/* pb-28 clears the fixed tab bar plus the home indicator; above md the
+          bar is gone and the footer sits directly under the content. */}
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-28 sm:px-6 sm:pt-10 md:pb-10">
         {children}
       </main>
       <SiteFooter />

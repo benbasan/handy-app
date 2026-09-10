@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AdminLogo } from "@/components/admin/AdminLogo";
-import { BUTTON_BASE } from "@/components/ui/primitives";
+import { BUTTON_BASE, BUTTON_COMPACT } from "@/components/ui/primitives";
+import { MobileNav } from "@/components/ui/MobileNav";
 import { ToastProvider } from "@/components/ui/Toast";
 import { signOut } from "@/lib/actions/auth";
 import { ADMIN_ROUTES } from "@/lib/routes";
@@ -39,7 +40,7 @@ export function AdminShell({
 
           <nav
             aria-label="ניווט ניהול"
-            className="order-3 flex w-full items-center gap-5 text-sm font-medium text-muted sm:order-none sm:w-auto"
+            className="order-3 hidden w-full items-center gap-5 text-sm font-medium text-muted md:order-none md:flex md:w-auto"
           >
             {NAV.map((item) => (
               <Link
@@ -71,7 +72,7 @@ export function AdminShell({
 
             <a
               href={ADMIN_ROUTES.report}
-              className={`${BUTTON_BASE} bg-admin px-4 py-2 text-sm text-white hover:bg-admin-strong`}
+              className={`${BUTTON_BASE} ${BUTTON_COMPACT} bg-admin text-white hover:bg-admin-strong focus-visible:ring-admin`}
             >
               יצוא דוח
             </a>
@@ -79,9 +80,13 @@ export function AdminShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-8 pb-28 sm:px-6 sm:pt-10 md:pb-10">
         {children}
       </main>
+
+      {/* The console's four sections fit the bar exactly, so it has no
+          "עוד" sheet — see itemsFor() in MobileNav. */}
+      <MobileNav role="admin" />
 
       <footer className="border-t border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm text-muted sm:px-6">

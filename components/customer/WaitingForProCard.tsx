@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { BUTTON_QUIET, ErrorText } from "@/components/ui/primitives";
+import {
+  BUTTON_COMPACT,
+  BUTTON_QUIET,
+  ErrorText,
+} from "@/components/ui/primitives";
 import { withdrawSelection } from "@/lib/actions/bids";
 import { EMPTY_WITHDRAW_SELECTION_STATE } from "@/lib/actions/state";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
@@ -55,7 +59,7 @@ export function WaitingForProCard({
           <button
             type="submit"
             disabled={pending}
-            className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+            className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
           >
             {pending ? "מבטלים…" : "בטלו את הבחירה"}
           </button>

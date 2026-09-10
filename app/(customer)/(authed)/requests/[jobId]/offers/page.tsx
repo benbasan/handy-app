@@ -5,6 +5,7 @@ import { NoProsNearby } from "@/components/customer/NoProsNearby";
 import { WaitingForProCard } from "@/components/customer/WaitingForProCard";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
 import {
+  BUTTON_COMPACT,
   BUTTON_CTA,
   BUTTON_QUIET,
   Card,
@@ -224,7 +225,7 @@ export default async function JobOffersPage({
               </p>
               <Link
                 href={CUSTOMER_ROUTES.track(jobId)}
-                className={`${BUTTON_CTA} px-4 py-2 text-sm`}
+                className={`${BUTTON_CTA} ${BUTTON_COMPACT}`}
               >
                 מעקב חי
               </Link>

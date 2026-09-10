@@ -4,6 +4,7 @@ import { ChatPanel } from "@/components/ui/ChatPanel";
 import { ChatThreadList } from "@/components/ui/ChatThreadList";
 import { MarkThreadRead } from "@/components/ui/MarkThreadRead";
 import {
+  BUTTON_COMPACT,
   BUTTON_QUIET,
   Card,
   EmptyState,
@@ -89,7 +90,7 @@ export default async function ProMessagesPage({
 
                   <Link
                     href={PRO_ROUTES.offers}
-                    className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+                    className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
                   >
                     ההצעות שלי
                   </Link>

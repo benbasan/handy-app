@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SavedPlaces } from "@/components/customer/SavedPlaces";
 import { CurrentUserCard } from "@/components/ui/CurrentUserCard";
 import {
+  BUTTON_COMPACT,
   BUTTON_CTA,
   BUTTON_QUIET,
   Badge,
@@ -226,7 +227,7 @@ function JobRow({ job }: { job: JobSummary }) {
                 ? CUSTOMER_ROUTES.track(job.id)
                 : CUSTOMER_ROUTES.offers(job.id)
         }
-        className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+        className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
       >
         {job.status === "open" || job.status === "bidding"
           ? "צפייה בהצעות"

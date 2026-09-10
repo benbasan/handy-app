@@ -1,6 +1,7 @@
 import { ClipboardIcon, WalletIcon } from "@/components/ui/icons";
 import Link from "next/link";
 import {
+  BUTTON_COMPACT,
   BUTTON_PRO,
   BUTTON_QUIET,
   Badge,
@@ -151,7 +152,7 @@ export default async function ProMyJobsPage({
             </dl>
             <Link
               href={PRO_ROUTES.wallet}
-              className={`${BUTTON_QUIET} mt-4 w-full px-4 py-2 text-sm`}
+              className={`${BUTTON_QUIET} mt-4 w-full ${BUTTON_COMPACT}`}
             >
               לארנק ולהכנסות
             </Link>
@@ -288,14 +289,14 @@ function ActiveList({
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
               href={PRO_ROUTES.manageJob(job.jobId)}
-              className={`${BUTTON_PRO} px-4 py-2 text-sm`}
+              className={`${BUTTON_PRO} ${BUTTON_COMPACT}`}
             >
               {job.status === "in_progress" ? "המשך עבודה" : "פרטי עבודה"}
             </Link>
 
             <Link
               href={`${PRO_ROUTES.messages}?job=${job.jobId}`}
-              className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+              className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
             >
               הודעות
               {job.unreadCount > 0 && (
@@ -378,13 +379,13 @@ function HistoryList({
           <div className="mt-4 flex flex-wrap gap-2">
             <a
               href={receiptPath(job.jobId)}
-              className={`${BUTTON_PRO} px-4 py-2 text-sm`}
+              className={`${BUTTON_PRO} ${BUTTON_COMPACT}`}
             >
               הורד קבלה
             </a>
             <Link
               href={`${PRO_ROUTES.messages}?job=${job.jobId}`}
-              className={`${BUTTON_QUIET} px-4 py-2 text-sm`}
+              className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
             >
               הודעות
             </Link>
