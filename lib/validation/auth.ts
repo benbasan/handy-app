@@ -87,6 +87,18 @@ export const verifyOtpSchema = z.object({
     .max(80, { error: "השם ארוך מדי" })
     .optional()
     .transform((value) => (value === "" ? undefined : value)),
+  /*
+   * Where the visitor was going when the proxy bounced them. Bounded here only
+   * for length — what makes it safe to follow is `postLoginPath()` in
+   * lib/routes.ts, which re-checks that it is an on-site, protected path
+   * belonging to the role that actually signed in.
+   */
+  next: z
+    .string()
+    .trim()
+    .max(512)
+    .optional()
+    .transform((value) => (value === "" ? undefined : value)),
 });
 
 /**

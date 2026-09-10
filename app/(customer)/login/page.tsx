@@ -6,8 +6,16 @@ import { redirectIfSignedIn } from "@/lib/supabase/session";
 export const metadata = { title: "כניסה לחשבון — Handy" };
 
 /** design/screens/customer-1.2-login-otp.png. */
-export default async function CustomerLoginPage() {
+export default async function CustomerLoginPage({
+  searchParams,
+}: PageProps<"/login">) {
   await redirectIfSignedIn();
+
+  // Where the proxy bounced them from. Handed straight back to the
+  // server on submit, which re-checks it against the role that
+  // actually signed in — see `postLoginPath` in lib/routes.ts.
+  const { next } = await searchParams;
+  const nextPath = Array.isArray(next) ? next[0] : next;
 
   return (
     <AuthSplitLayout
@@ -19,6 +27,7 @@ export default async function CustomerLoginPage() {
       ]}
     >
       <OtpLoginForm
+        next={nextPath}
         role="customer"
         title="כניסה לחשבון"
         subtitle="נשלח קוד חד-פעמי ב-SMS. אין סיסמאות ואין צורך להירשם מראש."

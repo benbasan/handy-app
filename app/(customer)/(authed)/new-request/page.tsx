@@ -12,12 +12,25 @@ export const metadata = { title: "פרסום קריאה חדשה — Handy" };
  * database rather than a hard-coded list, so adding a תחום is a seed/admin
  * change and not a code change.
  */
-export default async function NewRequestPage() {
+export default async function NewRequestPage({
+  searchParams,
+}: PageProps<"/new-request">) {
   const user = await requireRole("customer");
-  const [categories, savedPlaces] = await Promise.all([
+  const [categories, savedPlaces, params] = await Promise.all([
     listCategories(),
     mySavedPlaces(),
+    searchParams,
   ]);
+
+  // `?category=` carries the tile the visitor already tapped on the landing
+  // page or a services page. Resolved here against the table rather than
+  // trusted: an unknown slug selects nothing, which is the same state the form
+  // opens in anyway.
+  const requested = Array.isArray(params.category)
+    ? params.category[0]
+    : params.category;
+  const initialCategoryId =
+    categories.find((category) => category.slug === requested)?.id ?? null;
 
   return (
     <>
@@ -33,6 +46,7 @@ export default async function NewRequestPage() {
         categories={categories}
         mapsKey={getBrowserMapsKey()}
         savedPlaces={savedPlaces}
+        initialCategoryId={initialCategoryId}
       />
     </>
   );

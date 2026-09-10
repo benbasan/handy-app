@@ -46,16 +46,24 @@ export function PostJobForm({
   categories,
   mapsKey,
   savedPlaces = [],
+  initialCategoryId = null,
 }: {
   userId: string;
   categories: Category[];
   mapsKey: string | null;
   /** The customer's own addresses, offered as one tap on the address step. */
   savedPlaces?: readonly SavedPlace[];
+  /**
+   * The tile the visitor tapped before they got here, already resolved to an
+   * id by the page. Seeds step 1 so the same question is not asked twice.
+   */
+  initialCategoryId?: string | null;
 }) {
   const [state, formAction, pending] = useActionState(createJob, INITIAL);
 
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(
+    initialCategoryId,
+  );
   const [description, setDescription] = useState("");
   const [preferredTime, setPreferredTime] = useState<PreferredTime | null>(
     null,

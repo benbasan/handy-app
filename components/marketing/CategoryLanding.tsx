@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/primitives";
 import { categoryCopy } from "@/lib/content/categories";
 import { CITIES, type City, inCity } from "@/lib/content/cities";
-import { MARKETING_ROUTES } from "@/lib/routes";
+import { CUSTOMER_ROUTES, MARKETING_ROUTES } from "@/lib/routes";
 import { JsonLd, breadcrumbJsonLd, faqJsonLd } from "@/lib/seo";
 import type { Category } from "@/lib/supabase/jobs";
 import type { CategoryPro, CategoryStats } from "@/lib/supabase/publicProfiles";
@@ -133,7 +133,10 @@ export function CategoryLanding({
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/new-request" className={BUTTON_CTA}>
+          <Link
+            href={CUSTOMER_ROUTES.newRequestFor(category.slug)}
+            className={BUTTON_CTA}
+          >
             פרסם קריאה ל{copy.professional}
           </Link>
           <Link href={MARKETING_ROUTES.pricing} className={BUTTON_QUIET}>

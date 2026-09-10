@@ -92,6 +92,19 @@ export const MARKETING_ROUTES = {
 export const CUSTOMER_ROUTES = {
   account: "/account",
   newRequest: "/new-request",
+  /**
+   * Posting a call, carrying the choice the visitor has already made.
+   *
+   * Every category tile on the landing page and every services page is a
+   * decision; linking them at the bare path threw it away and asked the same
+   * question again on the next screen. The form resolves the slug against the
+   * `categories` table server-side, so an unknown one selects nothing rather
+   * than erroring — a URL somebody typed is not an input to trust.
+   */
+  newRequestFor: (categorySlug?: string | null) =>
+    categorySlug
+      ? `/new-request?category=${encodeURIComponent(categorySlug)}`
+      : "/new-request",
   published: (jobId: string) => `/new-request/published/${jobId}`,
   offers: (jobId: string) => `/requests/${jobId}/offers`,
   chat: (jobId: string) => `/requests/${jobId}/chat`,
@@ -183,6 +196,39 @@ const PROTECTED_AREAS: ReadonlyArray<{ prefix: string; login: string }> = [
   { prefix: PRO_ROUTES.help, login: ROLE_LOGIN.pro },
   { prefix: ROLE_HOME.admin, login: ROLE_LOGIN.admin },
 ];
+
+/**
+ * Where to land after signing in, given the `?next=` the login page carried.
+ *
+ * `next` came out of the URL bar, so it is a *request* for a destination and
+ * not a destination. Three things have to hold before it is honoured, and each
+ * one is a real attack if it does not:
+ *
+ *  1. **It is a path on this site.** `//evil.com` is a host to every browser,
+ *     and a backslash is a path separator to some of them while URL parsing
+ *     treats it as an ordinary character — which is how `/\evil.com` gets off
+ *     the site.
+ *  2. **It is a protected path**, i.e. one the proxy would itself have bounced.
+ *     A public URL has no business being a post-login destination.
+ *  3. **It belongs to the role that actually signed in.** `loginPathFor()`
+ *     already answers "which area is this path in", so comparing it to this
+ *     role's own login page re-runs, on the way out, exactly the check the
+ *     proxy made on the way in.
+ *
+ * Anything else falls back to the role's home, silently: a bad `next` is not
+ * worth an error message, and saying "that destination was refused" would tell
+ * whoever crafted the link that the check exists.
+ */
+export function postLoginPath(role: UserRole, next?: string | null): string {
+  const home = ROLE_HOME[role];
+
+  if (!next || !next.startsWith("/")) return home;
+  if (next.startsWith("//") || next.includes("\\")) return home;
+
+  const pathname = next.split(/[?#]/)[0]!;
+
+  return loginPathFor(pathname) === ROLE_LOGIN[role] ? next : home;
+}
 
 /**
  * The login page an anonymous visitor to `pathname` should be sent to, or null

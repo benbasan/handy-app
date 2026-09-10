@@ -6,8 +6,16 @@ import { redirectIfSignedIn } from "@/lib/supabase/session";
 export const metadata = { title: "כניסת בעלי מקצוע — Handy" };
 
 /** design/screens/pro-1.2-login.png. */
-export default async function ProLoginPage() {
+export default async function ProLoginPage({
+  searchParams,
+}: PageProps<"/pro/login">) {
   await redirectIfSignedIn();
+
+  // Where the proxy bounced them from. Handed straight back to the
+  // server on submit, which re-checks it against the role that
+  // actually signed in — see `postLoginPath` in lib/routes.ts.
+  const { next } = await searchParams;
+  const nextPath = Array.isArray(next) ? next[0] : next;
 
   return (
     <AuthSplitLayout
@@ -19,6 +27,7 @@ export default async function ProLoginPage() {
       ]}
     >
       <OtpLoginForm
+        next={nextPath}
         role="pro"
         title="כניסה לבעלי מקצוע"
         subtitle="נשלח קוד חד-פעמי ב-SMS. אין סיסמאות ואין צורך להירשם מראש."
