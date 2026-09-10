@@ -6,7 +6,7 @@ import {
   createJob,
   type CreateJobState,
 } from "@/lib/actions/jobs";
-import { categoryIcon } from "@/lib/categories";
+import { CategoryIcon } from "@/lib/categories";
 import type { Category } from "@/lib/supabase/jobs";
 import {
   DEFAULT_SEARCH_RADIUS_KM,
@@ -22,6 +22,7 @@ import {
   Card,
   ErrorText,
   INPUT_CLASS,
+  SECTION_TITLE,
   SectionCard,
 } from "@/components/ui/primitives";
 import { AddressField, type AddressValue } from "@/components/ui/AddressField";
@@ -209,9 +210,7 @@ export function PostJobForm({
                         : "border-line bg-surface text-ink hover:border-brand/40"
                     }`}
                   >
-                    <span aria-hidden className="text-2xl">
-                      {categoryIcon(category.slug)}
-                    </span>
+                    <CategoryIcon slug={category.slug} className="size-7" />
                     {category.nameHe}
                   </button>
                 );
@@ -373,7 +372,7 @@ export function PostJobForm({
 
         <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           <Card>
-            <h2 className="text-lg font-bold text-ink">סיכום הקריאה</h2>
+            <h2 className={SECTION_TITLE}>סיכום הקריאה</h2>
 
             <dl className="mt-4 divide-y divide-line text-sm">
               <SummaryRow label="תחום" value={selectedCategory?.nameHe} />

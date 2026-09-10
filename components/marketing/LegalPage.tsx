@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { CARD_BASE } from "@/components/ui/primitives";
+import {
+  CARD_BASE,
+  PAGE_TITLE,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { AppShell } from "@/components/ui/AppShell";
 import {
   DRAFT_NOTICE,
@@ -59,14 +63,12 @@ export function LegalPage({
         </aside>
 
         <article className={`${CARD_BASE} p-6 sm:p-8 lg:order-1`}>
-          <h1 className="text-3xl font-bold text-ink">{document.title}</h1>
+          <h1 className={PAGE_TITLE}>{document.title}</h1>
 
           <div className="mt-6 space-y-6">
             {document.sections.map((section) => (
               <section key={section.heading}>
-                <h2 className="text-lg font-bold text-ink">
-                  {section.heading}
-                </h2>
+                <h2 className={SECTION_TITLE}>{section.heading}</h2>
                 {section.body.map((paragraph) => (
                   <p
                     key={paragraph}

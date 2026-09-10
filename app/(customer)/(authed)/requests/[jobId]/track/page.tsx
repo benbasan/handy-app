@@ -10,6 +10,9 @@ import {
   Badge,
   CARD_BASE,
   Card,
+  PAGE_LEAD,
+  PAGE_TITLE,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
@@ -113,8 +116,8 @@ export default async function JobTrackingPage({
 
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-ink">מעקב אחרי הקריאה</h1>
-          <p className="mt-2 text-muted">
+          <h1 className={PAGE_TITLE}>מעקב אחרי הקריאה</h1>
+          <p className={PAGE_LEAD}>
             {job.categoryName ?? "קריאה"} ·{" "}
             <span dir="ltr" className="font-mono">
               {jobReference(job.id)}
@@ -134,7 +137,7 @@ export default async function JobTrackingPage({
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
         <aside className="space-y-4">
           <Card>
-            <h2 className="text-lg font-bold text-ink">סטטוס הקריאה</h2>
+            <h2 className={SECTION_TITLE}>סטטוס הקריאה</h2>
             <ol className="mt-4 space-y-3">
               <StatusTick done>
                 ההצעה אושרה ·{" "}

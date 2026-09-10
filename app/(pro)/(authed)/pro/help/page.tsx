@@ -3,7 +3,9 @@ import {
   BUTTON_PRO,
   CARD_BASE,
   CARD_CLASS,
+  PAGE_LEAD,
   PAGE_TITLE,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { PRO_FAQ, PRO_GUIDE_LINKS, SUPPORT_CHANNELS } from "@/lib/content/help";
 import { MARKETING_ROUTES } from "@/lib/routes";
@@ -25,8 +27,8 @@ export default async function ProHelpPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className={`${PAGE_TITLE}`}>מרכז עזרה לבעלי מקצוע</h1>
-        <p className="mt-2 text-muted">עמלות, אימות, עדכוני מחיר וגבייה.</p>
+        <h1 className={PAGE_TITLE}>מרכז עזרה לבעלי מקצוע</h1>
+        <p className={PAGE_LEAD}>עמלות, אימות, עדכוני מחיר וגבייה.</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
@@ -45,7 +47,7 @@ export default async function ProHelpPage() {
           </div>
 
           <div className={`${CARD_CLASS}`}>
-            <h2 className="text-lg font-bold text-ink">מדריכים</h2>
+            <h2 className={SECTION_TITLE}>מדריכים</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {PRO_GUIDE_LINKS.map((guide) => (
                 <li key={guide.slug}>

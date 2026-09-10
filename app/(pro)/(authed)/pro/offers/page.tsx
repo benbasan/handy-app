@@ -1,7 +1,13 @@
+import { ClipboardIcon } from "@/components/ui/icons";
 import Link from "next/link";
 import { MyBidRow } from "@/components/pro/MyBidRow";
 import { OfferAnswerCard } from "@/components/pro/OfferAnswerCard";
-import { BUTTON_PRO, Card, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  BUTTON_PRO,
+  EmptyState,
+  PAGE_LEAD,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { PushPermissionCard } from "@/components/ui/PushPermissionCard";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { PRO_ROUTES } from "@/lib/routes";
@@ -91,8 +97,8 @@ export default async function ProOffersPage({
 
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className={`${PAGE_TITLE}`}>ההצעות שלי</h1>
-          <p className="mt-2 text-muted">
+          <h1 className={PAGE_TITLE}>ההצעות שלי</h1>
+          <p className={PAGE_LEAD}>
             {stats.acceptancePct !== null ? (
               <>
                 שיעור קבלה{" "}
@@ -161,24 +167,24 @@ export default async function ProOffersPage({
       )}
 
       {shown.length === 0 ? (
-        <Card className="p-10 text-center">
-          <p className="text-lg font-bold text-ink">
-            {tab === "pending"
+        <EmptyState
+          icon={ClipboardIcon}
+          title={
+            tab === "pending"
               ? "אין לך כרגע הצעות פתוחות"
-              : "אין הצעות שנדחו או שפג תוקפן"}
-          </p>
-          <p className="mt-2 text-muted">
-            {tab === "pending"
+              : "אין הצעות שנדחו או שפג תוקפן"
+          }
+          body={
+            tab === "pending"
               ? BID_SPEED_NOTE
-              : "כל ההצעות שלך עדיין פתוחות או שנבחרו."}
-          </p>
-          <Link
-            href={PRO_ROUTES.jobs}
-            className={`${BUTTON_PRO} mt-5 inline-flex`}
-          >
-            לפיד הקריאות
-          </Link>
-        </Card>
+              : "כל ההצעות שלך עדיין פתוחות או שנבחרו."
+          }
+          action={
+            <Link href={PRO_ROUTES.jobs} className={BUTTON_PRO}>
+              לפיד הקריאות
+            </Link>
+          }
+        />
       ) : (
         <ul className="space-y-4">
           {shown.map((bid) => (

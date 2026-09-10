@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { ToolsIcon } from "@/components/ui/icons";
 import {
   BUTTON_BASE,
   Badge,
@@ -91,7 +92,7 @@ export function ProApprovalRow({
           aria-hidden
           className="flex size-12 shrink-0 items-center justify-center rounded-full bg-canvas text-xl"
         >
-          🧰
+          <ToolsIcon className="size-7 text-muted" />
         </span>
 
         <div className="min-w-48 flex-1">

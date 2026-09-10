@@ -6,7 +6,9 @@ import {
   BUTTON_QUIET,
   CARD_BASE,
   CARD_CLASS,
+  PAGE_LEAD,
   PAGE_TITLE,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { MARKETING_ROUTES, PRO_ROUTES } from "@/lib/routes";
 import { getMyProProfile } from "@/lib/supabase/pros";
@@ -49,10 +51,8 @@ export default async function ProPublicProfilePage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className={`${PAGE_TITLE}`}>הפרופיל הציבורי שלי</h1>
-        <p className="mt-2 text-muted">
-          כך לקוחות רואים אותך לפני שהם בוחרים הצעה.
-        </p>
+        <h1 className={PAGE_TITLE}>הפרופיל הציבורי שלי</h1>
+        <p className={PAGE_LEAD}>כך לקוחות רואים אותך לפני שהם בוחרים הצעה.</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
@@ -116,7 +116,9 @@ export default async function ProPublicProfilePage() {
           />
 
           <section className={`mt-6 ${CARD_BASE}`}>
-            <h2 className="border-b border-line px-5 py-4 text-lg font-bold text-ink sm:px-6">
+            <h2
+              className={`border-b border-line px-5 py-4 ${SECTION_TITLE} sm:px-6`}
+            >
               ביקורות שקיבלתי
             </h2>
 

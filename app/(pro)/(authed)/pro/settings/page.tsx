@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvailabilityForm } from "@/components/pro/AvailabilityForm";
-import { BUTTON_QUIET, Card, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  BUTTON_QUIET,
+  Card,
+  PAGE_LEAD,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
 import { getMyProProfile } from "@/lib/supabase/pros";
@@ -27,7 +32,7 @@ export default async function ProSettingsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className={`${PAGE_TITLE}`}>זמינות, אזור ולוח זמנים</h1>
+        <h1 className={PAGE_TITLE}>זמינות, אזור ולוח זמנים</h1>
         {/*
           This said "רק קריאות שמתאימות להגדרות האלה יגיעו אליך", which is true
           of two of the four settings on the page and false of the other two.
@@ -39,7 +44,7 @@ export default async function ProSettingsPage() {
           working hours would also hide a `this_week` job somebody wants to
           price on a Friday. Until then the screen says what is true.
         */}
-        <p className="mt-2 text-muted">
+        <p className={PAGE_LEAD}>
           קבלת הקריאות, הרדיוס והתחומים קובעים אילו קריאות מגיעות לפיד שלך. ימי
           ושעות העבודה מוצגים ללקוחות בפרופיל הציבורי שלך.
         </p>

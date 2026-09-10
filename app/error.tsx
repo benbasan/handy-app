@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BUTTON_CTA,
   BUTTON_QUIET,
+  PAGE_LEAD,
   PAGE_TITLE,
 } from "@/components/ui/primitives";
 import {
@@ -88,7 +89,7 @@ export default function AppError({
           שוב.
         </p>
 
-        <p className="mt-2 text-muted">
+        <p className={PAGE_LEAD}>
           שום דבר שהזנתם לא נמחק. אם ניסיתם לשלוח משהו, בדקו במסך הרלוונטי אם
           הפעולה נקלטה לפני שתנסו שנית.
         </p>

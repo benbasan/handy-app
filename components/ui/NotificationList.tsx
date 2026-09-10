@@ -1,5 +1,6 @@
 "use client";
 
+import { BellIcon } from "@/components/ui/icons";
 import Link from "next/link";
 import { useActionState } from "react";
 import { markAllNotificationsRead } from "@/lib/actions/notifications";
@@ -8,6 +9,7 @@ import {
   CARD_BASE,
   ErrorText,
   PAGE_TITLE,
+  EmptyState,
 } from "@/components/ui/primitives";
 import { notificationView } from "@/lib/notifications/messages";
 import type { NotificationRow } from "@/lib/supabase/notifications";
@@ -74,12 +76,11 @@ export function NotificationList({
       {state?.error && <ErrorText>{state.error}</ErrorText>}
 
       {notifications.length === 0 ? (
-        <div className={`${CARD_BASE} p-10 text-center`}>
-          <p className="text-lg font-bold text-ink">אין עדיין התראות</p>
-          <p className="mt-2 text-muted">
-            כל דבר שקורה בקריאות שלכם יופיע כאן — גם כשהדפדפן סגור.
-          </p>
-        </div>
+        <EmptyState
+          icon={BellIcon}
+          title="אין עדיין התראות"
+          body="כל דבר שקורה בקריאות שלכם יופיע כאן — גם כשהדפדפן סגור."
+        />
       ) : (
         <ul className="space-y-3">
           {notifications.map((item) => {

@@ -4,7 +4,13 @@ import { OfferAnswerCard } from "@/components/pro/OfferAnswerCard";
 import { ProStatusCard } from "@/components/pro/ProStatusCard";
 import { PushPermissionCard } from "@/components/ui/PushPermissionCard";
 import { CurrentUserCard } from "@/components/ui/CurrentUserCard";
-import { BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_QUIET,
+  Card,
+  PAGE_LEAD,
+  PAGE_TITLE,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
 import { listMyBids, listMyPendingAcceptances } from "@/lib/supabase/bids";
@@ -66,11 +72,11 @@ export default async function ProDashboardPage({
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold text-ink">
+        <h1 className={PAGE_TITLE}>
           {greeting()}
           {user.fullName ? `, ${user.fullName}` : ""}
         </h1>
-        <p className="mt-2 text-muted">
+        <p className={PAGE_LEAD}>
           {profile.verificationStatus === "verified"
             ? `${feed.length} קריאות פתוחות מחכות לך באזור · ${SERVICE_RADIUS_LABEL[profile.radiusKm] ?? `עד ${profile.radiusKm} ק״מ`}`
             : "עוד כמה צעדים והפיד נפתח."}
@@ -139,7 +145,7 @@ export default async function ProDashboardPage({
           <ProStatusCard profile={profile} />
 
           <Card>
-            <h2 className="text-lg font-bold text-ink">דורש טיפול</h2>
+            <h2 className={SECTION_TITLE}>דורש טיפול</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Link
                 href={PRO_ROUTES.offers}
@@ -164,7 +170,7 @@ export default async function ProDashboardPage({
 
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-bold text-ink">זמינות ולוח זמנים</h2>
+              <h2 className={SECTION_TITLE}>זמינות ולוח זמנים</h2>
               <Link
                 href={PRO_ROUTES.settings}
                 className={`${BUTTON_QUIET} px-4 py-2 text-sm`}

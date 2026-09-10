@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/ui/AppShell";
-import { Badge, CARD_BASE } from "@/components/ui/primitives";
+import { Badge, CARD_BASE, HERO_TITLE } from "@/components/ui/primitives";
 import { GUIDES, featuredGuide } from "@/lib/content/guides";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import { JsonLd, absoluteUrl, pageMetadata } from "@/lib/seo";
@@ -45,9 +45,7 @@ export default async function GuidesPage() {
       />
 
       <section>
-        <h1 className="text-3xl font-bold text-ink sm:text-5xl">
-          מדריכי תחזוקה
-        </h1>
+        <h1 className={HERO_TITLE}>מדריכי תחזוקה</h1>
         <p className="mt-3 max-w-2xl text-lg text-muted">
           מה כדאי לנסות לפני שקוראים לבעל מקצוע, ואיך לזהות הצעת מחיר הגיונית.
         </p>

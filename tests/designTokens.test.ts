@@ -35,6 +35,42 @@ const NAMED = [
     constant: "FIELD_LABEL",
     what: "the label above a form control",
   },
+  /*
+   * Added in Phase 13.5, and each one is a duplication this audit found rather
+   * than a value invented for it:
+   *
+   *  * `mt-2 text-muted` was written out 43 times — the largest single
+   *    duplication in the repo — and it turned out to be doing two jobs. About
+   *    half were the sentence under a page title, which is PAGE_LEAD. The other
+   *    half were the second line of a hand-drawn empty state, and those are now
+   *    `EmptyState` instead, which is why enforcing one string here is safe.
+   *  * `text-lg font-bold text-ink` was written out 59 times, thirteen of them
+   *    mixed with positioning utilities — so it is enforced as a substring, and
+   *    a caller that needs `border-b … ${SECTION_TITLE} … sm:px-6` composes it.
+   *  * The `<h1>` had drifted into six spellings across nineteen screens. Two
+   *    survive on purpose: PAGE_TITLE inside the app, HERO_TITLE on a page that
+   *    is selling rather than doing.
+   */
+  {
+    literal: "mt-2 text-muted",
+    constant: "PAGE_LEAD",
+    what: "the sentence under a page title",
+  },
+  {
+    literal: "text-lg font-bold text-ink",
+    constant: "SECTION_TITLE",
+    what: "the heading of a card or a section",
+  },
+  {
+    literal: "text-4xl leading-tight font-bold text-ink sm:text-5xl",
+    constant: "HERO_TITLE",
+    what: "the <h1> on a marketing page",
+  },
+  {
+    literal: "rounded-2xl border border-line bg-surface shadow-lift",
+    constant: "CARD_RAISED",
+    what: "the card that is the screen's decision",
+  },
 ] as const;
 
 describe("a value that has a name in primitives.tsx is used by that name", () => {

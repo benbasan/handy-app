@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { SiteHeader } from "@/components/ui/SiteHeader";
+import { ToastProvider } from "@/components/ui/Toast";
 import type { CurrentUser } from "@/lib/supabase/session";
 
 /**
@@ -23,12 +24,12 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <>
+    <ToastProvider>
       <SiteHeader user={user} unreadNotifications={unreadNotifications} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
         {children}
       </main>
       <SiteFooter />
-    </>
+    </ToastProvider>
   );
 }

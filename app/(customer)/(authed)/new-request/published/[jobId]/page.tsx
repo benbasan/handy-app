@@ -2,7 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
 import { PushPermissionCard } from "@/components/ui/PushPermissionCard";
-import { BUTTON_BRAND, BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import { CheckIcon } from "@/components/ui/icons";
+import {
+  BUTTON_BRAND,
+  BUTTON_QUIET,
+  Card,
+  PAGE_LEAD,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import { getJob } from "@/lib/supabase/jobs";
@@ -43,10 +50,10 @@ export default async function JobPublishedPage({
           aria-hidden
           className="mx-auto flex size-14 items-center justify-center rounded-full bg-cta/15 text-3xl"
         >
-          ✅
+          <CheckIcon className="size-10" strokeWidth={2.5} />
         </span>
         <h1 className="mt-4 text-3xl font-bold text-ink">הקריאה פורסמה!</h1>
-        <p className="mt-2 text-muted">
+        <p className={PAGE_LEAD}>
           הקריאה נשלחת לבעלי מקצוע מאומתים ברדיוס {job.searchRadiusKm} ק״מ.
           ההצעות הראשונות מגיעות תוך דקות.
         </p>
@@ -54,9 +61,7 @@ export default async function JobPublishedPage({
 
       <Card>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-bold text-ink">
-            {job.categoryName ?? "קריאה"}
-          </h2>
+          <h2 className={SECTION_TITLE}>{job.categoryName ?? "קריאה"}</h2>
           <span dir="ltr" className="font-mono text-sm text-muted">
             {jobReference(job.id)}
           </span>

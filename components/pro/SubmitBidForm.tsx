@@ -7,6 +7,7 @@ import {
   CARD_CLASS,
   ErrorText,
   INPUT_CLASS,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { submitBid, updateBid } from "@/lib/actions/bids";
 import { EMPTY_BID_FORM_STATE } from "@/lib/actions/state";
@@ -226,7 +227,7 @@ export function SubmitBidForm({
 
       <div className="order-2 space-y-6 lg:order-1">
         <fieldset className={`${CARD_CLASS}`}>
-          <legend className="px-1 text-lg font-bold text-ink">זמן הגעה</legend>
+          <legend className={`px-1 ${SECTION_TITLE}`}>זמן הגעה</legend>
 
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {ETA_OPTIONS.map((option) => (
@@ -254,7 +255,7 @@ export function SubmitBidForm({
         </fieldset>
 
         <div className={`${CARD_CLASS}`}>
-          <label htmlFor="bid-note" className="text-lg font-bold text-ink">
+          <label htmlFor="bid-note" className={SECTION_TITLE}>
             הערה ללקוח
           </label>
           <textarea

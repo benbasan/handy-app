@@ -1,7 +1,11 @@
 import Link from "next/link";
-import { CARD_BASE } from "@/components/ui/primitives";
+import {
+  CARD_BASE,
+  HERO_TITLE,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { AppShell } from "@/components/ui/AppShell";
-import { categoryIcon } from "@/lib/categories";
+import { CategoryIcon } from "@/lib/categories";
 import { categoryCopy } from "@/lib/content/categories";
 import { CITIES, inCity } from "@/lib/content/cities";
 import { MARKETING_ROUTES } from "@/lib/routes";
@@ -40,7 +44,7 @@ export default async function ServicesPage() {
       />
 
       <section>
-        <h1 className="text-3xl font-bold text-ink sm:text-5xl">תחומי שירות</h1>
+        <h1 className={HERO_TITLE}>תחומי שירות</h1>
         <p className="mt-3 max-w-2xl text-lg text-muted">
           כל תחום, וכל עיר שבה יש לנו בעלי מקצוע מאומתים. פרסום קריאה הוא בחינם,
           וההצעה כוללת תמיד את הביקור.
@@ -53,10 +57,11 @@ export default async function ServicesPage() {
 
           return (
             <li key={category.id} className={`${CARD_BASE} p-5`}>
-              <h2 className="flex items-center gap-2 text-lg font-bold text-ink">
-                <span aria-hidden className="text-2xl">
-                  {categoryIcon(category.slug)}
-                </span>
+              <h2 className={`flex items-center gap-2 ${SECTION_TITLE}`}>
+                <CategoryIcon
+                  slug={category.slug}
+                  className="size-6 text-brand"
+                />
                 <Link
                   href={MARKETING_ROUTES.category(category.slug)}
                   className="hover:text-brand"

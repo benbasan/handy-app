@@ -1,7 +1,15 @@
+import { CheckIcon } from "@/components/ui/icons";
 import Link from "next/link";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { DisputeDecisionForm } from "@/components/admin/DisputeDecisionForm";
-import { Badge, Card, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  Badge,
+  Card,
+  EmptyState,
+  PAGE_LEAD,
+  PAGE_TITLE,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { ADMIN_ROUTES } from "@/lib/routes";
 import { getTrustMetrics, listAdminDisputes } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/supabase/session";
@@ -48,8 +56,8 @@ export default async function AdminDisputesPage() {
     <AdminShell current={ADMIN_ROUTES.disputes}>
       <div className="space-y-6">
         <header>
-          <h1 className={`${PAGE_TITLE}`}>מחלוקות ובקרה</h1>
-          <p className="mt-2 text-muted">
+          <h1 className={PAGE_TITLE}>מחלוקות ובקרה</h1>
+          <p className={PAGE_LEAD}>
             {open.length === 0
               ? "אין מחלוקות פתוחות"
               : `${open.length} מחלוקות פתוחות`}{" "}
@@ -60,7 +68,7 @@ export default async function AdminDisputesPage() {
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="space-y-4 lg:order-2">
             <Card>
-              <h2 className="text-lg font-bold text-ink">מדדי אמון</h2>
+              <h2 className={SECTION_TITLE}>מדדי אמון</h2>
               <dl className="mt-3 space-y-3 text-sm">
                 <Metric
                   label={`מחלוקות ל-1,000 קריאות`}
@@ -108,20 +116,18 @@ export default async function AdminDisputesPage() {
 
           <div className="space-y-4 lg:order-1 lg:col-span-2">
             {disputes.length === 0 ? (
-              <Card className="p-10 text-center">
-                <p className="text-lg font-bold text-ink">אין מחלוקות</p>
-                <p className="mt-2 text-muted">
-                  לא נפתחה אף פנייה. פנייה חדשה תופיע כאן ברגע שלקוח או בעל
-                  מקצוע יפתחו אותה על קריאה שהם צד בה.
-                </p>
-              </Card>
+              <EmptyState
+                icon={CheckIcon}
+                title="אין מחלוקות"
+                body="לא נפתחה אף פנייה. פנייה חדשה תופיע כאן ברגע שלקוח או בעל מקצוע יפתחו אותה על קריאה שהם צד בה."
+              />
             ) : (
               disputes.map((dispute) => (
                 <Card key={dispute.disputeId}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="flex flex-wrap items-center gap-2">
-                        <span dir="ltr" className="text-lg font-bold text-ink">
+                        <span dir="ltr" className={SECTION_TITLE}>
                           {disputeReference(dispute.disputeId)}
                         </span>
                         <span className="text-sm text-muted">

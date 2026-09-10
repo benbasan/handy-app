@@ -1,7 +1,13 @@
+import { ClipboardIcon } from "@/components/ui/icons";
 import Link from "next/link";
 import { AdminJobFilters } from "@/components/admin/AdminJobFilters";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { CARD_BASE, Card, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  CARD_BASE,
+  EmptyState,
+  PAGE_LEAD,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { ADMIN_ROUTES } from "@/lib/routes";
 import { listAdminJobs, listJobCities } from "@/lib/supabase/admin";
 import { listCategories } from "@/lib/supabase/jobs";
@@ -62,8 +68,8 @@ export default async function AdminJobsPage({
     <AdminShell current={ADMIN_ROUTES.jobs}>
       <div className="space-y-6">
         <header>
-          <h1 className={`${PAGE_TITLE}`}>קריאות במערכת</h1>
-          <p className="mt-2 text-muted">
+          <h1 className={PAGE_TITLE}>קריאות במערכת</h1>
+          <p className={PAGE_LEAD}>
             {jobs.length === 0
               ? "אין קריאות שתואמות את הסינון"
               : `${jobs.length} קריאות`}{" "}
@@ -78,12 +84,11 @@ export default async function AdminJobsPage({
         />
 
         {jobs.length === 0 ? (
-          <Card className="p-10 text-center">
-            <p className="text-lg font-bold text-ink">אין מה להציג</p>
-            <p className="mt-2 text-muted">
-              אף קריאה לא תואמת את הסינון הנוכחי. נסו טווח זמן רחב יותר.
-            </p>
-          </Card>
+          <EmptyState
+            icon={ClipboardIcon}
+            title="אין מה להציג"
+            body="אף קריאה לא תואמת את הסינון הנוכחי. נסו טווח זמן רחב יותר."
+          />
         ) : (
           <div className={`overflow-x-auto ${CARD_BASE}`}>
             <table className="w-full min-w-3xl border-collapse text-sm">

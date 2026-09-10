@@ -4,8 +4,14 @@ import { BidCard } from "@/components/customer/BidCard";
 import { NoProsNearby } from "@/components/customer/NoProsNearby";
 import { WaitingForProCard } from "@/components/customer/WaitingForProCard";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
-import { BUTTON_CTA, BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  BUTTON_QUIET,
+  Card,
+  EmptyState,
+} from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
+import { ClockIcon, MapIcon } from "@/components/ui/icons";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import {
@@ -139,9 +145,7 @@ export default async function JobOffersPage({
               />
             ) : (
               <div className="flex h-56 flex-col items-center justify-center gap-2 bg-canvas p-6 text-center">
-                <span aria-hidden className="text-3xl">
-                  🗺️
-                </span>
+                <MapIcon className="size-8 text-muted" />
                 <p className="text-sm font-semibold text-ink">
                   המפה תוצג כשיוגדר מפתח Google Maps
                 </p>
@@ -246,22 +250,22 @@ export default async function JobOffersPage({
             prosNearby === 0 ? (
               <NoProsNearby jobId={jobId} radiusKm={job.searchRadiusKm} />
             ) : (
-              <Card className="p-10 text-center">
-                <p className="text-lg font-bold text-ink">
-                  ההצעות הראשונות מגיעות תוך דקות
-                </p>
-                <p className="mt-2 text-muted">
-                  הקריאה נשלחה ל-<span className="ltr-nums">{prosNearby}</span>{" "}
-                  בעלי מקצוע מאומתים בסביבה. אין צורך לרענן — הצעה חדשה תופיע
-                  כאן מעצמה.
-                </p>
-                <Link
-                  href={CUSTOMER_ROUTES.account}
-                  className={`${BUTTON_QUIET} mt-5 inline-flex`}
-                >
-                  לאזור האישי
-                </Link>
-              </Card>
+              <EmptyState
+                icon={ClockIcon}
+                title="ההצעות הראשונות מגיעות תוך דקות"
+                body={
+                  <>
+                    הקריאה נשלחה ל-
+                    <span className="ltr-nums">{prosNearby}</span> בעלי מקצוע
+                    מאומתים בסביבה. אין צורך לרענן — הצעה חדשה תופיע כאן מעצמה.
+                  </>
+                }
+                action={
+                  <Link href={CUSTOMER_ROUTES.account} className={BUTTON_QUIET}>
+                    לאזור האישי
+                  </Link>
+                }
+              />
             )
           ) : (
             <ul className="space-y-4">

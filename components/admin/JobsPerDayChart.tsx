@@ -1,5 +1,5 @@
 import type { JobsPerDay } from "@/lib/supabase/admin";
-import { CARD_CLASS } from "@/components/ui/primitives";
+import { CARD_CLASS, SECTION_TITLE } from "@/components/ui/primitives";
 import type { CategoryShare } from "@/lib/supabase/admin";
 import { hebrewWeekday } from "@/lib/validation/admin";
 
@@ -38,7 +38,7 @@ export function JobsPerDayChart({
   return (
     <section className={`${CARD_CLASS}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-bold text-ink">קריאות לפי יום</h2>
+        <h2 className={SECTION_TITLE}>קריאות לפי יום</h2>
         <p className="text-sm text-muted">{rangeLabel}</p>
       </div>
 

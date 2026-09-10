@@ -1,5 +1,5 @@
 import { PostJobForm } from "@/components/customer/PostJobForm";
-import { PAGE_TITLE } from "@/components/ui/primitives";
+import { PAGE_LEAD, PAGE_TITLE } from "@/components/ui/primitives";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { listCategories } from "@/lib/supabase/jobs";
 import { mySavedPlaces } from "@/lib/supabase/places";
@@ -35,8 +35,8 @@ export default async function NewRequestPage({
   return (
     <>
       <header className="mb-6 text-center sm:text-start">
-        <h1 className={`${PAGE_TITLE}`}>פרסום קריאה חדשה</h1>
-        <p className="mt-2 text-muted">
+        <h1 className={PAGE_TITLE}>פרסום קריאה חדשה</h1>
+        <p className={PAGE_LEAD}>
           ככל שהתיאור מדויק יותר, ההצעות שתקבלו מדויקות יותר.
         </p>
       </header>

@@ -3,7 +3,13 @@ import { notFound, redirect } from "next/navigation";
 import { RatingForm } from "@/components/customer/RatingForm";
 import { SaveProButton } from "@/components/customer/SaveProButton";
 import { DisputeOpener } from "@/components/ui/DisputeOpener";
-import { BUTTON_CTA, BUTTON_QUIET, Card } from "@/components/ui/primitives";
+import {
+  BUTTON_CTA,
+  BUTTON_QUIET,
+  Card,
+  PAGE_LEAD,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { CUSTOMER_ROUTES, receiptPath } from "@/lib/routes";
 import { listJobDisputes } from "@/lib/supabase/disputes";
 import { getJobReceipt, hasSavedPro } from "@/lib/supabase/completion";
@@ -79,7 +85,7 @@ export default async function JobSummaryPage({
               ✓
             </span>
             <h1 className="mt-5 text-4xl font-bold text-ink">העבודה הושלמה</h1>
-            <p className="mt-2 text-muted">
+            <p className={PAGE_LEAD}>
               קריאה{" "}
               <span dir="ltr" className="font-mono">
                 {jobReference(jobId)}
@@ -162,7 +168,7 @@ export default async function JobSummaryPage({
 
         <aside className="space-y-4">
           <Card>
-            <h2 className="text-lg font-bold text-ink">סיכום חיוב</h2>
+            <h2 className={SECTION_TITLE}>סיכום חיוב</h2>
 
             <dl className="mt-4 space-y-3 text-sm">
               {lines.map((line, index) => (
@@ -180,7 +186,7 @@ export default async function JobSummaryPage({
             </dl>
 
             <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-line pt-4">
-              <p className="text-lg font-bold text-ink">סה״כ</p>
+              <p className={SECTION_TITLE}>סה״כ</p>
               <p className="text-2xl font-bold text-brand">
                 <span className="ltr-nums">
                   {formatIls(receipt.totalPrice)}

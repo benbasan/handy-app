@@ -2,7 +2,12 @@ import Link from "next/link";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { JobsPerDayChart } from "@/components/admin/JobsPerDayChart";
 import { StatCard } from "@/components/admin/StatCard";
-import { BUTTON_BASE, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  BUTTON_BASE,
+  PAGE_LEAD,
+  PAGE_TITLE,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { ADMIN_ROUTES } from "@/lib/routes";
 import {
   getAdminOverview,
@@ -77,14 +82,14 @@ export default async function AdminOverviewPage() {
           </div>
 
           <header className="text-start">
-            <h1 className={`${PAGE_TITLE}`}>סקירה כללית</h1>
+            <h1 className={PAGE_TITLE}>סקירה כללית</h1>
             {/*
               An all-digit date on one line and the window on another: a
               sentence that mixes a Hebrew month name with numbers on both
               sides is three bidi runs, and the reordering it produces is
               correct by the Unicode algorithm and unreadable to a person.
             */}
-            <p className="mt-2 text-muted">
+            <p className={PAGE_LEAD}>
               <span className="ltr-nums">
                 {today.getDate()}.{today.getMonth() + 1}.{today.getFullYear()}
               </span>{" "}
@@ -180,7 +185,7 @@ export default async function AdminOverviewPage() {
                 alerts.length > 0 ? "border-danger" : "border-line"
               }`}
             >
-              <h2 className="text-lg font-bold text-ink">התראות בקרה</h2>
+              <h2 className={SECTION_TITLE}>התראות בקרה</h2>
 
               {alerts.length === 0 ? (
                 <p className="mt-2 text-sm text-muted">

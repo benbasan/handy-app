@@ -1,3 +1,4 @@
+import { ClipboardIcon, WalletIcon } from "@/components/ui/icons";
 import Link from "next/link";
 import {
   BUTTON_PRO,
@@ -5,7 +6,10 @@ import {
   Badge,
   CARD_BASE,
   Card,
+  EmptyState,
+  PAGE_LEAD,
   PAGE_TITLE,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { DisputeOpener } from "@/components/ui/DisputeOpener";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
@@ -89,8 +93,8 @@ export default async function ProMyJobsPage({
       />
 
       <header>
-        <h1 className={`${PAGE_TITLE}`}>העבודות שלי</h1>
-        <p className="mt-2 text-muted">
+        <h1 className={PAGE_TITLE}>העבודות שלי</h1>
+        <p className={PAGE_LEAD}>
           {showingHistory
             ? "עבודות שהושלמו, עם הקבלה ודמי הקבלה של כל אחת."
             : "העבודות שנבחרת אליהן ועדיין לא הסתיימו."}
@@ -114,7 +118,7 @@ export default async function ProMyJobsPage({
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
         <aside className="space-y-4">
           <Card>
-            <h2 className="text-lg font-bold text-ink">סיכום פעילות</h2>
+            <h2 className={SECTION_TITLE}>סיכום פעילות</h2>
             <dl className="mt-4 space-y-3 text-sm">
               <SummaryRow label="עבודות פעילות" value={`${active.length}`} />
               <SummaryRow
@@ -130,7 +134,7 @@ export default async function ProMyJobsPage({
           </Card>
 
           <Card>
-            <h2 className="text-lg font-bold text-ink">מאז שהצטרפת</h2>
+            <h2 className={SECTION_TITLE}>מאז שהצטרפת</h2>
             <dl className="mt-4 space-y-3 text-sm">
               <SummaryRow
                 label="עבודות שהושלמו"
@@ -222,18 +226,16 @@ function ActiveList({
 }) {
   if (jobs.length === 0) {
     return (
-      <Card className="p-10 text-center">
-        <p className="text-lg font-bold text-ink">אין לך כרגע עבודה פעילה</p>
-        <p className="mt-2 text-muted">
-          עבודה מגיעה לכאן ברגע שלקוח בוחר בהצעה שלך.
-        </p>
-        <Link
-          href={PRO_ROUTES.jobs}
-          className={`${BUTTON_PRO} mt-5 inline-flex`}
-        >
-          לפיד הקריאות
-        </Link>
-      </Card>
+      <EmptyState
+        icon={ClipboardIcon}
+        title="אין לך כרגע עבודה פעילה"
+        body="עבודה מגיעה לכאן ברגע שלקוח בוחר בהצעה שלך."
+        action={
+          <Link href={PRO_ROUTES.jobs} className={BUTTON_PRO}>
+            לפיד הקריאות
+          </Link>
+        }
+      />
     );
   }
 
@@ -319,13 +321,16 @@ function HistoryList({
 }) {
   if (jobs.length === 0) {
     return (
-      <Card className="p-10 text-center">
-        <p className="text-lg font-bold text-ink">עוד לא סגרת עבודה</p>
-        <p className="mt-2 text-muted">
-          עבודה עוברת לכאן ברגע שתלחצו &quot;סיימתי — עדכן גבייה&quot;, יחד עם
-          הקבלה ודמי הקבלה שלה.
-        </p>
-      </Card>
+      <EmptyState
+        icon={WalletIcon}
+        title="עוד לא סגרת עבודה"
+        body={
+          <>
+            עבודה עוברת לכאן ברגע שתלחצו &quot;סיימתי — עדכן גבייה&quot;, יחד עם
+            הקבלה ודמי הקבלה שלה.
+          </>
+        }
+      />
     );
   }
 

@@ -7,6 +7,7 @@ import {
   ErrorText,
   FIELD_LABEL,
   INPUT_CLASS,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { savePracticeBid } from "@/lib/actions/proOnboarding";
 import { EMPTY_PRO_FORM_STATE } from "@/lib/actions/state";
@@ -58,7 +59,7 @@ export function OnboardingPracticeStep() {
         <p className="text-xs font-semibold text-pro">
           קריאה לדוגמה · לא נשלחת ללקוח אמיתי
         </p>
-        <h3 className="mt-1 text-lg font-bold text-ink">{SAMPLE_JOB.title}</h3>
+        <h3 className={`mt-1 ${SECTION_TITLE}`}>{SAMPLE_JOB.title}</h3>
         <p className="mt-1 text-sm text-muted">{SAMPLE_JOB.description}</p>
         <p className="mt-2 text-sm font-semibold text-pro">
           {SAMPLE_JOB.address} · {SAMPLE_JOB.when}

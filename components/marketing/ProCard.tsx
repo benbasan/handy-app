@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Badge, CARD_BASE } from "@/components/ui/primitives";
+import { StarIcon } from "@/components/ui/icons";
+import { Badge, CARD_BASE, SECTION_TITLE } from "@/components/ui/primitives";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import type { CategoryPro } from "@/lib/supabase/publicProfiles";
 
@@ -52,7 +53,7 @@ export function ProCard({ pro }: { pro: CategoryPro }) {
           "עדיין ללא דירוג"
         ) : (
           <>
-            <span aria-hidden>★</span>{" "}
+            <StarIcon filled className="inline size-3.5 align-[-2px]" />{" "}
             <span className="ltr-nums">{pro.ratingAvg.toFixed(2)}</span> ·{" "}
             <span className="ltr-nums">{pro.jobsCompletedCount}</span> עבודות
           </>
@@ -68,7 +69,7 @@ export function ProCard({ pro }: { pro: CategoryPro }) {
       </div>
 
       {pro.minPrice !== null && (
-        <p className="mt-3 text-lg font-bold text-ink">
+        <p className={`mt-3 ${SECTION_TITLE}`}>
           מ-<span className="ltr-nums">{Math.round(pro.minPrice)}</span> ₪
         </p>
       )}

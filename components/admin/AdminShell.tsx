@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AdminLogo } from "@/components/admin/AdminLogo";
 import { BUTTON_BASE } from "@/components/ui/primitives";
+import { ToastProvider } from "@/components/ui/Toast";
 import { signOut } from "@/lib/actions/auth";
 import { ADMIN_ROUTES } from "@/lib/routes";
 
@@ -31,7 +32,7 @@ export function AdminShell({
   children: ReactNode;
 }) {
   return (
-    <>
+    <ToastProvider>
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
           <AdminLogo />
@@ -91,6 +92,6 @@ export function AdminShell({
           <p>כל מחלוקת נבדקת מול תיעוד הקריאה המלא.</p>
         </div>
       </footer>
-    </>
+    </ToastProvider>
   );
 }

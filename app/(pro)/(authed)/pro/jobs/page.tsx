@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { FeedJobCard } from "@/components/pro/FeedJobCard";
+import { ClipboardIcon, MapIcon } from "@/components/ui/icons";
 import { ProStatusCard } from "@/components/pro/ProStatusCard";
 import {
   BUTTON_PRO,
   BUTTON_QUIET,
   Card,
+  EmptyState,
+  PAGE_LEAD,
   PAGE_TITLE,
 } from "@/components/ui/primitives";
 import { restoreDismissedJobs } from "@/lib/actions/pros";
@@ -83,8 +86,8 @@ export default async function ProJobFeedPage({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className={`${PAGE_TITLE}`}>קריאות בסביבה</h1>
-          <p className="mt-2 text-muted">
+          <h1 className={PAGE_TITLE}>קריאות בסביבה</h1>
+          <p className={PAGE_LEAD}>
             {myTrades.length > 0 ? myTrades.join(", ") : "כל התחומים"} ·{" "}
             {activeRadius
               ? SERVICE_RADIUS_LABEL[activeRadius]
@@ -127,7 +130,7 @@ export default async function ProJobFeedPage({
                  what is missing instead of showing an empty grey rectangle. */
               <div className="flex h-56 flex-col items-center justify-center gap-2 bg-canvas p-6 text-center">
                 <span aria-hidden className="text-3xl">
-                  🗺️
+                  <MapIcon className="size-8 text-muted" />
                 </span>
                 <p className="text-sm font-semibold text-ink">
                   {profile?.serviceAddressText
@@ -168,22 +171,20 @@ export default async function ProJobFeedPage({
           {profile && profile.verificationStatus !== "verified" ? (
             <ProStatusCard profile={profile} />
           ) : jobs.length === 0 ? (
-            <Card className="p-10 text-center">
-              <p className="text-lg font-bold text-ink">
-                אין כרגע קריאות פתוחות באזור שלך
-              </p>
-              <p className="mt-2 text-muted">
-                {profile?.acceptingJobs
+            <EmptyState
+              icon={ClipboardIcon}
+              title="אין כרגע קריאות פתוחות באזור שלך"
+              body={
+                profile?.acceptingJobs
                   ? "ברגע שלקוח יפרסם קריאה בתחומים וברדיוס שהגדרתם, היא תופיע כאן."
-                  : "קבלת הקריאות כבויה כרגע. הפעילו אותה כדי לקבל קריאות חדשות."}
-              </p>
-              <Link
-                href={PRO_ROUTES.settings}
-                className={`${BUTTON_PRO} mt-5 inline-flex`}
-              >
-                הרחבת התחומים או הרדיוס
-              </Link>
-            </Card>
+                  : "קבלת הקריאות כבויה כרגע. הפעילו אותה כדי לקבל קריאות חדשות."
+              }
+              action={
+                <Link href={PRO_ROUTES.settings} className={BUTTON_PRO}>
+                  הרחבת התחומים או הרדיוס
+                </Link>
+              }
+            />
           ) : (
             <ul className="space-y-4">
               {jobs.map((job) => (

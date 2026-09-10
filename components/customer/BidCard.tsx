@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import {
-  Badge,
   BUTTON_CTA,
   BUTTON_QUIET,
+  Badge,
   ErrorText,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { selectBid } from "@/lib/actions/bids";
+import { CheckIcon, StarIcon } from "@/components/ui/icons";
 import { EMPTY_SELECT_BID_STATE } from "@/lib/actions/state";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import type { JobBid } from "@/lib/supabase/bids";
@@ -84,10 +86,13 @@ export function BidCard({
 
           <div className="min-w-0 flex-1 text-start">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-bold text-ink">
-                {bid.proName ?? "בעל מקצוע"}
-              </h3>
-              {bid.proVerified && <Badge tone="done">✓ מאומת Handy</Badge>}
+              <h3 className={SECTION_TITLE}>{bid.proName ?? "בעל מקצוע"}</h3>
+              {bid.proVerified && (
+                <Badge tone="done">
+                  <CheckIcon className="me-1 size-3.5" />
+                  מאומת Handy
+                </Badge>
+              )}
               {highlights.map((label) => (
                 <Badge key={label} tone="open">
                   {label}
@@ -98,7 +103,11 @@ export function BidCard({
             <p className="mt-1 text-sm text-muted">
               {bid.proRating !== null && (
                 <>
-                  <span className="ltr-nums">★ {bid.proRating.toFixed(1)}</span>{" "}
+                  <StarIcon
+                    filled
+                    className="me-0.5 inline size-3.5 align-[-2px]"
+                  />
+                  <span className="ltr-nums">{bid.proRating.toFixed(1)}</span>{" "}
                   ·{" "}
                 </>
               )}

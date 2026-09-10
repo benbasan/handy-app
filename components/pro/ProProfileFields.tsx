@@ -7,7 +7,7 @@ import {
   FIELD_LABEL,
   INPUT_CLASS,
 } from "@/components/ui/primitives";
-import { categoryIcon } from "@/lib/categories";
+import { CategoryIcon } from "@/lib/categories";
 import type { Category } from "@/lib/supabase/jobs";
 import {
   BIO_MAX,
@@ -167,7 +167,7 @@ export function ProProfileFields({
                     : "border-line bg-surface text-ink hover:border-pro/40"
                 }`}
               >
-                <span aria-hidden>{categoryIcon(category.slug)}</span>
+                <CategoryIcon slug={category.slug} className="size-5" />
                 {category.nameHe}
               </button>
             );

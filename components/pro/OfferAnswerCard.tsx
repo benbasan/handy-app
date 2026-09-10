@@ -1,7 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { BUTTON_PRO, ErrorText } from "@/components/ui/primitives";
+import {
+  BUTTON_PRO,
+  ErrorText,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { acceptOffer, declineOffer } from "@/lib/actions/acceptance";
 import { EMPTY_ANSWER_OFFER_STATE } from "@/lib/actions/state";
 import type { PendingAcceptance } from "@/lib/supabase/bids";
@@ -43,7 +47,7 @@ export function OfferAnswerCard({ offer }: { offer: PendingAcceptance }) {
           <p className="text-sm font-bold text-pro">
             הלקוח בחר בך — צריך את האישור שלך
           </p>
-          <h2 className="mt-1 text-lg font-bold text-ink">
+          <h2 className={`mt-1 ${SECTION_TITLE}`}>
             {offer.description.split("\n")[0]!.slice(0, 70)}
           </h2>
           {/* text-ink/75 rather than text-muted: #64748b on this card's

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AvailabilityToggle } from "@/components/pro/AvailabilityToggle";
 import { ProLogo } from "@/components/pro/ProLogo";
 import { BUTTON_PRO } from "@/components/ui/primitives";
+import { ToastProvider } from "@/components/ui/Toast";
 import { signOut } from "@/lib/actions/auth";
 import { PRO_ROUTES } from "@/lib/routes";
 import type { ProProfile } from "@/lib/supabase/pros";
@@ -30,7 +31,7 @@ export function ProShell({
   children: ReactNode;
 }) {
   return (
-    <>
+    <ToastProvider>
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 sm:px-6">
           <ProLogo href={PRO_ROUTES.dashboard} />
@@ -118,6 +119,6 @@ export function ProShell({
           <p>עדכון מחיר בשטח מחייב תמונה ואישור של הלקוח.</p>
         </div>
       </footer>
-    </>
+    </ToastProvider>
   );
 }

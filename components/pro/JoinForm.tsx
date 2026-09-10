@@ -13,6 +13,7 @@ import {
   BUTTON_PRO,
   Card,
   ErrorText,
+  SECTION_TITLE,
   SectionCard,
 } from "@/components/ui/primitives";
 import { saveProJoin } from "@/lib/actions/proOnboarding";
@@ -72,7 +73,7 @@ export function JoinForm({
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
         <aside className="space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
           <Card>
-            <h2 className="text-lg font-bold text-ink">הפרופיל שלך</h2>
+            <h2 className={SECTION_TITLE}>הפרופיל שלך</h2>
 
             <dl className="mt-4 divide-y divide-line text-sm">
               <SummaryRow

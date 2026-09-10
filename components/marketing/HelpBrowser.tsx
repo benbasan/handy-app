@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CARD_BASE, INPUT_CLASS } from "@/components/ui/primitives";
+import {
+  CARD_BASE,
+  INPUT_CLASS,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import type { FaqTopic } from "@/lib/content/help";
 
 /**
@@ -88,7 +92,9 @@ export function HelpBrowser({ topics }: { topics: readonly FaqTopic[] }) {
               hidden={hiddenTopic}
               className={`scroll-mt-24 ${CARD_BASE}`}
             >
-              <h2 className="border-b border-line px-5 py-4 text-lg font-bold text-ink sm:px-6">
+              <h2
+                className={`border-b border-line px-5 py-4 ${SECTION_TITLE} sm:px-6`}
+              >
                 {topic.label}
               </h2>
 

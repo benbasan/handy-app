@@ -5,6 +5,8 @@ import {
   BUTTON_QUIET,
   CARD_BASE,
   CARD_CLASS,
+  HERO_TITLE,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { categoryCopy } from "@/lib/content/categories";
 import { MARKETING_ROUTES } from "@/lib/routes";
@@ -58,9 +60,7 @@ export default async function PricingPage() {
       />
 
       <section className="mx-auto max-w-3xl text-center">
-        <h1 className="text-3xl font-bold text-ink sm:text-5xl">
-          מדריך עלויות
-        </h1>
+        <h1 className={HERO_TITLE}>מדריך עלויות</h1>
         <p className="mt-4 text-lg text-muted">
           {sampleSize > 0 ? (
             <>
@@ -172,13 +172,13 @@ export default async function PricingPage() {
           </p>
         </div>
         <div className={`${CARD_CLASS}`}>
-          <h2 className="text-lg font-bold text-ink">אין דמי הגעה נפרדים</h2>
+          <h2 className={SECTION_TITLE}>אין דמי הגעה נפרדים</h2>
           <p className="mt-2 text-sm text-muted">
             כל הצעה ב-Handy כוללת את הביקור. לא תתבקשו לשלם על אבחון בלבד.
           </p>
         </div>
         <div className={`${CARD_CLASS}`}>
-          <h2 className="text-lg font-bold text-ink">מה משפיע על המחיר</h2>
+          <h2 className={SECTION_TITLE}>מה משפיע על המחיר</h2>
           <p className="mt-2 text-sm text-muted">
             שעת הקריאה, מורכבות הגישה, חלקים מקוריים וקומה ללא מעלית.
           </p>

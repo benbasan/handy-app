@@ -2,12 +2,15 @@ import Link from "next/link";
 import { SavedPlaces } from "@/components/customer/SavedPlaces";
 import { CurrentUserCard } from "@/components/ui/CurrentUserCard";
 import {
-  Badge,
   BUTTON_CTA,
   BUTTON_QUIET,
+  Badge,
   Card,
+  PAGE_LEAD,
+  PAGE_TITLE,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
-import { categoryIcon } from "@/lib/categories";
+import { CategoryIcon } from "@/lib/categories";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import { listMySavedPros } from "@/lib/supabase/completion";
@@ -38,10 +41,10 @@ export default async function CustomerAccountPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <header>
-          <h1 className="text-3xl font-bold text-ink">
+          <h1 className={PAGE_TITLE}>
             שלום{user.fullName ? ` ${user.fullName}` : ""}
           </h1>
-          <p className="mt-2 text-muted">
+          <p className={PAGE_LEAD}>
             {countLabel(jobs.length, "קריאה אחת", "קריאות")} ·{" "}
             {countLabel(
               savedPros.length,
@@ -67,7 +70,7 @@ export default async function CustomerAccountPage() {
           </Card>
 
           <Card className="p-0">
-            <h2 className="border-b border-line p-5 text-lg font-bold text-ink sm:p-6">
+            <h2 className={`border-b border-line p-5 ${SECTION_TITLE} sm:p-6`}>
               הקריאות שלי
             </h2>
 
@@ -93,7 +96,7 @@ export default async function CustomerAccountPage() {
 
         <aside className="space-y-6">
           <Card>
-            <h2 className="text-lg font-bold text-ink">בעלי המקצוע שלי</h2>
+            <h2 className={SECTION_TITLE}>בעלי המקצוע שלי</h2>
 
             {savedPros.length === 0 ? (
               <p className="mt-2 text-sm text-muted">
@@ -179,11 +182,8 @@ function JobRow({ job }: { job: JobSummary }) {
 
   return (
     <li className="flex flex-wrap items-center gap-4 p-5 sm:p-6">
-      <span
-        aria-hidden
-        className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-canvas text-2xl"
-      >
-        {categoryIcon(job.categorySlug ?? "")}
+      <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-canvas text-muted">
+        <CategoryIcon slug={job.categorySlug ?? ""} className="size-6" />
       </span>
 
       <div className="min-w-48 flex-1">

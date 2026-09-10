@@ -3,7 +3,13 @@ import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { DisputeDecisionForm } from "@/components/admin/DisputeDecisionForm";
 import { ProEnforcementPanel } from "@/components/admin/ProEnforcementPanel";
-import { Badge, Card, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  Badge,
+  Card,
+  PAGE_LEAD,
+  PAGE_TITLE,
+  SECTION_TITLE,
+} from "@/components/ui/primitives";
 import { ADMIN_ROUTES, receiptPath } from "@/lib/routes";
 import { getProEnforcement } from "@/lib/supabase/admin";
 import { listJobDisputes } from "@/lib/supabase/disputes";
@@ -104,8 +110,8 @@ export default async function AdminJobDossierPage({
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <header>
-            <h1 className={`${PAGE_TITLE}`}>תיעוד הקריאה</h1>
-            <p className="mt-2 text-muted">
+            <h1 className={PAGE_TITLE}>תיעוד הקריאה</h1>
+            <p className={PAGE_LEAD}>
               <span dir="ltr" className="font-bold text-ink">
                 {jobReference(job.id)}
               </span>{" "}
@@ -125,7 +131,7 @@ export default async function AdminJobDossierPage({
         {/* The call itself                                                  */}
         {/* ---------------------------------------------------------------- */}
         <Card>
-          <h2 className="text-lg font-bold text-ink">הקריאה</h2>
+          <h2 className={SECTION_TITLE}>הקריאה</h2>
           <p className="mt-2 whitespace-pre-line text-ink">{job.description}</p>
 
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -166,12 +172,10 @@ export default async function AdminJobDossierPage({
         {/* Every offer, not only the one that won                            */}
         {/* ---------------------------------------------------------------- */}
         <Card>
-          <h2 className="text-lg font-bold text-ink">
-            הצעות שהוגשו ({bids.length})
-          </h2>
+          <h2 className={SECTION_TITLE}>הצעות שהוגשו ({bids.length})</h2>
 
           {bids.length === 0 ? (
-            <p className="mt-2 text-muted">
+            <p className={PAGE_LEAD}>
               אף בעל מקצוע לא הגיש הצעה על הקריאה הזו.
             </p>
           ) : (
@@ -213,7 +217,7 @@ export default async function AdminJobDossierPage({
         {/* The transparency rule's own evidence                              */}
         {/* ---------------------------------------------------------------- */}
         <Card>
-          <h2 className="text-lg font-bold text-ink">
+          <h2 className={SECTION_TITLE}>
             עדכוני מחיר בשטח ({priceUpdates.length})
           </h2>
           <p className="mt-1 text-sm text-muted">
@@ -292,7 +296,7 @@ export default async function AdminJobDossierPage({
         {/* Every conversation on the call                                    */}
         {/* ---------------------------------------------------------------- */}
         <Card>
-          <h2 id="chat" className="scroll-mt-24 text-lg font-bold text-ink">
+          <h2 id="chat" className={`scroll-mt-24 ${SECTION_TITLE}`}>
             התכתבות
           </h2>
           <p className="mt-1 text-sm text-muted">
@@ -338,7 +342,7 @@ export default async function AdminJobDossierPage({
         {/* ---------------------------------------------------------------- */}
         {receipt && (
           <Card>
-            <h2 className="text-lg font-bold text-ink">סיכום חיוב</h2>
+            <h2 className={SECTION_TITLE}>סיכום חיוב</h2>
             <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
               <Fact
                 label="מחיר בסיס"
@@ -380,14 +384,12 @@ export default async function AdminJobDossierPage({
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
             <Card>
-              <h2 className="text-lg font-bold text-ink">
+              <h2 className={SECTION_TITLE}>
                 מחלוקות על הקריאה ({disputes.length})
               </h2>
 
               {disputes.length === 0 ? (
-                <p className="mt-2 text-muted">
-                  לא נפתחה מחלוקת על הקריאה הזו.
-                </p>
+                <p className={PAGE_LEAD}>לא נפתחה מחלוקת על הקריאה הזו.</p>
               ) : (
                 <ul className="mt-4 space-y-4">
                   {disputes.map((dispute) => (
