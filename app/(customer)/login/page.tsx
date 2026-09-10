@@ -23,7 +23,7 @@ export default async function CustomerLoginPage({
       points={[
         "מעקב בזמן אמת על כל קריאה פעילה",
         "קבלות דיגיטליות וארכיון עבודות",
-        "בעלי מקצוע שמורים להזמנה חוזרת",
+        "רשימה של בעלי המקצוע ששמרתם",
       ]}
     >
       <OtpLoginForm

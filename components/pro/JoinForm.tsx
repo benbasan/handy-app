@@ -113,8 +113,8 @@ export function JoinForm({
               למה למלא את הכול עכשיו?
             </h2>
             <p className="mt-2">
-              פרופיל מאומת מקבל פי 3 יותר עבודות. אפשר לעצור ולהמשיך בכל רגע —
-              מה שמילאתם נשמר.
+              עד לאימות אין קריאות בפיד בכלל. אפשר לעצור ולהמשיך בכל רגע — מה
+              שמילאתם נשמר.
             </p>
           </div>
         </aside>
@@ -158,7 +158,11 @@ export function JoinForm({
                 לראות קריאות או להגיש הצעות. האכיפה היא ברמת מסד הנתונים, לא רק
                 בממשק.
               </li>
-              <li>· כשהפרופיל מאושר נשלח SMS, והפיד נפתח מיד.</li>
+              {/* This promised an SMS that no code in this repo sends —
+                  there is no notifications table, no provider and no send
+                  path. It says what actually happens instead, until Phase 13
+                  gives it a channel to promise. */}
+              <li>· הסטטוס מתעדכן כאן ברגע שהפרופיל מאושר, והפיד נפתח מיד.</li>
             </ol>
           </SectionCard>
         </div>

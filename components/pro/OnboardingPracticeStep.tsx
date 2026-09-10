@@ -11,6 +11,7 @@ import {
 import { savePracticeBid } from "@/lib/actions/proOnboarding";
 import { EMPTY_PRO_FORM_STATE } from "@/lib/actions/state";
 import { ACCEPTANCE_FEE, feeBreakdown } from "@/lib/validation/pros";
+import { BID_SPEED_NOTE } from "@/lib/validation/bids";
 
 /**
  * Onboarding step 4 — תרגול הגשת הצעה (product-spec.md 4.2).
@@ -36,7 +37,7 @@ const RULES = [
   "מחיר אחד וסופי, כולל הביקור — אין דמי הגעה נפרדים.",
   "זמן הגעה שאתם באמת עומדים בו. איחור עולה יותר ממחיר גבוה.",
   "שורה אחת שמראה שקראתם את התיאור, לא תבנית מועתקת.",
-  "מהירות: הצעה שנשלחת תוך 10 דקות מהפרסום נבחרת ב-64% מהמקרים.",
+  `מהירות: ${BID_SPEED_NOTE}`,
 ];
 
 export function OnboardingPracticeStep() {

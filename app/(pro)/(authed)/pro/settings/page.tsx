@@ -28,8 +28,20 @@ export default async function ProSettingsPage() {
     <div className="space-y-6">
       <header>
         <h1 className={`${PAGE_TITLE}`}>זמינות, אזור ולוח זמנים</h1>
+        {/*
+          This said "רק קריאות שמתאימות להגדרות האלה יגיעו אליך", which is true
+          of two of the four settings on the page and false of the other two.
+          `pro_serves_job()` reads `accepting_jobs` and `radius_km`, and
+          `open_jobs_for_pro()` reads `pro_categories` — none of them reads
+          `work_days` or the hours, which are collected, validated, shown on the
+          public profile and gate nothing. Enforcing them is Phase 16, and it is
+          not the one-line change it looks like: hiding everything outside
+          working hours would also hide a `this_week` job somebody wants to
+          price on a Friday. Until then the screen says what is true.
+        */}
         <p className="mt-2 text-muted">
-          רק קריאות שמתאימות להגדרות האלה יגיעו אליך.
+          קבלת הקריאות, הרדיוס והתחומים קובעים אילו קריאות מגיעות לפיד שלך. ימי
+          ושעות העבודה מוצגים ללקוחות בפרופיל הציבורי שלך.
         </p>
       </header>
 

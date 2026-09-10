@@ -12,6 +12,7 @@ import {
 } from "@/lib/supabase/bids";
 import { signJobMedia } from "@/lib/supabase/jobs";
 import { requireRole } from "@/lib/supabase/session";
+import { BID_SPEED_NOTE } from "@/lib/validation/bids";
 
 export const metadata = { title: "ההצעות שלי — Handy" };
 
@@ -153,7 +154,7 @@ export default async function ProOffersPage({
           </p>
           <p className="mt-2 text-muted">
             {tab === "pending"
-              ? "הצעה שנשלחת תוך 10 דקות מפרסום הקריאה נבחרת ב-64% מהמקרים."
+              ? BID_SPEED_NOTE
               : "כל ההצעות שלך עדיין פתוחות או שנבחרו."}
           </p>
           <Link

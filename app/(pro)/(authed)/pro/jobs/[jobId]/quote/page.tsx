@@ -17,7 +17,7 @@ import {
 import { getJob } from "@/lib/supabase/jobs";
 import { listFeedJobs } from "@/lib/supabase/pros";
 import { requireRole } from "@/lib/supabase/session";
-import { relativeTime } from "@/lib/validation/bids";
+import { BID_SPEED_NOTE, relativeTime } from "@/lib/validation/bids";
 import {
   PREFERRED_TIME_LABEL,
   jobReference,
@@ -128,7 +128,7 @@ export default async function SubmitBidPage({
         />
 
         <p className="mt-4 rounded-xl bg-canvas px-4 py-3 text-sm text-muted">
-          הצעה שנשלחת תוך 10 דקות מפרסום הקריאה נבחרת ב-64% מהמקרים.
+          {BID_SPEED_NOTE}
         </p>
       </Card>
 

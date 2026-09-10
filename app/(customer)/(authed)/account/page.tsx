@@ -97,8 +97,8 @@ export default async function CustomerAccountPage() {
 
             {savedPros.length === 0 ? (
               <p className="mt-2 text-sm text-muted">
-                בעלי מקצוע שתשמרו בסיום עבודה יופיעו כאן, להזמנה חוזרת בלחיצה
-                אחת.
+                בעלי מקצוע שתשמרו בסיום עבודה יופיעו כאן, כדי לזכור את מי לחפש
+                בפעם הבאה.
               </p>
             ) : (
               <ul className="mt-4 space-y-3">

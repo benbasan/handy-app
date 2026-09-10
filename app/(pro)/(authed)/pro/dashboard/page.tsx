@@ -81,8 +81,7 @@ export default async function ProDashboardPage({
           role="status"
           className="rounded-2xl border border-cta bg-cta/10 p-4 text-sm font-semibold text-cta-strong"
         >
-          ✓ הפרופיל נשלח לאישור. נעדכן ב-SMS ברגע שצוות Handy יאשר אותו — יעד
-          מענה 24 שעות.
+          ✓ הפרופיל נשלח לאישור — יעד מענה 24 שעות. ההחלטה תופיע כאן בדשבורד.
         </p>
       )}
 

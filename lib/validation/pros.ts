@@ -334,3 +334,21 @@ export function formatWorkDays(days: readonly number[]): string {
 export function trimSeconds(time: string | null): string {
   return (time ?? "").slice(0, 5);
 }
+
+/**
+ * Why completing the profile is worth it — the mechanism, not a multiplier.
+ *
+ * Three screens carried "פרופיל מאומת מקבל פי 3 יותר עבודות". Nothing has ever
+ * measured that, and it is the same prototype filler as the 64% this repo also
+ * removed (see BID_SPEED_NOTE in lib/validation/bids.ts) and the "+4,200
+ * קריאות" that never reached the landing page. CLAUDE.md section 3 is one rule
+ * applied evenly or it is not a rule.
+ *
+ * The truthful version is stronger than the invented one, because it is not a
+ * tendency but a gate: `pro_serves_job()` requires `verification_status =
+ * 'verified'`, so an unverified pro's feed is empty in the database rather
+ * than hidden in the interface. "Three times as many" invites a pro to weigh
+ * it up; "the feed does not open" does not.
+ */
+export const VERIFICATION_GATE_NOTE =
+  "בלי אימות הפיד סגור — זו אכיפה במסד הנתונים ולא הסתרה בממשק. האישור נמסר תוך 24 שעות.";

@@ -26,15 +26,16 @@ import {
  * "זמינות, אזור ולוח זמנים" — design/screens/pro-5.2-availability-settings.png.
  *
  * The design's left column also carries notification switches and a bank
- * summary card. Notifications are Phase 4/6 material and the `notifications`
- * table does not exist yet (docs/architecture.md is explicit that it arrives
- * with the feature); the payout details are read-only here and edited in
- * onboarding step 5, so this screen shows them rather than offering a second
- * place to change them.
+ * summary card. The switches wait for Phase 13, which is what builds the
+ * `notifications` table they would control; the payout details are read-only
+ * here and edited in onboarding step 5, so this screen shows them rather than
+ * offering a second place to change them.
  *
  * `accepting_jobs` and `radius_km` are not cosmetic: both are conditions
  * inside `pro_serves_job()`, so saving this form changes what the RLS policy
- * itself returns.
+ * itself returns. `work_days` and the hours are — nothing reads them but the
+ * public profile, which is why the header above this form no longer claims
+ * they filter anything. Phase 16 is where they start to.
  */
 export function AvailabilityForm({
   profile,
@@ -85,7 +86,7 @@ export function AvailabilityForm({
           <div>
             <h2 className="text-lg font-bold text-ink">קבלת קריאות</h2>
             <p className="mt-1 text-sm text-muted">
-              כיבוי מפסיק את ההתראות מיד, בלי לפגוע בדירוג.
+              כיבוי מוציא אתכם מהפיד מיד, בלי לפגוע בדירוג.
             </p>
           </div>
 

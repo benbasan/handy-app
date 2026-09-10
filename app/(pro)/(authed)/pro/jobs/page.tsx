@@ -17,6 +17,7 @@ import {
   listFeedJobs,
 } from "@/lib/supabase/pros";
 import { requireRole } from "@/lib/supabase/session";
+import { BID_SPEED_NOTE } from "@/lib/validation/bids";
 import {
   SERVICE_RADIUS_LABEL,
   SERVICE_RADIUS_OPTIONS,
@@ -142,9 +143,7 @@ export default async function ProJobFeedPage({
 
           <Card>
             <h2 className="font-bold text-ink">טיפ להעלאת שיעור הזכייה</h2>
-            <p className="mt-2 text-sm text-muted">
-              הצעה שנשלחת בתוך 10 דקות מפרסום הקריאה נבחרת ב-64% מהמקרים.
-            </p>
+            <p className="mt-2 text-sm text-muted">{BID_SPEED_NOTE}</p>
           </Card>
 
           {dismissedCount > 0 && (
