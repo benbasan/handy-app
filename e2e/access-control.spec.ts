@@ -248,10 +248,18 @@ test.describe("the destination carried through a sign-in", () => {
  * "הקריאה נשלחה ל-0 בעלי מקצוע מאומתים בסביבה. אין צורך לרענן", which is an
  * accurate number attached to an instruction to wait for ever.
  *
+ * Phase 12's answer was a button that widened the customer's own broadcast
+ * radius. That radius was removed on 11.9.2026 — a call now reaches every pro
+ * whose own service area contains the address — so the button went with it, and
+ * the test that drove it went with the button. What is left to assert is that
+ * the screen still says the true thing and does not dress a zero as a count.
+ *
  * The seeded call is in Eilat, roughly 300 km from the nearest seeded
- * `service_point` — further than the widest rung on the radius ladder — so it
- * stays uncovered no matter how wide it is widened. That is deliberate: the
- * card must offer the action without promising it will work.
+ * `service_point`, so no pro covers it however wide they draw their own area.
+ *
+ * This also removes the suite's one test that mutated seeded data without
+ * restoring it: widening the radius left the job changed, so a second run
+ * without `npm run db:reset` failed on a maxed-out ladder.
  */
 test.describe("a call nobody covers", () => {
   test.use({ storageState: storageStatePath("customer") });
@@ -259,7 +267,7 @@ test.describe("a call nobody covers", () => {
   /** שדרות התמרים 8, אילת — supabase/seed.sql. */
   const UNCOVERED_JOB = "d0000000-0000-4000-8000-000000000009";
 
-  test("says so, and offers the one thing that could change it", async ({
+  test("says so plainly, and offers nothing it cannot deliver", async ({
     page,
   }) => {
     await page.goto(`/requests/${UNCOVERED_JOB}/offers`);
@@ -271,32 +279,8 @@ test.describe("a call nobody covers", () => {
     // Not "נשלחה ל-0": a zero dressed as a count reads as a bug.
     await expect(page.getByText("נשלחה ל-0")).toHaveCount(0);
 
-    const widen = page.getByRole("button", { name: /הרחיבו את החיפוש/ });
-    await expect(widen).toBeVisible();
-  });
-
-  test("widens the radius when asked, and stays honest about the result", async ({
-    page,
-  }) => {
-    await page.goto(`/requests/${UNCOVERED_JOB}/offers`);
-
-    const before = await page
-      .getByRole("button", { name: /הרחיבו את החיפוש/ })
-      .textContent();
-
-    await page.getByRole("button", { name: /הרחיבו את החיפוש/ }).click();
-
-    // The header carries the radius, so the change is visible where the
-    // customer is already looking.
-    await expect(
-      page.getByText(/אין כרגע בעל מקצוע מאומת ברדיוס/),
-    ).toBeVisible();
-
-    // And the offer to widen has moved up a rung rather than repeating itself.
-    const after = await page
-      .getByRole("button", { name: /הרחיבו את החיפוש/ })
-      .textContent();
-    expect(after).not.toBe(before);
+    // And no radius anywhere on the screen — the customer never chose one.
+    await expect(page.getByText(/רדיוס/)).toHaveCount(0);
   });
 });
 

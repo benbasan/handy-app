@@ -144,7 +144,6 @@ export type FeedJob = {
   description: string;
   addressText: string;
   preferredTime: string | null;
-  searchRadiusKm: number;
   status: string;
   createdAt: string;
   photoPaths: string[];
@@ -192,7 +191,6 @@ export async function listFeedJobs(maxKm: number | null): Promise<FeedJob[]> {
     description: row.description,
     addressText: row.address_text,
     preferredTime: row.preferred_time,
-    searchRadiusKm: row.search_radius_km,
     status: row.status,
     createdAt: row.created_at,
     photoPaths: row.photo_urls ?? [],

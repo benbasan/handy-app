@@ -37,32 +37,6 @@ export const PREFERRED_TIME_LABEL: Record<PreferredTime, string> = {
   flexible: "גמיש — מתי שנוח",
 };
 
-/** Business rule 7: the customer's default broadcast radius is 3–5 km. */
-export const SEARCH_RADIUS_OPTIONS = [3, 5, 10] as const;
-export const DEFAULT_SEARCH_RADIUS_KM = 5;
-
-/**
- * Every radius a call may end up broadcast at, in order.
- *
- * The form offers only the first three, deliberately: a customer who picks
- * 40 km before they have heard from anybody is usually picking somebody who
- * will not turn up. The wider ones exist for the call that has already been
- * posted and got nothing — the one case where distance is better than silence.
- *
- * The `check` on `jobs.search_radius_km` allows 1..50, which bounds this list
- * rather than the other way round.
- */
-export const SEARCH_RADIUS_LADDER = [3, 5, 10, 15, 25, 40] as const;
-
-/**
- * The next rung up, or null at the top. One tap, not a menu: widening is what
- * somebody does when the screen has just told them nobody covers them, and
- * that is not the moment to ask them to compare six numbers.
- */
-export function nextSearchRadius(currentKm: number): number | null {
-  return SEARCH_RADIUS_LADDER.find((option) => option > currentKm) ?? null;
-}
-
 export const DESCRIPTION_MIN = 15;
 export const DESCRIPTION_MAX = 2000;
 export const MAX_PHOTOS = 5;
@@ -155,14 +129,6 @@ export function createJobSchema(userId: string) {
       .trim()
       .min(5, { error: "יש להזין כתובת מלאה — רחוב, מספר ועיר" })
       .max(200, { error: "הכתובת ארוכה מדי" }),
-
-    searchRadiusKm: z.coerce
-      .number()
-      .int()
-      .refine(
-        (value) => (SEARCH_RADIUS_OPTIONS as readonly number[]).includes(value),
-        { error: "רדיוס חיפוש לא חוקי" },
-      ),
 
     // Optional as a pair: a lone latitude is meaningless, and both are
     // dropped rather than half-trusted.

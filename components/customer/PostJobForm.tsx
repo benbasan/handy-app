@@ -2,19 +2,17 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import {
-  countProsForRadius,
+  countProsCovering,
   createJob,
   type CreateJobState,
 } from "@/lib/actions/jobs";
 import { CategoryIcon } from "@/lib/categories";
 import type { Category } from "@/lib/supabase/jobs";
 import {
-  DEFAULT_SEARCH_RADIUS_KM,
   DESCRIPTION_MAX,
   DESCRIPTION_MIN,
   PREFERRED_TIMES,
   PREFERRED_TIME_LABEL,
-  SEARCH_RADIUS_OPTIONS,
   type PreferredTime,
 } from "@/lib/validation/jobs";
 import {
@@ -102,17 +100,16 @@ export function PostJobForm({
    * somebody who is standing in it.
    */
   const [places, setPlaces] = useState<readonly SavedPlace[]>(savedPlaces);
-  const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_SEARCH_RADIUS_KM);
   const [media, setMedia] = useState<MediaValue>(EMPTY_MEDIA);
 
   /**
-   * How many pros would actually receive this call, at the address and radius
-   * currently on screen. `null` while unknown — either nothing has been typed
-   * yet or the count could not be taken, and neither is a zero.
+   * How many pros would actually receive this call, at the address currently on
+   * screen. `null` while unknown — either nothing has been typed yet or the
+   * count could not be taken, and neither is a zero.
    *
    * This used to be answered only on the offers screen, after publishing. On a
-   * thin market that is the wrong end: the number is most useful while the
-   * radius is still a choice.
+   * thin market that is the wrong end: it is most useful while the address is
+   * still being typed, which is now the only input that moves it.
    */
   const [prosNearby, setProsNearby] = useState<number | null>(null);
 
@@ -124,14 +121,14 @@ export function PostJobForm({
     // can outrun a fresh one. Ignore anything that comes back after the inputs
     // have moved on.
     let current = true;
-    void countProsForRadius(lat, lng, radiusKm).then((count) => {
+    void countProsCovering(lat, lng).then((count: number | null) => {
       if (current) setProsNearby(count);
     });
 
     return () => {
       current = false;
     };
-  }, [address, radiusKm]);
+  }, [address]);
 
   /*
    * Whether there is a point to count around is derived, not stored. Clearing
@@ -186,7 +183,6 @@ export function PostJobForm({
     <form ref={formRef} action={formAction} className="space-y-6">
       <input type="hidden" name="categoryId" value={categoryId ?? ""} />
       <input type="hidden" name="preferredTime" value={preferredTime ?? ""} />
-      <input type="hidden" name="searchRadiusKm" value={radiusKm} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-6">
@@ -329,43 +325,33 @@ export function PostJobForm({
                   }
                 />
 
-                <fieldset className="mt-5">
-                  <legend className="mb-2 text-sm font-medium text-ink">
-                    רדיוס חיפוש
-                  </legend>
-                  <div className="flex flex-wrap gap-2">
-                    {SEARCH_RADIUS_OPTIONS.map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        aria-pressed={option === radiusKm}
-                        onClick={() => setRadiusKm(option)}
-                        className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors ${
-                          option === radiusKm
-                            ? "border-brand bg-brand-soft text-brand"
-                            : "border-line bg-surface text-muted hover:border-brand/40"
-                        }`}
-                      >
-                        {option} ק״מ
-                      </button>
-                    ))}
-                  </div>
+                {/*
+                  The live count, which used to sit under a row of radius chips.
+                  The chips went on 11.9.2026: the customer does not know how far
+                  a plumber will drive, cannot find out, and a number they
+                  guessed was quietly narrowing their own market. Every pro has
+                  already answered that question for themselves.
 
-                  {hasPoint && prosNearby !== null && (
-                    <p
-                      role="status"
-                      className={`mt-3 text-sm font-semibold ${
-                        prosNearby === 0 ? "text-alert" : "text-muted"
-                      }`}
-                    >
-                      {prosNearby === 0
-                        ? "אין כרגע בעל מקצוע מאומת שמכסה את הכתובת הזו ברדיוס הזה. אפשר להרחיב את הרדיוס — ואפשר לפרסם בכל מקרה, ההצעות יגיעו כשיצטרף מישהו באזור."
-                        : prosNearby === 1
-                          ? "בעל מקצוע מאומת אחד מכסה את הכתובת הזו ברדיוס הזה."
-                          : `${prosNearby} בעלי מקצוע מאומתים מכסים את הכתובת הזו ברדיוס הזה.`}
-                    </p>
-                  )}
-                </fieldset>
+                  The count survived the chips because it answers a question the
+                  customer does have — "is anyone even out there?" — and because
+                  on launch day, in most towns, the honest answer is none, and
+                  finding that out before writing a description is kinder than
+                  finding it out after.
+                */}
+                {hasPoint && prosNearby !== null && (
+                  <p
+                    role="status"
+                    className={`mt-4 text-sm font-semibold ${
+                      prosNearby === 0 ? "text-alert" : "text-muted"
+                    }`}
+                  >
+                    {prosNearby === 0
+                      ? "אין כרגע בעל מקצוע מאומת שאזור הפעילות שלו כולל את הכתובת הזו. אפשר לפרסם בכל מקרה — הקריאה תישלח לראשון שיצטרף באזור."
+                      : prosNearby === 1
+                        ? "בעל מקצוע מאומת אחד מכסה את הכתובת הזו."
+                        : `${prosNearby} בעלי מקצוע מאומתים מכסים את הכתובת הזו.`}
+                  </p>
+                )}
               </SectionCard>
             </div>
           </div>
@@ -384,7 +370,6 @@ export function PostJobForm({
                 }
               />
               <SummaryRow label="אזור" value={address.text || null} />
-              <SummaryRow label="רדיוס" value={`${radiusKm} ק״מ`} />
             </dl>
 
             <p className="mt-4 rounded-xl bg-canvas p-4 text-sm text-muted">
@@ -411,7 +396,7 @@ export function PostJobForm({
               מה קורה אחרי הפרסום?
             </h2>
             <ul className="mt-3 space-y-2">
-              <li>· הקריאה נשלחת לבעלי מקצוע מאומתים ברדיוס {radiusKm} ק״מ</li>
+              <li>· הקריאה נשלחת לכל בעל מקצוע מאומת שמכסה את הכתובת</li>
               <li>· ההצעות הראשונות מגיעות תוך דקות</li>
               <li>· אתם בוחרים — ואפשר להתכתב לפני</li>
             </ul>

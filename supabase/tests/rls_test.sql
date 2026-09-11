@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(413);
+select plan(410);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -523,11 +523,6 @@ select col_not_null(
   'a price update cannot exist without a photo of the fault'
 );
 
-select col_not_null(
-  'public', 'jobs', 'search_radius_km',
-  'every job carries the radius the customer asked to broadcast it within'
-);
-
 select throws_ok(
   $$ update public.jobs set preferred_time = 'whenever'
       where id = 'd0000000-0000-4000-8000-000000000001' $$,
@@ -572,28 +567,37 @@ select is(
 
 reset role;
 
--- Two jobs the same distance from the verified pro's service point (~6 km
--- north of it, well inside his 10 km radius) that differ only in the radius
--- their customer asked for. Everything else about them is identical, so the
--- pair isolates exactly one variable.
+-- One job ~6 km north of the verified pro's service point, well inside his
+-- 10 km radius.
+--
+-- This used to be a *pair* of identical jobs differing only in the radius their
+-- customer asked for, isolating the both-radii rule. The customer's half of that
+-- rule was removed on 11.9.2026, so the variable moved to where the decision now
+-- lives: the pro's own radius_km, narrowed and restored below.
 insert into public.jobs (
   id, customer_id, category_id, description, location, address_text,
-  preferred_time, search_radius_km, status
-) values
-  (
-    'd0000000-0000-4000-8000-0000000000f1',
-    :customer_a, 'c0000000-0000-4000-8000-000000000001',
-    'ברז דולף — קריאה שהלקוח ביקש לשדר עד 3 ק״מ בלבד.',
-    extensions.st_point(34.7818, 32.1393)::extensions.geography,
-    'רחוב רחוק 1, תל אביב', 'flexible', 3, 'open'
-  ),
-  (
-    'd0000000-0000-4000-8000-0000000000f2',
-    :customer_a, 'c0000000-0000-4000-8000-000000000001',
-    'אותה קריאה בדיוק, אבל הלקוח ביקש לשדר עד 10 ק״מ.',
-    extensions.st_point(34.7818, 32.1393)::extensions.geography,
-    'רחוב רחוק 2, תל אביב', 'flexible', 10, 'open'
-  );
+  preferred_time, status
+) values (
+  'd0000000-0000-4000-8000-0000000000f1',
+  :customer_a, 'c0000000-0000-4000-8000-000000000001',
+  'ברז דולף — שישה קילומטרים מבעל המקצוע.',
+  extensions.st_point(34.7818, 32.1393)::extensions.geography,
+  'רחוב רחוק 1, תל אביב', 'flexible', 'open'
+);
+
+-- And one in Eilat, ~300 km away, which no pro in this fixture covers. It is
+-- what the "cannot bid" case below needs now that a customer cannot narrow a
+-- job to put it out of reach.
+insert into public.jobs (
+  id, customer_id, category_id, description, location, address_text,
+  preferred_time, status
+) values (
+  'd0000000-0000-4000-8000-0000000000f3',
+  :customer_a, 'c0000000-0000-4000-8000-000000000001',
+  'נזילה באילת — מחוץ לאזור הפעילות של כל בעלי המקצוע כאן.',
+  extensions.st_point(34.9482, 29.5581)::extensions.geography,
+  'שדרות התמרים 8, אילת', 'flexible', 'open'
+);
 
 insert into storage.objects (bucket_id, name, owner, metadata) values
   ('verification-docs', 'a0000000-0000-4000-8000-000000000003/id-card.jpg', :pro_verified, '{}'),
@@ -646,17 +650,32 @@ select throws_ok(
   'an already-verified pro cannot re-submit themselves into the approval queue'
 );
 
--- The both-radii rule, which is the decision this phase had to make.
+-- The reachability rule, which is now one radius and not two.
 select is(
   (select count(*) from public.jobs where id = 'd0000000-0000-4000-8000-0000000000f1'),
-  0::bigint,
-  'a job 6 km away is invisible to a pro with a 10 km radius when its customer asked for 3 km'
+  1::bigint,
+  'a job 6 km away is visible to a pro whose own radius is 10 km — the customer asked for nothing'
+);
+
+-- The pro's own radius is the whole of the rule, so narrowing it is what hides
+-- the job. `radius_km` is one of the columns a pro may write about themselves,
+-- which is the point: this is their decision and nobody else's.
+select lives_ok(
+  $$ update public.pro_profiles set radius_km = 3
+      where user_id = 'a0000000-0000-4000-8000-000000000003' $$,
+  'a pro may narrow their own service radius'
 );
 
 select is(
-  (select count(*) from public.jobs where id = 'd0000000-0000-4000-8000-0000000000f2'),
-  1::bigint,
-  'the identical job is visible once its customer asks for 10 km — only search_radius_km differed'
+  (select count(*) from public.jobs where id = 'd0000000-0000-4000-8000-0000000000f1'),
+  0::bigint,
+  'and the same job disappears — only the pro''s radius_km decides now'
+);
+
+select lives_ok(
+  $$ update public.pro_profiles set radius_km = 10
+      where user_id = 'a0000000-0000-4000-8000-000000000003' $$,
+  'restored, so the fixtures the rest of this file leans on still hold'
 );
 
 -- The feed function, which runs as the caller and therefore inherits all of
@@ -790,7 +809,7 @@ reset role;
 \set bid_two '''b0000000-0000-4000-8000-000000000002'''
 \set bid_three '''b0000000-0000-4000-8000-000000000003'''
 \set bid_four '''b0000000-0000-4000-8000-000000000004'''
-\set job_far_wide '''d0000000-0000-4000-8000-0000000000f2'''
+\set job_in_range '''d0000000-0000-4000-8000-0000000000f1'''
 
 -- The seeded bids carry a wall-clock deadline, so a suite run more than half
 -- an hour after `db reset` would silently be testing lapsed rows. Pin them.
@@ -876,7 +895,7 @@ select throws_ok(
 
 select throws_ok(
   $$ insert into public.bids (job_id, pro_id, price, eta_minutes, expires_at)
-     values ('d0000000-0000-4000-8000-0000000000f2',
+     values ('d0000000-0000-4000-8000-0000000000f1',
              'a0000000-0000-4000-8000-000000000003', 250, 30,
              now() + interval '1 year') $$,
   '42501',
@@ -886,22 +905,22 @@ select throws_ok(
 
 select throws_ok(
   $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
-     values ('d0000000-0000-4000-8000-0000000000f1',
+     values ('d0000000-0000-4000-8000-0000000000f3',
              'a0000000-0000-4000-8000-000000000003', 250, 30) $$,
   '42501',
   null,
-  'and cannot bid on a job the customer asked to broadcast no further than 3 km'
+  'and cannot bid on a job outside their own service radius — the only radius left'
 );
 
 select lives_ok(
   $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
-     values ('d0000000-0000-4000-8000-0000000000f2',
+     values ('d0000000-0000-4000-8000-0000000000f1',
              'a0000000-0000-4000-8000-000000000003', 250, 30) $$,
-  'the identical job, broadcast to 10 km, does take their bid'
+  'while a job inside it takes their bid, with no customer-side radius involved'
 );
 
 select is(
-  (select status from public.jobs where id = :job_far_wide),
+  (select status from public.jobs where id = :job_in_range),
   'bidding',
   'the first bid moves the job from open to bidding, by trigger — the pro holds no update on jobs'
 );
@@ -3385,7 +3404,11 @@ insert into pg_temp_anon_expected (signature) values
   ('pro_has_bid(p_job_id uuid, p_pro_id uuid)'),
   ('pro_public_profile(p_slug text)'),
   ('pro_public_reviews(p_slug text, p_limit integer)'),
-  ('pro_serves_job(p_point geography, p_search_radius_km integer)'),
+  -- pro_serves_job() is deliberately absent. The two-argument version it
+  -- replaced kept PostgreSQL's default PUBLIC execute grant and so appeared
+  -- here; the one-argument version revokes it. Nothing is lost: it reads
+  -- auth.uid(), which is null for anon, and can_read_job_media() calls it from
+  -- inside a security definer function, where the definer's privileges apply.
   ('public_pro_slugs()');
 
 create temporary view pg_temp_anon_actual as
@@ -3480,11 +3503,11 @@ set local role authenticated;
 select throws_ok(
   $$ insert into public.jobs
        (customer_id, category_id, description, location, address_text,
-        preferred_time, search_radius_km, status)
+        preferred_time, status)
      values ('a0000000-0000-4000-8000-000000000001',
              'c0000000-0000-4000-8000-000000000001',
              'קריאה שנולדה גמורה', extensions.st_point(34.78, 32.08)::extensions.geography,
-             'רחוב הרצל 1, תל אביב', 'asap', 5, 'completed') $$,
+             'רחוב הרצל 1, תל אביב', 'asap', 'completed') $$,
   '42501',
   null,
   'a customer cannot post a job that is already completed'
@@ -3493,11 +3516,11 @@ select throws_ok(
 select throws_ok(
   $$ insert into public.jobs
        (customer_id, category_id, description, location, address_text,
-        preferred_time, search_radius_km, selected_bid_id)
+        preferred_time, selected_bid_id)
      values ('a0000000-0000-4000-8000-000000000001',
              'c0000000-0000-4000-8000-000000000001',
              'קריאה ששובצה מראש', extensions.st_point(34.78, 32.08)::extensions.geography,
-             'רחוב הרצל 1, תל אביב', 'asap', 5,
+             'רחוב הרצל 1, תל אביב', 'asap',
              'b0000000-0000-4000-8000-000000000001') $$,
   '42501',
   null,
@@ -3507,11 +3530,11 @@ select throws_ok(
 select lives_ok(
   $$ insert into public.jobs
        (customer_id, category_id, description, location, address_text,
-        preferred_time, search_radius_km)
+        preferred_time)
      values ('a0000000-0000-4000-8000-000000000001',
              'c0000000-0000-4000-8000-000000000001',
              'נזילה חדשה', extensions.st_point(34.78, 32.08)::extensions.geography,
-             'רחוב הרצל 1, תל אביב', 'asap', 5) $$,
+             'רחוב הרצל 1, תל אביב', 'asap') $$,
   'while posting an ordinary job still works, and the status default does the rest'
 );
 
@@ -3695,12 +3718,13 @@ select is(
 reset role;
 
 -- ===========================================================================
--- Phase 12: pros_near_point() and a widenable search radius
+-- pros_near_point(): the count the posting form shows before a job exists
 --
--- The count is the number the posting form shows before a job exists, and the
--- grant is what lets a customer rescue a call that got no offers. Both are new
--- surfaces on `pro_profiles` and `jobs`, so both are proved here rather than
--- trusted to the screen that calls them.
+-- It lost its radius argument on 11.9.2026 along with the customer's chips. The
+-- question it answers is now "how many verified, accepting pros have drawn a
+-- service area that contains this point" — each judged by their own radius_km,
+-- which is the same predicate the RLS policy on `jobs` applies. A number here
+-- that counted anything else would be a promise the feed then breaks.
 -- ===========================================================================
 
 select pg_temp.act_as(:customer_a);
@@ -3709,65 +3733,23 @@ set local role authenticated;
 -- job_a sits in Tel Aviv and :pro_verified covers it — sections 3 and 10 lean
 -- on that fixture, so the same point is what makes this count non-zero.
 select ok(
-  public.pros_near_point(32.0853, 34.7818, 30) >= 1,
+  public.pros_near_point(32.0853, 34.7818) >= 1,
   'a point a verified, accepting pro covers is counted'
 );
 
 select is(
-  public.pros_near_point(29.5581, 34.9482, 30),
+  public.pros_near_point(29.5581, 34.9482),
   0,
   'and Eilat is counted as nobody — the gap the offers screen has to say out loud'
 );
 
--- The parameter needs no clamp because each pro''s own radius bounds it. Asking
--- about ten thousand kilometres must not turn every pro in the country into a
--- neighbour.
-select is(
-  public.pros_near_point(29.5581, 34.9482, 10000),
-  0,
-  'an absurd radius is still bounded by each pro''s own — least(), the same as the RLS policy'
-);
-
-select lives_ok(
-  $$ update public.jobs set search_radius_km = 30
-      where id = 'd0000000-0000-4000-8000-000000000001' $$,
-  'the customer who posted the job may widen how far it is broadcast'
-);
-
-reset role;
-select pg_temp.act_as(:customer_b);
-set local role authenticated;
-
-select is(
-  (select count(*) from public.jobs
-    where id = 'd0000000-0000-4000-8000-000000000001'),
-  0::bigint,
-  'another customer cannot even see the job, so the new grant widens nothing'
-);
-
-reset role;
-select pg_temp.act_as(:pro_verified);
-set local role authenticated;
-
--- The pro reads job_a through the feed policy, and the only UPDATE policy on
--- `jobs` is the owner''s. So this does not raise — it matches no row and
--- changes nothing, which is the outcome worth asserting rather than the
--- mechanism: a silent no-op is exactly how RLS refuses a write.
-select lives_ok(
-  $$ update public.jobs set search_radius_km = 1
-      where id = 'd0000000-0000-4000-8000-000000000001' $$,
-  'a pro''s attempt to narrow a job they merely receive matches no row'
-);
-
-reset role;
-select pg_temp.act_as(:customer_a);
-set local role authenticated;
-
-select is(
-  (select search_radius_km from public.jobs
-    where id = 'd0000000-0000-4000-8000-000000000001'),
-  30,
-  'and the radius is still what its owner set'
+-- The customer no longer holds a column grant on a radius, because there is no
+-- longer a radius on `jobs` at all. This is the assertion that replaces the
+-- Phase 12 pair proving they could widen one: the column is gone, so the write
+-- that used to rescue a call cannot be expressed.
+select hasnt_column(
+  'public', 'jobs', 'search_radius_km',
+  'a job carries no broadcast radius of its own — the pro''s radius_km is the whole rule'
 );
 
 reset role;
@@ -3776,7 +3758,7 @@ reset role;
 set local role anon;
 
 select throws_ok(
-  $$ select public.pros_near_point(32.0853, 34.7818, 30) $$,
+  $$ select public.pros_near_point(32.0853, 34.7818) $$,
   '42501',
   null,
   'an anonymous visitor cannot count the pros around an arbitrary point'
@@ -3866,14 +3848,14 @@ reset role;
 
 insert into public.jobs (
   id, customer_id, category_id, description, location, address_text,
-  preferred_time, search_radius_km, status
+  preferred_time, status
 ) values (
   'd0000000-0000-4000-8000-00000000e0a1',
   'a0000000-0000-4000-8000-000000000001',
   'c0000000-0000-4000-8000-000000000001',
   'ניקוז המקלחת סתום ומים עולים ברצפה.',
   extensions.st_point(34.7818, 32.0853)::extensions.geography,
-  'ויצמן 4, תל אביב', 'today', 10, 'bidding'
+  'ויצמן 4, תל אביב', 'today', 'bidding'
 );
 
 -- ---------------------------------------------------------------------------
@@ -4036,12 +4018,12 @@ set local role authenticated;
 select lives_ok(
   $$ insert into public.jobs
        (customer_id, category_id, description, location, address_text,
-        preferred_time, search_radius_km)
+        preferred_time)
      values ('a0000000-0000-4000-8000-000000000001',
              'c0000000-0000-4000-8000-000000000001',
              'ברז נוטף במטבח כבר שלושה ימים.',
              'SRID=4326;POINT(34.7818 32.0853)',
-             'דיזנגוף 100, תל אביב', 'today', 10) $$,
+             'דיזנגוף 100, תל אביב', 'today') $$,
   'a customer posts a call'
 );
 

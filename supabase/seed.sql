@@ -114,7 +114,7 @@ update public.pro_profiles
 
 insert into public.jobs (
   id, customer_id, category_id, description, photo_urls, location, address_text,
-  preferred_time, search_radius_km, status, created_at
+  preferred_time, status, created_at
 ) values
   (
     'd0000000-0000-4000-8000-000000000001',
@@ -128,7 +128,6 @@ insert into public.jobs (
     extensions.st_point(34.7806, 32.0809)::extensions.geography,
     'רחוב דיזנגוף 100, תל אביב',
     'today',
-    5,
     'open',
     -- Older than the bids below it. Obvious, and worth writing down: the
     -- admin overview's "זמן להצעה ראשונה" averages (first bid − posting), and
@@ -144,7 +143,6 @@ insert into public.jobs (
     extensions.st_point(34.7749, 32.0714)::extensions.geography,
     'רחוב אלנבי 40, תל אביב',
     'tomorrow',
-    5,
     'open',
     now() - interval '4 hours'
   );
@@ -361,7 +359,7 @@ insert into public.messages (job_id, pro_id, sender_id, body, created_at, read_a
 
 insert into public.jobs (
   id, customer_id, category_id, description, photo_urls, location, address_text,
-  preferred_time, search_radius_km, status, created_at
+  preferred_time, status, created_at
 ) values (
   'd0000000-0000-4000-8000-000000000003',
   'a0000000-0000-4000-8000-000000000002',
@@ -371,7 +369,6 @@ insert into public.jobs (
   extensions.st_point(34.7745, 32.0700)::extensions.geography,
   'רחוב אלנבי 40, תל אביב',
   'asap',
-  5,
   'open',
   now() - interval '2 hours'
 );
@@ -446,7 +443,7 @@ values (
 
 insert into public.jobs (
   id, customer_id, category_id, description, photo_urls, location, address_text,
-  preferred_time, search_radius_km, status, created_at
+  preferred_time, status, created_at
 ) values
   (
     'd0000000-0000-4000-8000-000000000004',
@@ -456,7 +453,7 @@ insert into public.jobs (
     '{}',
     extensions.st_point(34.7806, 32.0809)::extensions.geography,
     'רחוב ברודצקי 18, תל אביב',
-    'asap', 5, 'open', now() - interval '1 day' - interval '3 hours'
+    'asap', 'open', now() - interval '1 day' - interval '3 hours'
   ),
   (
     'd0000000-0000-4000-8000-000000000005',
@@ -466,7 +463,7 @@ insert into public.jobs (
     '{}',
     extensions.st_point(34.7749, 32.0714)::extensions.geography,
     'רחוב דיזנגוף 210, תל אביב',
-    'this_week', 5, 'open', now() - interval '4 days' - interval '5 hours'
+    'this_week', 'open', now() - interval '4 days' - interval '5 hours'
   ),
   (
     'd0000000-0000-4000-8000-000000000006',
@@ -476,7 +473,7 @@ insert into public.jobs (
     '{}',
     extensions.st_point(34.7770, 32.0830)::extensions.geography,
     'רחוב יהודה המכבי 7, תל אביב',
-    'flexible', 5, 'open', now() - interval '12 days' - interval '2 hours'
+    'flexible', 'open', now() - interval '12 days' - interval '2 hours'
   );
 
 -- 'accepted' straight away, for the reason the Phase 5 block gives: the seed is
@@ -569,7 +566,7 @@ insert into public.reviews (id, job_id, rating, comment, created_at) values
 
 insert into public.jobs (
   id, customer_id, category_id, description, photo_urls, location, address_text,
-  preferred_time, search_radius_km, status, created_at
+  preferred_time, status, created_at
 ) values (
   'd0000000-0000-4000-8000-000000000007',
   'a0000000-0000-4000-8000-000000000002',
@@ -578,7 +575,7 @@ insert into public.jobs (
   '{}',
   extensions.st_point(34.8100, 32.1100)::extensions.geography,
   'רחוב ז׳בוטינסקי 55, רמת גן',
-  'this_week', 5, 'open', now() - interval '3 hours'
+  'this_week', 'open', now() - interval '3 hours'
 );
 
 -- Written directly, as everything else in this file is: through the app a
@@ -662,7 +659,7 @@ update public.reviews
 
 insert into public.jobs (
   id, customer_id, category_id, description, photo_urls, location, address_text,
-  preferred_time, search_radius_km, status, created_at
+  preferred_time, status, created_at
 ) values (
   'd0000000-0000-4000-8000-000000000008',
   'a0000000-0000-4000-8000-000000000001',
@@ -671,7 +668,7 @@ insert into public.jobs (
   '{}',
   extensions.st_point(34.7810, 32.0790)::extensions.geography,
   'רחוב ארלוזורוב 21, תל אביב',
-  'today', 5, 'awaiting_pro', now() - interval '35 minutes'
+  'today', 'awaiting_pro', now() - interval '35 minutes'
 );
 
 -- Written directly, as every other bid in this file is: `status`,
@@ -718,7 +715,7 @@ insert into public.bids (
 -- ---------------------------------------------------------------------------
 insert into public.jobs (
   id, customer_id, category_id, description, photo_urls, location, address_text,
-  preferred_time, search_radius_km, status, created_at
+  preferred_time, status, created_at
 ) values (
   'd0000000-0000-4000-8000-000000000009',
   'a0000000-0000-4000-8000-000000000001',
@@ -727,5 +724,5 @@ insert into public.jobs (
   '{}',
   extensions.st_point(34.9482, 29.5581)::extensions.geography,
   'שדרות התמרים 8, אילת',
-  'this_week', 10, 'open', now() - interval '2 hours'
+  'this_week', 'open', now() - interval '2 hours'
 );

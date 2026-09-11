@@ -54,7 +54,7 @@ export default async function JobPublishedPage({
         </span>
         <h1 className="mt-4 text-3xl font-bold text-ink">הקריאה פורסמה!</h1>
         <p className={PAGE_LEAD}>
-          הקריאה נשלחת לבעלי מקצוע מאומתים ברדיוס {job.searchRadiusKm} ק״מ.
+          הקריאה נשלחת לכל בעל מקצוע מאומת שהכתובת שלכם נמצאת באזור הפעילות שלו.
           ההצעות הראשונות מגיעות תוך דקות.
         </p>
       </header>
@@ -77,7 +77,6 @@ export default async function JobPublishedPage({
                 job.preferredTime)
               : "—"}
           </Row>
-          <Row label="רדיוס חיפוש">{job.searchRadiusKm} ק״מ</Row>
           {/*
             This row printed `32.08123, 34.78012` under the heading "מיקום
             שנשמר". It was a developer verifying that the geocode had worked,
