@@ -48,7 +48,7 @@ export const dynamic = "force-dynamic";
  * exactly what a reload would have shown.
  *
  * The design's left column carries a map of nearby pros. With no Maps key it
- * says so instead, and the count beside it — "נמצאו N בעלי מקצוע ברדיוס X" —
+ * says so instead, and the count beside it — "נשלחה ל-N בעלי מקצוע מאומתים" —
  * is a real PostGIS count either way, which is the part that carries meaning.
  */
 export default async function JobOffersPage({
@@ -108,17 +108,16 @@ export default async function JobOffersPage({
               {job.categoryName ?? "קריאה"} · {job.addressText} ·{" "}
               {/* "נמצאו 0 בעלי מקצוע" is the default answer on a thin market,
                   and reads as a bug rather than as a fact. Zero gets its own
-                  sentence — and the card below gets a button. */}
+                  sentence — and the card below explains it. No radius in
+                  either: the customer has not had one since 11.9.2026, and a
+                  number they never chose is not theirs to be told. */}
               {prosNearby === 0 ? (
-                <>
-                  אין כרגע בעל מקצוע מאומת ברדיוס{" "}
-                  <span className="ltr-nums">{job.searchRadiusKm}</span> ק״מ
-                </>
+                <>אין כרגע בעל מקצוע מאומת שמכסה את הכתובת</>
               ) : (
                 <>
-                  נמצאו <span className="ltr-nums">{prosNearby}</span> בעלי
-                  מקצוע ברדיוס{" "}
-                  <span className="ltr-nums">{job.searchRadiusKm}</span> ק״מ
+                  הקריאה נשלחה ל-
+                  <span className="ltr-nums">{prosNearby}</span> בעלי מקצוע
+                  מאומתים באזור
                 </>
               )}
             </p>
@@ -156,8 +155,7 @@ export default async function JobOffersPage({
               </div>
             )}
             <p className="border-t border-line p-4 text-sm text-muted">
-              כל ההצעות מבעלי מקצוע מאומתים ברדיוס{" "}
-              <span className="ltr-nums">{job.searchRadiusKm}</span> ק״מ מהכתובת
+              כל ההצעות מבעלי מקצוע מאומתים שהגדירו אזור פעילות שכולל את הכתובת
               שלך.
             </p>
           </Card>
@@ -257,7 +255,7 @@ export default async function JobOffersPage({
 
           {bids.length === 0 ? (
             prosNearby === 0 ? (
-              <NoProsNearby jobId={jobId} radiusKm={job.searchRadiusKm} />
+              <NoProsNearby />
             ) : (
               <EmptyState
                 icon={ClockIcon}

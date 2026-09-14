@@ -318,7 +318,6 @@ export type Database = {
           longitude: number | null
           photo_urls: string[]
           preferred_time: string | null
-          search_radius_km: number
           selected_bid_id: string | null
           status: string
           video_url: string | null
@@ -336,7 +335,6 @@ export type Database = {
           longitude?: number | null
           photo_urls?: string[]
           preferred_time?: string | null
-          search_radius_km?: number
           selected_bid_id?: string | null
           status?: string
           video_url?: string | null
@@ -354,7 +352,6 @@ export type Database = {
           longitude?: number | null
           photo_urls?: string[]
           preferred_time?: string | null
-          search_radius_km?: number
           selected_bid_id?: string | null
           status?: string
           video_url?: string | null
@@ -1336,7 +1333,6 @@ export type Database = {
           longitude: number
           photo_urls: string[]
           preferred_time: string
-          search_radius_km: number
           status: string
         }[]
       }
@@ -1394,13 +1390,10 @@ export type Database = {
           reviewer_name: string
         }[]
       }
-      pro_serves_job: {
-        Args: { p_point: unknown; p_search_radius_km: number }
-        Returns: boolean
-      }
+      pro_serves_job: { Args: { p_point: unknown }; Returns: boolean }
       pros_in_range: { Args: { p_job_id: string }; Returns: number }
       pros_near_point: {
-        Args: { p_lat: number; p_lng: number; p_radius_km: number }
+        Args: { p_lat: number; p_lng: number }
         Returns: number
       }
       pros_serving_job: { Args: { p_job_id: string }; Returns: string[] }

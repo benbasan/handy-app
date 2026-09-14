@@ -146,7 +146,6 @@ export default async function AdminJobDossierPage({
                   : "לא צוין"
               }
             />
-            <Fact label="רדיוס חיפוש" value={`${job.searchRadiusKm} ק״מ`} ltr />
             <Fact label="נפתחה" value={formatReceiptDate(job.createdAt)} ltr />
           </dl>
 

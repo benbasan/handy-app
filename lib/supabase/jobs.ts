@@ -38,7 +38,6 @@ export type JobSummary = {
   addressText: string;
   status: string;
   preferredTime: string | null;
-  searchRadiusKm: number;
   createdAt: string;
   categoryName: string | null;
   categorySlug: string | null;
@@ -58,7 +57,7 @@ export type JobSummary = {
 };
 
 const JOB_COLUMNS =
-  "id, description, address_text, status, preferred_time, search_radius_km, created_at, photo_urls, video_url, voice_note_url, latitude, longitude, categories(name_he, slug)";
+  "id, description, address_text, status, preferred_time, created_at, photo_urls, video_url, voice_note_url, latitude, longitude, categories(name_he, slug)";
 
 /**
  * The list view asks for the offers alongside the jobs — one round trip, under
@@ -85,7 +84,6 @@ type JobRow = {
   address_text: string;
   status: string;
   preferred_time: string | null;
-  search_radius_km: number;
   created_at: string;
   photo_urls: string[];
   video_url: string | null;
@@ -112,7 +110,6 @@ function toSummary(row: JobRow): JobSummary {
     addressText: row.address_text,
     status: row.status,
     preferredTime: row.preferred_time,
-    searchRadiusKm: row.search_radius_km,
     createdAt: row.created_at,
     categoryName: row.categories?.name_he ?? null,
     categorySlug: row.categories?.slug ?? null,
@@ -181,14 +178,14 @@ export async function signJobMedia(
 }
 
 /**
- * How many verified, accepting pros would receive a call posted at this point
- * with this radius — asked before the call exists.
+ * How many verified, accepting pros would receive a call posted at this point —
+ * asked before the call exists.
  *
- * `pros_in_range()` answers the same question of a saved row and checks
- * ownership, which is right for the offers screen and unusable on the form.
- * Both read `least(pro.radius_km, search_radius_km)`, so the number the
- * customer sees while choosing a radius and the number they see afterwards are
- * the same measurement.
+ * Each pro is judged by their own `radius_km` and nothing else, which since
+ * 11.9.2026 is the whole of the reachability rule. `pros_in_range()` answers
+ * the same question of a saved row and checks ownership, which is right for the
+ * offers screen and unusable on the form; the two read the same predicate, so
+ * the number on the form and the number after publishing are one measurement.
  *
  * Returns null when the count could not be taken. The caller shows nothing
  * rather than a zero, because "nobody covers you" and "we could not ask" are
@@ -197,18 +194,16 @@ export async function signJobMedia(
 export async function countProsNearPoint(
   lat: number,
   lng: number,
-  radiusKm: number,
 ): Promise<number | null> {
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("pros_near_point", {
     p_lat: lat,
     p_lng: lng,
-    p_radius_km: radiusKm,
   });
 
   if (error) {
-    logServerError("jobs.countProsNearPoint", error, { radiusKm });
+    logServerError("jobs.countProsNearPoint", error, {});
     return null;
   }
 

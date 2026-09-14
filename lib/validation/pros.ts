@@ -44,7 +44,8 @@ export const WORK_DAY_FULL_LABEL: Record<number, string> = {
 
 /**
  * The pro's own travel radius (רדיוס פעילות). Distinct from a job's
- * `search_radius_km` — see the glossary in CLAUDE.md section 4. "כל העיר" in
+ * the job's own radius, which no longer exists — see the glossary in CLAUDE.md
+ * section 4. "כל העיר" in
  * the design is the widest chip, not an unbounded one: an unbounded radius
  * would make the GiST index pointless and the feed meaningless.
  */
