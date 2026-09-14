@@ -50,7 +50,7 @@ export async function PersonalLinkCard({ slug }: { slug: string }) {
 
       <p
         dir="ltr"
-        className="mt-3 truncate rounded-lg bg-canvas px-3 py-2 text-center font-mono text-xs text-ink"
+        className="mt-3 rounded-lg bg-canvas px-3 py-2 text-center font-mono text-xs break-all text-ink"
       >
         {link}
       </p>
