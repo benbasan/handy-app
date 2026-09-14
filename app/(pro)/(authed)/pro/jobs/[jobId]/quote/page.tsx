@@ -15,6 +15,7 @@ import {
   countBidsOnJob,
   getSimilarBidRange,
   listMyBids,
+  recordJobView,
 } from "@/lib/supabase/bids";
 import { getJob } from "@/lib/supabase/jobs";
 import { listFeedJobs } from "@/lib/supabase/pros";
@@ -62,7 +63,15 @@ export default async function SubmitBidPage({
     // Only for the "1.2 ק״מ ממך" line: the distance is computed by PostGIS in
     // the feed query, and the card in this page is the same job.
     listFeedJobs(null),
+    // "N בעלי מקצוע צפו בקריאה" on the customer's side (Phase 13.7). A no-op
+    // for a job outside this pro's radius or no longer collecting offers, and
+    // its failure is never this page's problem — it is a statistic.
+    recordJobView(jobId),
   ]);
+
+  // Read once, on the server, and handed to the form: which arrival slots are
+  // still open has to be the same answer on both sides of hydration.
+  const renderedAt = new Date().toISOString();
 
   const distanceKm =
     feed.find((entry) => entry.id === jobId)?.distanceKm ?? null;
@@ -134,7 +143,12 @@ export default async function SubmitBidPage({
         </p>
       </Card>
 
-      <SubmitBidForm jobId={jobId} priceRange={priceRange} />
+      <SubmitBidForm
+        jobId={jobId}
+        priceRange={priceRange}
+        preferredTime={job.preferredTime}
+        now={renderedAt}
+      />
     </div>
   );
 }

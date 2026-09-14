@@ -5,12 +5,14 @@ import { revalidatePath } from "next/cache";
 import { addressToStore, geocodeAddress } from "@/lib/maps/geocode";
 import { toEwkt } from "@/lib/maps/geometry";
 import { logExpectedRefusal, logServerError } from "@/lib/observability";
-import { optional } from "@/lib/actions/formData";
+import { fieldErrorsOf, optional } from "@/lib/actions/formData";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, requireRole } from "@/lib/supabase/session";
 import { countProsNearPoint } from "@/lib/supabase/jobs";
 import { coordinatesInIsrael } from "@/lib/maps/geometry";
-import { createJobSchema } from "@/lib/validation/jobs";
+import { addJobDetailsSchema, createJobSchema } from "@/lib/validation/jobs";
+import type { AddJobDetailsState } from "@/lib/actions/state";
+import { CUSTOMER_ROUTES } from "@/lib/routes";
 
 export type CreateJobState = {
   error?: string;
@@ -199,4 +201,60 @@ export async function countProsCovering(
   if (!coordinatesInIsrael(lat, lng)) return null;
 
   return countProsNearPoint(lat, lng);
+}
+
+/**
+ * "הוסיפו פרטים לקריאה" — text and photos added to a call that has not had a
+ * pro take it (Phase 13.7).
+ *
+ * The customer is the one the quiet-call nudge speaks to, and without this the
+ * nudge would suggest something they could not do. `add_job_details()` appends
+ * and never rewrites: pros may already have priced what was written, and an
+ * offer made against one description must not come to mean another.
+ */
+export async function addJobDetails(
+  _prevState: AddJobDetailsState,
+  formData: FormData,
+): Promise<AddJobDetailsState> {
+  const user = await requireRole("customer");
+
+  const parsed = addJobDetailsSchema(user.id).safeParse({
+    jobId: formData.get("jobId"),
+    text: formData.get("text") ?? "",
+    photoPaths: formData.getAll("photoPath").filter((value) => value !== ""),
+  });
+
+  if (!parsed.success) {
+    logExpectedRefusal("jobs.addJobDetails.invalid", parsed.error, {
+      jobId: String(formData.get("jobId") ?? ""),
+    });
+    return {
+      error: "לא הצלחנו להוסיף את הפרטים.",
+      fieldErrors: fieldErrorsOf(parsed.error),
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_job_details", {
+    p_job_id: parsed.data.jobId,
+    p_text: parsed.data.text,
+    p_photo_paths: parsed.data.photoPaths,
+  });
+
+  if (error) {
+    const context = { jobId: parsed.data.jobId };
+    if (error.code === "22023") {
+      logExpectedRefusal("jobs.addJobDetails", error, context);
+      return {
+        error: error.message.includes("too many photos")
+          ? "לקריאה כבר יש את מספר התמונות המרבי."
+          : "בעל מקצוע כבר לקח את הקריאה, ולכן אי אפשר להוסיף לה פרטים. אפשר לכתוב לו בצ׳אט.",
+      };
+    }
+    logServerError("jobs.addJobDetails", error, context);
+    return { error: "לא הצלחנו להוסיף את הפרטים. נסו שוב בעוד רגע." };
+  }
+
+  revalidatePath(CUSTOMER_ROUTES.offers(parsed.data.jobId));
+  return { savedAt: Date.now() };
 }

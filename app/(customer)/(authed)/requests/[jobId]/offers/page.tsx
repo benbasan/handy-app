@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddJobDetails } from "@/components/customer/AddJobDetails";
 import { BidCard } from "@/components/customer/BidCard";
 import { NoProsNearby } from "@/components/customer/NoProsNearby";
 import { WaitingForProCard } from "@/components/customer/WaitingForProCard";
@@ -9,14 +10,16 @@ import {
   BUTTON_CTA,
   BUTTON_QUIET,
   Card,
-  EmptyState,
+  CARD_BASE,
+  SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
-import { ClockIcon, MapIcon } from "@/components/ui/icons";
+import { CheckIcon, ClockIcon, MapIcon } from "@/components/ui/icons";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { CUSTOMER_ROUTES } from "@/lib/routes";
 import {
   bidHighlights,
+  countJobViews,
   countProsInRange,
   listBidsForJob,
   sortBids,
@@ -55,7 +58,7 @@ export default async function JobOffersPage({
   params,
   searchParams,
 }: PageProps<"/requests/[jobId]/offers">) {
-  await requireRole("customer");
+  const user = await requireRole("customer");
 
   const [{ jobId }, query] = await Promise.all([params, searchParams]);
 
@@ -69,10 +72,18 @@ export default async function JobOffersPage({
   // job" — the correct answer either way.
   if (!job) notFound();
 
-  const [bids, prosNearby] = await Promise.all([
+  const [bids, prosNearby, views] = await Promise.all([
     listBidsForJob(jobId),
     countProsInRange(jobId),
+    countJobViews(jobId),
   ]);
+
+  // Read once, on the server, so "היום"/"מחר" on a window is the same answer
+  // on both sides of hydration.
+  const now = new Date().toISOString();
+
+  // Adding to a call is possible until a pro takes it (add_job_details()).
+  const collecting = job.status === "open" || job.status === "bidding";
 
   const requestedSort = Array.isArray(query.sort) ? query.sort[0] : query.sort;
   const sort: BidSort = isBidSort(requestedSort)
@@ -179,6 +190,15 @@ export default async function JobOffersPage({
               videoPath={job.videoPath}
               voiceNotePath={job.voiceNotePath}
             />
+            {/* With offers already on the screen the pulse card is gone, so
+                adding to the call lives here instead. */}
+            {collecting && bids.length > 0 && (
+              <AddJobDetails
+                jobId={jobId}
+                userId={user.id}
+                photoCount={job.photoPaths.length}
+              />
+            )}
           </Card>
         </aside>
 
@@ -257,22 +277,84 @@ export default async function JobOffersPage({
             prosNearby === 0 ? (
               <NoProsNearby />
             ) : (
-              <EmptyState
-                icon={ClockIcon}
-                title="ההצעות הראשונות מגיעות תוך דקות"
-                body={
-                  <>
-                    הקריאה נשלחה ל-
-                    <span className="ltr-nums">{prosNearby}</span> בעלי מקצוע
-                    מאומתים בסביבה. אין צורך לרענן — הצעה חדשה תופיע כאן מעצמה.
-                  </>
-                }
-                action={
-                  <Link href={CUSTOMER_ROUTES.account} className={BUTTON_QUIET}>
-                    לאזור האישי
-                  </Link>
-                }
-              />
+              /*
+               * What is happening while nothing has arrived (Phase 13.7). Every
+               * line is counted from rows — the pros covering the address, the
+               * ones who opened the call — and the views line exists only in
+               * this state: once an offer is on the screen, "5 צפו" beside one
+               * offer teaches the customer to distrust the only one they have.
+               */
+              <div className={`${CARD_BASE} p-6`}>
+                <div className="flex items-center gap-3">
+                  <ClockIcon className="size-7 shrink-0 text-brand" />
+                  <h3 className={SECTION_TITLE}>
+                    ההצעות הראשונות מגיעות תוך דקות
+                  </h3>
+                </div>
+
+                <ol className="mt-5 space-y-3 text-sm">
+                  <li className="flex items-start gap-2 text-ink">
+                    <CheckIcon className="mt-0.5 size-4 shrink-0 text-cta-strong" />
+                    <span>
+                      הקריאה נשלחה ל-
+                      <span className="ltr-nums">{prosNearby}</span> בעלי מקצוע
+                      מאומתים באזור
+                    </span>
+                  </li>
+                  <li
+                    className={`flex items-start gap-2 ${views ? "text-ink" : "text-muted"}`}
+                  >
+                    {views ? (
+                      <CheckIcon className="mt-0.5 size-4 shrink-0 text-cta-strong" />
+                    ) : (
+                      <span
+                        aria-hidden
+                        className="mt-1.5 size-2 shrink-0 rounded-full bg-line"
+                      />
+                    )}
+                    <span>
+                      {views === null || views === 0 ? (
+                        "עוד אף בעל מקצוע לא פתח אותה"
+                      ) : views === 1 ? (
+                        "בעל מקצוע אחד כבר צפה בה"
+                      ) : (
+                        <>
+                          <span className="ltr-nums">{views}</span> בעלי מקצוע
+                          כבר צפו בה
+                        </>
+                      )}
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2 text-muted">
+                    <span
+                      aria-hidden
+                      className="mt-1.5 size-2 shrink-0 rounded-full bg-line"
+                    />
+                    <span>הצעה ראשונה תופיע כאן מעצמה — אין צורך לרענן</span>
+                  </li>
+                </ol>
+
+                {collecting && (
+                  <div className="mt-6 border-t border-line pt-5">
+                    <p className="text-sm text-muted">
+                      תמונה או עוד כמה פרטים עוזרים לבעלי מקצוע לתמחר מהר יותר.
+                    </p>
+                    <AddJobDetails
+                      jobId={jobId}
+                      userId={user.id}
+                      photoCount={job.photoPaths.length}
+                      prominent
+                    />
+                  </div>
+                )}
+
+                <Link
+                  href={CUSTOMER_ROUTES.account}
+                  className={`${BUTTON_QUIET} ${BUTTON_COMPACT} mt-4 w-full`}
+                >
+                  לאזור האישי
+                </Link>
+              </div>
             )
           ) : (
             <ul className="space-y-4">
@@ -286,6 +368,7 @@ export default async function JobOffersPage({
                   /* Only under "מומלץ", and only while the choice is still
                      open: lifting a card under a price sort would be the
                      screen recommending something the sort did not. */
+                  now={now}
                   featured={
                     index === 0 &&
                     sort === "recommended" &&

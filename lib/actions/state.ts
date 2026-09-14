@@ -193,3 +193,12 @@ export type SavedPlaceState = {
 };
 
 export const EMPTY_SAVED_PLACE_STATE: SavedPlaceState = {};
+
+export type AddJobDetailsState = {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+  /** Set when the addition was saved, so the form can empty itself. */
+  savedAt?: number;
+};
+
+export const EMPTY_ADD_JOB_DETAILS_STATE: AddJobDetailsState = {};

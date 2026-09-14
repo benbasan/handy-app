@@ -43,6 +43,16 @@ test.describe("an anonymous visitor", () => {
     { path: "/admin/disputes", login: "/admin/login" },
   ];
 
+  test("reaches the posting form — the phone is asked for at publish", async ({
+    page,
+  }) => {
+    await page.goto("/new-request");
+    await expect(page).toHaveURL(/\/new-request$/);
+    await expect(
+      page.getByRole("heading", { name: "פרסום קריאה חדשה" }),
+    ).toBeVisible();
+  });
+
   for (const { path, login } of gated) {
     test(`is sent from ${path} to ${login}`, async ({ page }) => {
       await page.goto(path);

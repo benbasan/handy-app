@@ -145,6 +145,33 @@ export function createJobSchema(userId: string) {
 
 export type CreateJobInput = z.infer<ReturnType<typeof createJobSchema>>;
 
+/** The most a customer may add in one go — mirrors `add_job_details()`. */
+export const ADDED_DETAILS_MAX = 500;
+
+/**
+ * Adding to a call that is still collecting offers (Phase 13.7). Text, photos,
+ * or both — but something. The database re-checks every rule here, plus the
+ * ones this cannot see: that the call is theirs, that it is still open, and
+ * that the photo total stays within MAX_PHOTOS.
+ */
+export function addJobDetailsSchema(userId: string) {
+  return z
+    .object({
+      jobId: z.uuid({ error: "מזהה קריאה לא תקין" }),
+      text: z
+        .string()
+        .trim()
+        .max(ADDED_DETAILS_MAX, { error: "הטקסט ארוך מדי" }),
+      photoPaths: z.array(jobMediaPathSchema(userId)).max(MAX_PHOTOS, {
+        error: `אפשר לצרף עד ${MAX_PHOTOS} תמונות`,
+      }),
+    })
+    .refine((value) => value.text.length > 0 || value.photoPaths.length > 0, {
+      error: "כתבו משהו או צרפו תמונה",
+      path: ["text"],
+    });
+}
+
 /**
  * The `H-24817` style reference the design puts on every job card. Derived
  * from the uuid rather than stored: it is a display convenience, and a second
