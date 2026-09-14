@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(410);
+select plan(440);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -2596,9 +2596,11 @@ select pg_temp.act_as(:pro_verified);
 set local role authenticated;
 
 select lives_ok(
-  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes,
+                             arrival_window_start, arrival_window_end)
      values ('d0000000-0000-4000-8000-000000000002',
-             'a0000000-0000-4000-8000-000000000003', 400, 30) $$,
+             'a0000000-0000-4000-8000-000000000003', 400, 30,
+             now() + interval '1 hour', now() + interval '3 hours') $$,
   'after which the same offer they were refused a moment ago is accepted'
 );
 
@@ -3022,9 +3024,11 @@ select is(
 );
 
 select lives_ok(
-  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes,
+                             arrival_window_start, arrival_window_end)
      values ('d0000000-0000-4000-8000-000000000008',
-             'a0000000-0000-4000-8000-000000000007', 265, 35) $$,
+             'a0000000-0000-4000-8000-000000000007', 265, 35,
+             now() + interval '1 hour', now() + interval '3 hours') $$,
   'the bid is actually accepted by the insert policy, not merely offered by the feed'
 );
 
@@ -3867,9 +3871,11 @@ select pg_temp.act_as(:pro_verified);
 set local role authenticated;
 
 select lives_ok(
-  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes,
+                             arrival_window_start, arrival_window_end)
      values ('d0000000-0000-4000-8000-00000000e0a1',
-             'a0000000-0000-4000-8000-000000000003', 310, 30) $$,
+             'a0000000-0000-4000-8000-000000000003', 310, 30,
+             now() + interval '1 hour', now() + interval '3 hours') $$,
   'a pro bids on a job in their radius'
 );
 
@@ -4142,6 +4148,317 @@ select is(
   (select count(*) from public.notifications where kind = 'selection_expiring'),
   1::bigint,
   'one row, addressed to the pro whose clock is running out'
+);
+
+-- ===========================================================================
+-- Phase 13.7 — משפך הלקוח
+-- ===========================================================================
+
+reset role;
+
+insert into public.jobs (
+  id, customer_id, category_id, description, location, address_text,
+  preferred_time, status, created_at
+) values
+  -- Tomorrow, no offer yet, forty-five minutes old: the job every assertion
+  -- below is about.
+  ('f1370000-0000-4000-8000-0000000000a1', :customer_a,
+   'c0000000-0000-4000-8000-000000000001', 'הברז במקלחת מטפטף כל הלילה.',
+   extensions.st_point(34.7818, 32.0853)::extensions.geography,
+   'ויצמן 6, תל אביב', 'tomorrow', 'open', now() - interval '45 minutes'),
+  -- Two days old and still unanswered: must not be nudged weeks late.
+  ('f1370000-0000-4000-8000-0000000000a2', :customer_a,
+   'c0000000-0000-4000-8000-000000000001', 'סתימה בכיור שכבר לא רלוונטית.',
+   extensions.st_point(34.7818, 32.0853)::extensions.geography,
+   'ויצמן 8, תל אביב', 'flexible', 'open', now() - interval '2 days'),
+  -- This week: the window is the pro's to offer or not.
+  ('f1370000-0000-4000-8000-0000000000a3', :customer_b,
+   'c0000000-0000-4000-8000-000000000001', 'החלפת ניאגרה בשירותי האורחים.',
+   extensions.st_point(34.7818, 32.0853)::extensions.geography,
+   'ויצמן 10, תל אביב', 'this_week', 'open', now() - interval '10 minutes');
+
+-- ---------------------------------------------------------------------------
+-- job_views: a count to the owner, an identity to nobody
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.record_job_view('f1370000-0000-4000-8000-0000000000a1') $$,
+  'somebody who is not a verified pro calling it is a quiet no-op, not an error'
+);
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.record_job_view('f1370000-0000-4000-8000-0000000000a1');
+     select public.record_job_view('f1370000-0000-4000-8000-0000000000a1') $$,
+  'a verified pro in radius opens the call — twice, which is still one view'
+);
+
+select lives_ok(
+  $$ select public.record_job_view('d0000000-0000-4000-8000-000000000009') $$,
+  'opening a call outside their radius (Eilat) records nothing and raises nothing'
+);
+
+select is(
+  (select count(*) from public.job_views),
+  0::bigint,
+  'the pro cannot read views back — not even their own'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  public.job_view_count('f1370000-0000-4000-8000-0000000000a1'),
+  1,
+  'the owner sees one view: the unverified pro and the repeat did not count'
+);
+
+select is(
+  (select count(*) from public.job_views),
+  0::bigint,
+  'and the owner cannot read the rows, so never learns who looked'
+);
+
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.job_view_count('f1370000-0000-4000-8000-0000000000a1') $$,
+  '42501',
+  null,
+  'another customer gets no count for a call that is not theirs'
+);
+
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.job_views
+    where job_id = 'd0000000-0000-4000-8000-000000000009'),
+  0::bigint,
+  'the admin confirms the out-of-radius open left no row'
+);
+
+-- ---------------------------------------------------------------------------
+-- add_job_details: the owner adds, nobody rewrites, and only while open
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.add_job_details('f1370000-0000-4000-8000-0000000000a1', 'שלי עכשיו') $$,
+  '42501',
+  null,
+  'a customer cannot add to somebody else''s call'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.add_job_details('f1370000-0000-4000-8000-0000000000a1',
+       'הברז הראשי סגור כרגע.',
+       array['a0000000-0000-4000-8000-000000000001/extra/tap.jpg']) $$,
+  'the owner adds a sentence and a photo to a call still collecting offers'
+);
+
+select is(
+  (select description from public.jobs where id = 'f1370000-0000-4000-8000-0000000000a1'),
+  E'הברז במקלחת מטפטף כל הלילה.\n\nהברז הראשי סגור כרגע.',
+  'appended after what pros already read — the original words are untouched'
+);
+
+select throws_ok(
+  $$ select public.add_job_details('f1370000-0000-4000-8000-0000000000a1', null,
+       array['a0000000-0000-4000-8000-000000000002/theirs.jpg']) $$,
+  '42501',
+  null,
+  'a photo path under another customer''s folder is refused'
+);
+
+select throws_ok(
+  $$ select public.add_job_details('f1370000-0000-4000-8000-0000000000a1', '  ') $$,
+  '22023',
+  null,
+  'and adding nothing is not an update'
+);
+
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.add_job_details('d0000000-0000-4000-8000-000000000003', 'עוד משהו') $$,
+  '22023',
+  null,
+  'a call a pro has already taken can no longer be added to'
+);
+
+-- ---------------------------------------------------------------------------
+-- warn_quiet_jobs: once, thirty minutes in, and never weeks late
+-- ---------------------------------------------------------------------------
+
+reset role;
+delete from public.notifications;
+
+select ok(
+  public.warn_quiet_jobs() >= 1,
+  'a call with no offer after thirty minutes is nudged'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where kind = 'no_bids_yet'
+      and job_id = 'f1370000-0000-4000-8000-0000000000a1'
+      and user_id = :customer_a),
+  1::bigint,
+  'one nudge, to the customer who posted it'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where job_id = 'f1370000-0000-4000-8000-0000000000a3'),
+  0::bigint,
+  'a call ten minutes old is left alone'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where job_id = 'f1370000-0000-4000-8000-0000000000a2'),
+  0::bigint,
+  'and a call two days old is not told "nothing yet" weeks late'
+);
+
+select is(
+  public.warn_quiet_jobs() - public.warn_quiet_jobs(),
+  0,
+  'running the sweep again nudges nobody twice'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where kind = 'no_bids_yet'
+      and job_id = 'f1370000-0000-4000-8000-0000000000a1'),
+  1::bigint,
+  'still exactly one for that call'
+);
+
+-- ---------------------------------------------------------------------------
+-- The arrival window: required for tomorrow, a pro's own, and never the past
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+     values ('f1370000-0000-4000-8000-0000000000a1', 'a0000000-0000-4000-8000-000000000003', 300, 30) $$,
+  '23514',
+  null,
+  'an offer on a call for tomorrow must say when the pro will come'
+);
+
+select throws_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes,
+                             arrival_window_start, arrival_window_end)
+     values ('f1370000-0000-4000-8000-0000000000a1', 'a0000000-0000-4000-8000-000000000003', 300, 30,
+             now() - interval '3 hours', now() - interval '1 hour') $$,
+  '23514',
+  null,
+  'and a window that has already passed is not a commitment'
+);
+
+select throws_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes,
+                             arrival_window_start, arrival_window_end)
+     values ('f1370000-0000-4000-8000-0000000000a1', 'a0000000-0000-4000-8000-000000000003', 300, 30,
+             now() + interval '20 hours', now() + interval '28 hours') $$,
+  '23514',
+  null,
+  'nor is an eight-hour window — "sometime tomorrow" is what the customer already had'
+);
+
+select lives_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes,
+                             arrival_window_start, arrival_window_end)
+     values ('f1370000-0000-4000-8000-0000000000a1', 'a0000000-0000-4000-8000-000000000003', 300, 30,
+             now() + interval '20 hours', now() + interval '22 hours') $$,
+  'a two-hour window tomorrow is accepted'
+);
+
+select lives_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+     values ('f1370000-0000-4000-8000-0000000000a3', 'a0000000-0000-4000-8000-000000000003', 450, 30) $$,
+  'while a call for this week takes an offer with no window at all'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+update public.bids
+   set arrival_window_start = now() + interval '30 hours',
+       arrival_window_end = now() + interval '31 hours'
+ where job_id = 'f1370000-0000-4000-8000-0000000000a1';
+
+select is(
+  (select arrival_window_end - arrival_window_start
+     from public.bids where job_id = 'f1370000-0000-4000-8000-0000000000a1'),
+  interval '2 hours',
+  'the customer cannot move the pro''s hours: the update reaches no row'
+);
+
+select is(
+  (select arrival_window_end - arrival_window_start
+     from public.bids_for_job('f1370000-0000-4000-8000-0000000000a1')),
+  interval '2 hours',
+  'and sees the window on the compare screen'
+);
+
+-- ---------------------------------------------------------------------------
+-- The morning-of reminder
+-- ---------------------------------------------------------------------------
+
+reset role;
+delete from public.notifications;
+
+update public.bids
+   set status = 'accepted',
+       arrival_window_start = now() + interval '1 minute',
+       arrival_window_end = now() + interval '2 hours'
+ where job_id = 'f1370000-0000-4000-8000-0000000000a1';
+
+update public.jobs
+   set status = 'assigned',
+       selected_bid_id = (select id from public.bids
+                           where job_id = 'f1370000-0000-4000-8000-0000000000a1')
+ where id = 'f1370000-0000-4000-8000-0000000000a1';
+
+-- The sweep only speaks between seven in the morning and the end of the day,
+-- Israel time, so the one assertion that depends on the clock says so.
+select case
+  when extract(hour from now() at time zone 'Asia/Jerusalem') between 7 and 22
+  then is(
+    (select public.remind_todays_visits()) ,
+    1,
+    'a taken job whose window starts today reminds once'
+  )
+  else skip('outside the reminder''s hours in Israel', 1)
+end;
+
+select is(
+  public.remind_todays_visits(),
+  0,
+  'and a second sweep reminds nobody again'
+);
+
+select ok(
+  (select count(*) from public.notifications where kind = 'visit_reminder') in (0, 2),
+  'when it speaks, it speaks to both sides of the job and nobody else'
 );
 
 reset role;

@@ -32,8 +32,10 @@ export const NOTIFICATION_KINDS = [
   "pro_arrived",
   "price_update_requested",
   "job_completed",
+  "no_bids_yet",
   // Both.
   "message_received",
+  "visit_reminder",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -73,7 +75,9 @@ export const KIND_AUDIENCE: Record<
   pro_arrived: "customer",
   price_update_requested: "customer",
   job_completed: "customer",
+  no_bids_yet: "customer",
   message_received: "both",
+  visit_reminder: "both",
 };
 
 /**
@@ -114,4 +118,9 @@ export const PUSH_ELIGIBLE_KINDS: readonly NotificationKind[] = [
   "pro_verified",
   "pro_rejected",
   "message_received",
+  // Phase 13.7. Each fires at most once per job, and each is about a moment the
+  // person is not looking at the app: half an hour of silence on a new call,
+  // and the morning of a visit.
+  "no_bids_yet",
+  "visit_reminder",
 ];

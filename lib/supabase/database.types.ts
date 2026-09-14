@@ -37,6 +37,8 @@ export type Database = {
       bids: {
         Row: {
           accept_deadline: string | null
+          arrival_window_end: string | null
+          arrival_window_start: string | null
           created_at: string
           eta_minutes: number
           expires_at: string
@@ -50,6 +52,8 @@ export type Database = {
         }
         Insert: {
           accept_deadline?: string | null
+          arrival_window_end?: string | null
+          arrival_window_start?: string | null
           created_at?: string
           eta_minutes: number
           expires_at?: string
@@ -63,6 +67,8 @@ export type Database = {
         }
         Update: {
           accept_deadline?: string | null
+          arrival_window_end?: string | null
+          arrival_window_start?: string | null
           created_at?: string
           eta_minutes?: number
           expires_at?: string
@@ -305,6 +311,39 @@ export type Database = {
           },
         ]
       }
+      job_views: {
+        Row: {
+          first_viewed_at: string
+          job_id: string
+          pro_id: string
+        }
+        Insert: {
+          first_viewed_at?: string
+          job_id: string
+          pro_id: string
+        }
+        Update: {
+          first_viewed_at?: string
+          job_id?: string
+          pro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_views_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_views_pro_id_fkey"
+            columns: ["pro_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           address_text: string
@@ -312,15 +351,18 @@ export type Database = {
           created_at: string
           customer_id: string
           description: string
+          details_added_at: string | null
           id: string
           latitude: number | null
           location: unknown
           longitude: number | null
           photo_urls: string[]
           preferred_time: string | null
+          quiet_warned_at: string | null
           selected_bid_id: string | null
           status: string
           video_url: string | null
+          visit_reminded_at: string | null
           voice_note_url: string | null
         }
         Insert: {
@@ -329,15 +371,18 @@ export type Database = {
           created_at?: string
           customer_id: string
           description: string
+          details_added_at?: string | null
           id?: string
           latitude?: number | null
           location: unknown
           longitude?: number | null
           photo_urls?: string[]
           preferred_time?: string | null
+          quiet_warned_at?: string | null
           selected_bid_id?: string | null
           status?: string
           video_url?: string | null
+          visit_reminded_at?: string | null
           voice_note_url?: string | null
         }
         Update: {
@@ -346,15 +391,18 @@ export type Database = {
           created_at?: string
           customer_id?: string
           description?: string
+          details_added_at?: string | null
           id?: string
           latitude?: number | null
           location?: unknown
           longitude?: number | null
           photo_urls?: string[]
           preferred_time?: string | null
+          quiet_warned_at?: string | null
           selected_bid_id?: string | null
           status?: string
           video_url?: string | null
+          visit_reminded_at?: string | null
           voice_note_url?: string | null
         }
         Relationships: [
@@ -938,6 +986,10 @@ export type Database = {
     }
     Functions: {
       accept_job: { Args: { p_bid_id: string }; Returns: string }
+      add_job_details: {
+        Args: { p_job_id: string; p_photo_paths?: string[]; p_text: string }
+        Returns: undefined
+      }
       admin_category_mix: {
         Args: { p_days?: number }
         Returns: {
@@ -1046,6 +1098,8 @@ export type Database = {
         Args: { p_job_id: string }
         Returns: {
           accept_deadline: string
+          arrival_window_end: string
+          arrival_window_start: string
           created_at: string
           eta_minutes: number
           expires_at: string
@@ -1162,6 +1216,7 @@ export type Database = {
           sender_name: string
         }[]
       }
+      job_view_count: { Args: { p_job_id: string }; Returns: number }
       mark_job_in_progress: { Args: { p_job_id: string }; Returns: string }
       my_active_jobs: {
         Args: never
@@ -1404,6 +1459,8 @@ export type Database = {
           slug: string
         }[]
       }
+      record_job_view: { Args: { p_job_id: string }; Returns: undefined }
+      remind_todays_visits: { Args: never; Returns: number }
       reply_to_review: {
         Args: { p_reply: string; p_review_id: string }
         Returns: string
@@ -1479,6 +1536,7 @@ export type Database = {
         }[]
       }
       warn_expiring_selections: { Args: never; Returns: number }
+      warn_quiet_jobs: { Args: never; Returns: number }
       withdraw_bid_selection: { Args: { p_job_id: string }; Returns: undefined }
     }
     Enums: {
