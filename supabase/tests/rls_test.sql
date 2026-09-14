@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(440);
+select plan(472);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -4459,6 +4459,376 @@ select is(
 select ok(
   (select count(*) from public.notifications where kind = 'visit_reminder') in (0, 2),
   'when it speaks, it speaks to both sides of the job and nobody else'
+);
+
+-- ===========================================================================
+-- Phase 13.8 — a call directed at one pro, the fee waiver, the home record
+-- ===========================================================================
+
+reset role;
+delete from public.notifications;
+
+-- ---------------------------------------------------------------------------
+-- Directing a call
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.jobs (customer_id, category_id, description, location,
+                             address_text, preferred_time, requested_pro_id)
+     values ('a0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001',
+             'ביקשתי לקוח אחר במקום בעל מקצוע',
+             extensions.st_point(34.7818, 32.0853)::extensions.geography,
+             'ויצמן 12, תל אביב', 'asap', 'a0000000-0000-4000-8000-000000000002') $$,
+  '23514',
+  null,
+  'a call can only be directed at a verified pro'
+);
+
+select lives_ok(
+  $$ insert into public.jobs (customer_id, category_id, description, location,
+                             address_text, preferred_time, requested_pro_id)
+     values ('a0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001',
+             'ביקשתי את דוד ישירות, דרך הקישור שלו.',
+             extensions.st_point(34.7818, 32.0853)::extensions.geography,
+             'ויצמן 16, תל אביב', 'asap', 'a0000000-0000-4000-8000-000000000003') $$,
+  'a customer directs a call at a verified pro through the ordinary insert grant'
+);
+
+-- The two calls the rest of this section follows, with ids it can name. The
+-- JWT is still customer A's, so the requested-pro trigger runs exactly as it
+-- did above; only the id column, which no client may write, needs postgres.
+reset role;
+
+insert into public.jobs (id, customer_id, category_id, description, location,
+                         address_text, preferred_time, requested_pro_id)
+values ('f1380000-0000-4000-8000-0000000000d1',
+        'a0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001',
+        'הברז דולף — ביקשתי את דוד ישירות.',
+        extensions.st_point(34.7818, 32.0853)::extensions.geography,
+        'ויצמן 14, תל אביב', 'asap', 'a0000000-0000-4000-8000-000000000003'),
+       ('f1380000-0000-4000-8000-0000000000d2',
+        'a0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001',
+        'גם באילת אני רוצה רק את דוד.',
+        extensions.st_point(34.9482, 29.5581)::extensions.geography,
+        'שדרות התמרים 10, אילת', 'asap', 'a0000000-0000-4000-8000-000000000003');
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  public.pros_in_range('f1380000-0000-4000-8000-0000000000d1'),
+  1,
+  'the customer is told the call reached one pro, not the radius'
+);
+
+select throws_ok(
+  $$ update public.jobs set requested_pro_id = 'a0000000-0000-4000-8000-000000000006'
+      where id = 'f1380000-0000-4000-8000-0000000000d1' $$,
+  '42501',
+  null,
+  'and cannot re-point it at somebody else afterwards'
+);
+
+reset role;
+
+select is(
+  (select count(*) from public.notifications
+    where job_id = 'f1380000-0000-4000-8000-0000000000d1' and kind = 'job_requested'
+      and user_id = :pro_verified),
+  1::bigint,
+  'the requested pro is told they were asked for by name'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where job_id = 'f1380000-0000-4000-8000-0000000000d1' and kind = 'job_in_radius'),
+  0::bigint,
+  'and no other pro in radius is told anything yet'
+);
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.jobs
+    where id in ('f1380000-0000-4000-8000-0000000000d1', 'f1380000-0000-4000-8000-0000000000d2')),
+  2::bigint,
+  'the requested pro reads both — the one in Eilat is far outside their radius'
+);
+
+select ok(
+  (select requested_for_me from public.open_jobs_for_pro()
+    where id = 'f1380000-0000-4000-8000-0000000000d2'),
+  'and the Eilat call is in their feed, marked as asked for them'
+);
+
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.jobs where id = 'f1380000-0000-4000-8000-0000000000d1'),
+  0::bigint,
+  'another pro whose radius covers the address does not see a call directed at somebody else'
+);
+
+select throws_ok(
+  $$ insert into public.bids (job_id, pro_id, price, eta_minutes)
+     values ('f1380000-0000-4000-8000-0000000000d1', 'a0000000-0000-4000-8000-000000000006', 200, 30) $$,
+  '42501',
+  null,
+  'nor can they bid on it'
+);
+
+-- A pro who is not the requested one pressing "לא מתאים לי" opens nothing.
+insert into public.job_dismissals (pro_id, job_id)
+values (:pro_second, 'f1380000-0000-4000-8000-0000000000d1');
+
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.open_job_to_all('f1380000-0000-4000-8000-0000000000d1') $$,
+  '42501',
+  null,
+  'a customer cannot open somebody else''s directed call'
+);
+
+reset role;
+
+select is(
+  (select opened_to_all_at from public.jobs where id = 'f1380000-0000-4000-8000-0000000000d1'),
+  null,
+  'still closed: only the requested pro passing, or its owner, opens it'
+);
+
+-- The requested pro passes.
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+insert into public.job_dismissals (pro_id, job_id)
+values (:pro_verified, 'f1380000-0000-4000-8000-0000000000d1');
+
+reset role;
+
+select isnt(
+  (select opened_to_all_at from public.jobs where id = 'f1380000-0000-4000-8000-0000000000d1'),
+  null,
+  'the requested pro''s "לא מתאים לי" opens the call to everyone'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where job_id = 'f1380000-0000-4000-8000-0000000000d1' and kind = 'requested_pro_passed'
+      and user_id = :customer_a),
+  1::bigint,
+  'and tells the customer'
+);
+
+select ok(
+  (select count(*) from public.notifications
+    where job_id = 'f1380000-0000-4000-8000-0000000000d1' and kind = 'job_in_radius') >= 1,
+  'and tells the pros in radius, now that it is theirs to price too'
+);
+
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.jobs where id = 'f1380000-0000-4000-8000-0000000000d1'),
+  1::bigint,
+  'the other pro in radius now reads it'
+);
+
+-- The customer opens the Eilat one themselves.
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.open_job_to_all('f1380000-0000-4000-8000-0000000000d2') $$,
+  'the owner opens a directed call to everyone'
+);
+
+select throws_ok(
+  $$ select public.open_job_to_all('f1380000-0000-4000-8000-0000000000d2') $$,
+  '22023',
+  null,
+  'and a second press is refused rather than repeated'
+);
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.jobs where id = 'f1380000-0000-4000-8000-0000000000d2'),
+  1::bigint,
+  'the requested pro keeps it after it is opened, however far away'
+);
+
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.jobs where id = 'f1380000-0000-4000-8000-0000000000d2'),
+  0::bigint,
+  'while opening it does not widen anybody else''s radius'
+);
+
+-- ---------------------------------------------------------------------------
+-- The fee waiver: a new customer's first job, through the pro's own link
+-- ---------------------------------------------------------------------------
+
+reset role;
+
+insert into auth.users (
+  instance_id, id, aud, role, phone, phone_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  'a0000000-0000-4000-8000-0000000000c1', 'authenticated', 'authenticated',
+  '972500000381', now(),
+  '{"provider":"phone","providers":["phone"]}',
+  '{"role":"customer","full_name":"לקוחה חדשה"}',
+  now(), now()
+);
+
+select pg_temp.act_as('a0000000-0000-4000-8000-0000000000c1');
+
+insert into public.jobs (id, customer_id, category_id, description, location,
+                         address_text, preferred_time, requested_pro_id)
+values
+  ('f1380000-0000-4000-8000-0000000000e1',
+   'a0000000-0000-4000-8000-0000000000c1', 'c0000000-0000-4000-8000-000000000001',
+   'דוד תיקן לשכנה, אז ביקשתי אותו.',
+   extensions.st_point(34.7818, 32.0853)::extensions.geography,
+   'ויצמן 20, תל אביב', 'asap', 'a0000000-0000-4000-8000-000000000003'),
+  ('f1380000-0000-4000-8000-0000000000e2',
+   'a0000000-0000-4000-8000-0000000000c1', 'c0000000-0000-4000-8000-000000000001',
+   'והפעם הכיור בחדר הרחצה.',
+   extensions.st_point(34.7818, 32.0853)::extensions.geography,
+   'ויצמן 20, תל אביב', 'asap', 'a0000000-0000-4000-8000-000000000003');
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  public.my_fee_for_job('f1380000-0000-4000-8000-0000000000e1'),
+  0::numeric,
+  'the requested pro sees no fee on a new customer''s first call'
+);
+
+select is(
+  public.my_fee_for_job('f1380000-0000-4000-8000-00000000e0a1'),
+  35::numeric,
+  'and the flat fee on an ordinary call from the feed'
+);
+
+reset role;
+
+insert into public.bids (id, job_id, pro_id, price, eta_minutes)
+values ('f1380000-0000-4000-8000-0000000000b1', 'f1380000-0000-4000-8000-0000000000e1', :pro_verified, 250, 30);
+
+update public.bids
+   set status = 'selected', accept_deadline = now() + interval '1 hour'
+ where id = 'f1380000-0000-4000-8000-0000000000b1';
+update public.jobs set status = 'awaiting_pro'
+ where id = 'f1380000-0000-4000-8000-0000000000e1';
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  (select fee_amount from public.my_pending_acceptances()
+    where job_id = 'f1380000-0000-4000-8000-0000000000e1'),
+  0::numeric,
+  'the acceptance card says what accepting will charge: nothing'
+);
+
+select lives_ok(
+  $$ select public.accept_job('f1380000-0000-4000-8000-0000000000b1');
+     select public.accept_job('f1380000-0000-4000-8000-0000000000b1') $$,
+  'the pro takes the job — twice, as a retried tap would'
+);
+
+reset role;
+
+select is(
+  (select array_agg(fee_amount) from public.job_fees
+    where job_id = 'f1380000-0000-4000-8000-0000000000e1'),
+  array[0::numeric(10,2)],
+  'one ledger row, at zero'
+);
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  public.my_fee_for_job('f1380000-0000-4000-8000-0000000000e2'),
+  35::numeric,
+  'the same customer''s second call through the same link is charged — they are no longer new'
+);
+
+select is(
+  public.my_fee_for_job('f1380000-0000-4000-8000-0000000000d1'),
+  35::numeric,
+  'and so is a directed call from a customer who already had a job taken'
+);
+
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select is(
+  public.my_fee_for_job('f1380000-0000-4000-8000-0000000000e2'),
+  35::numeric,
+  'a pro who was not the one asked for never sees the waiver'
+);
+
+select throws_ok(
+  $$ select public.job_acceptance_fee_for('f1380000-0000-4000-8000-0000000000e1', 'a0000000-0000-4000-8000-000000000006') $$,
+  '42501',
+  null,
+  'the two-argument form is not callable by a client, so nobody asks it about someone else'
+);
+
+-- ---------------------------------------------------------------------------
+-- The home record
+-- ---------------------------------------------------------------------------
+
+reset role;
+
+insert into public.saved_places (customer_id, label, address_text, location)
+values (:customer_a, 'בית', 'רחוב ברודצקי 18, תל אביב',
+        extensions.st_point(34.7806, 32.0809)::extensions.geography);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select place_label from public.my_home_record()
+    where job_id = 'd0000000-0000-4000-8000-000000000004'),
+  'בית',
+  'a finished job lands under the saved address it happened at'
+);
+
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.my_home_record()
+    where job_id in ('d0000000-0000-4000-8000-000000000004',
+                     'd0000000-0000-4000-8000-000000000006')),
+  0::bigint,
+  'another customer''s home record holds none of customer A''s jobs'
+);
+
+select ok(
+  not exists (
+    select 1 from public.my_home_record() r
+     where r.place_label = 'בית'
+  ),
+  'nor customer A''s saved address'
 );
 
 reset role;

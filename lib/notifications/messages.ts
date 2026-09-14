@@ -39,6 +39,11 @@ const COPY: Record<
   { title: string; body: string; tone: NotificationView["tone"] }
 > = {
   // ---- the pro's side ----
+  job_requested: {
+    title: "לקוח ביקש הצעה ממך ישירות",
+    body: "הקריאה נשלחה רק אליך. אם היא לא מתאימה, ״לא מתאים לי״ פותח אותה לבעלי מקצוע אחרים.",
+    tone: "pro",
+  },
   job_in_radius: {
     title: "קריאה חדשה באזור שלך",
     body: "היא בתוך הרדיוס והתחומים שהגדרתם.",
@@ -141,6 +146,11 @@ const COPY: Record<
     body: "אפשר לראות את סיכום החיוב, להוריד קבלה ולדרג.",
     tone: "cta",
   },
+  requested_pro_passed: {
+    title: "בעל המקצוע שביקשתם לא יכול הפעם",
+    body: "הקריאה נפתחה לכל בעלי המקצוע המאומתים באזור, והצעות יגיעו לכאן.",
+    tone: "brand",
+  },
   no_bids_yet: {
     title: "עוד לא הגיעו הצעות לקריאה",
     body: "תמונה או עוד כמה פרטים עוזרים לבעלי מקצוע לתמחר. אפשר להוסיף אותם עכשיו.",
@@ -179,6 +189,7 @@ function hrefFor({ kind, jobId, payload, role }: Input): string {
 
     switch (kind) {
       case "job_in_radius":
+      case "job_requested":
         return PRO_ROUTES.quote(jobId);
       case "bid_selected":
       case "selection_expiring":
@@ -201,6 +212,7 @@ function hrefFor({ kind, jobId, payload, role }: Input): string {
     case "first_bid_received":
     case "bid_received":
     case "no_bids_yet":
+    case "requested_pro_passed":
     case "pro_declined":
     case "selection_lapsed_customer":
       return CUSTOMER_ROUTES.offers(jobId);
