@@ -290,36 +290,45 @@ insert into public.verification_documents (pro_id, doc_type, file_url, status, r
 -- expires_at is written explicitly here only because the seed is not a client:
 -- through PostgREST the column has no INSERT grant at all, so a real bid can
 -- only ever take the 45-minute default.
+-- Both jobs are for today or tomorrow, so since Phase 13.7 every offer on them
+-- carries the hours the pro commits to (bids_check_arrival_window). Relative to
+-- now(), like every other clock in this file, so a reset at any hour seeds a
+-- window that has not passed.
 insert into public.bids (
-  id, job_id, pro_id, price, eta_minutes, note, status, expires_at, created_at
+  id, job_id, pro_id, price, eta_minutes, note, status, expires_at, created_at,
+  arrival_window_start, arrival_window_end
 ) values
   (
     'b0000000-0000-4000-8000-000000000001',
     'd0000000-0000-4000-8000-000000000001',
     'a0000000-0000-4000-8000-000000000003',
     380, 25, 'אחריות שנה על העבודה. מביא חלקים מקוריים.',
-    'pending', now() + interval '40 minutes', now() - interval '5 minutes'
+    'pending', now() + interval '40 minutes', now() - interval '5 minutes',
+    date_trunc('hour', now()) + interval '2 hours', date_trunc('hour', now()) + interval '4 hours'
   ),
   (
     'b0000000-0000-4000-8000-000000000002',
     'd0000000-0000-4000-8000-000000000001',
     'a0000000-0000-4000-8000-000000000006',
     340, 40, 'זמין גם בשעות הערב, ללא תוספת מחיר.',
-    'pending', now() + interval '35 minutes', now() - interval '10 minutes'
+    'pending', now() + interval '35 minutes', now() - interval '10 minutes',
+    date_trunc('hour', now()) + interval '3 hours', date_trunc('hour', now()) + interval '5 hours'
   ),
   (
     'b0000000-0000-4000-8000-000000000003',
     'd0000000-0000-4000-8000-000000000001',
     'a0000000-0000-4000-8000-000000000007',
     300, 55, 'מגיע מחר בבוקר עם כל הציוד.',
-    'pending', now() + interval '25 minutes', now() - interval '20 minutes'
+    'pending', now() + interval '25 minutes', now() - interval '20 minutes',
+    date_trunc('hour', now()) + interval '4 hours', date_trunc('hour', now()) + interval '6 hours'
   ),
   (
     'b0000000-0000-4000-8000-000000000004',
     'd0000000-0000-4000-8000-000000000002',
     'a0000000-0000-4000-8000-000000000006',
     420, 60, 'אפשר גם היום אחרי 17:00.',
-    'expired', now() - interval '2 hours', now() - interval '3 hours'
+    'expired', now() - interval '2 hours', now() - interval '3 hours',
+    date_trunc('hour', now()) + interval '21 hours', date_trunc('hour', now()) + interval '23 hours'
   );
 
 -- One conversation, so the chat screens have something other than an empty
@@ -676,7 +685,8 @@ insert into public.jobs (
 -- Through the app this row is select_bid()'s doing and nobody else's.
 insert into public.bids (
   id, job_id, pro_id, price, eta_minutes, note, status,
-  expires_at, accept_deadline, created_at
+  expires_at, accept_deadline, created_at,
+  arrival_window_start, arrival_window_end
 ) values
   (
     'b0000000-0000-4000-8000-000000000009',
@@ -686,7 +696,8 @@ insert into public.bids (
     'selected',
     now() + interval '15 minutes',
     now() + interval '1 hour' + interval '25 minutes',
-    now() - interval '30 minutes'
+    now() - interval '30 minutes',
+    date_trunc('hour', now()) + interval '3 hours', date_trunc('hour', now()) + interval '5 hours'
   ),
   -- Still pending, still choosable: the customer may change their mind at any
   -- point in the window, and this is who they would change it to.
@@ -698,7 +709,8 @@ insert into public.bids (
     'pending',
     now() + interval '20 minutes',
     null,
-    now() - interval '25 minutes'
+    now() - interval '25 minutes',
+    date_trunc('hour', now()) + interval '2 hours', date_trunc('hour', now()) + interval '4 hours'
   );
 
 -- ---------------------------------------------------------------------------

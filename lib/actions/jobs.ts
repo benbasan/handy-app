@@ -5,12 +5,14 @@ import { revalidatePath } from "next/cache";
 import { addressToStore, geocodeAddress } from "@/lib/maps/geocode";
 import { toEwkt } from "@/lib/maps/geometry";
 import { logExpectedRefusal, logServerError } from "@/lib/observability";
-import { optional } from "@/lib/actions/formData";
+import { fieldErrorsOf, optional } from "@/lib/actions/formData";
 import { createClient } from "@/lib/supabase/server";
-import { requireRole } from "@/lib/supabase/session";
+import { getCurrentUser, requireRole } from "@/lib/supabase/session";
 import { countProsNearPoint } from "@/lib/supabase/jobs";
 import { coordinatesInIsrael } from "@/lib/maps/geometry";
-import { createJobSchema } from "@/lib/validation/jobs";
+import { addJobDetailsSchema, createJobSchema } from "@/lib/validation/jobs";
+import type { AddJobDetailsState } from "@/lib/actions/state";
+import { CUSTOMER_ROUTES } from "@/lib/routes";
 
 export type CreateJobState = {
   error?: string;
@@ -180,15 +182,79 @@ export async function createJob(
  * Null means "we could not ask" and the screen says nothing — that is a
  * different sentence from "nobody covers you", and only one of them is the
  * customer's problem.
+ *
+ * Since Phase 13.7 the form is open to visitors who have not signed in, and
+ * this is called from it for them too. `requireRole()` would answer that with
+ * a redirect — from inside a server action, which navigates somebody who is
+ * half-way through describing a leak to the login page. So a caller who is not
+ * a customer gets null, the screen stays silent, and `pros_near_point()` stays
+ * granted to `authenticated` only, exactly as Phase 12 decided.
  */
 export async function countProsCovering(
   lat: number,
   lng: number,
 ): Promise<number | null> {
-  await requireRole("customer");
+  const user = await getCurrentUser();
+  if (user?.role !== "customer") return null;
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   if (!coordinatesInIsrael(lat, lng)) return null;
 
   return countProsNearPoint(lat, lng);
+}
+
+/**
+ * "הוסיפו פרטים לקריאה" — text and photos added to a call that has not had a
+ * pro take it (Phase 13.7).
+ *
+ * The customer is the one the quiet-call nudge speaks to, and without this the
+ * nudge would suggest something they could not do. `add_job_details()` appends
+ * and never rewrites: pros may already have priced what was written, and an
+ * offer made against one description must not come to mean another.
+ */
+export async function addJobDetails(
+  _prevState: AddJobDetailsState,
+  formData: FormData,
+): Promise<AddJobDetailsState> {
+  const user = await requireRole("customer");
+
+  const parsed = addJobDetailsSchema(user.id).safeParse({
+    jobId: formData.get("jobId"),
+    text: formData.get("text") ?? "",
+    photoPaths: formData.getAll("photoPath").filter((value) => value !== ""),
+  });
+
+  if (!parsed.success) {
+    logExpectedRefusal("jobs.addJobDetails.invalid", parsed.error, {
+      jobId: String(formData.get("jobId") ?? ""),
+    });
+    return {
+      error: "לא הצלחנו להוסיף את הפרטים.",
+      fieldErrors: fieldErrorsOf(parsed.error),
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_job_details", {
+    p_job_id: parsed.data.jobId,
+    p_text: parsed.data.text,
+    p_photo_paths: parsed.data.photoPaths,
+  });
+
+  if (error) {
+    const context = { jobId: parsed.data.jobId };
+    if (error.code === "22023") {
+      logExpectedRefusal("jobs.addJobDetails", error, context);
+      return {
+        error: error.message.includes("too many photos")
+          ? "לקריאה כבר יש את מספר התמונות המרבי."
+          : "בעל מקצוע כבר לקח את הקריאה, ולכן אי אפשר להוסיף לה פרטים. אפשר לכתוב לו בצ׳אט.",
+      };
+    }
+    logServerError("jobs.addJobDetails", error, context);
+    return { error: "לא הצלחנו להוסיף את הפרטים. נסו שוב בעוד רגע." };
+  }
+
+  revalidatePath(CUSTOMER_ROUTES.offers(parsed.data.jobId));
+  return { savedAt: Date.now() };
 }

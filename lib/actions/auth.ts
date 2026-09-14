@@ -17,7 +17,11 @@ import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { ROLE_LOGIN, postLoginPath } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/session";
-import { requestOtpSchema, verifyOtpSchema } from "@/lib/validation/auth";
+import {
+  requestOtpSchema,
+  verifyOtpSchema,
+  type UserRole,
+} from "@/lib/validation/auth";
 import type { z } from "zod";
 
 export type RequestOtpState = {
@@ -42,6 +46,13 @@ export type RequestOtpState = {
 
 export type VerifyOtpState = {
   error?: string;
+  /**
+   * Set only when the form asked to stay where it is (`stay=1`) — the posting
+   * form signs somebody in half-way through a job and has to carry on
+   * publishing on the same screen, not be sent to their home. Every other
+   * caller still gets a redirect, exactly as before.
+   */
+  signedIn?: { id: string; role: UserRole };
 };
 
 /**
@@ -165,6 +176,10 @@ export async function verifyOtp(
     return {
       error: "ההתחברות הצליחה אך לא נמצא פרופיל מתאים. נסו שוב או פנו לתמיכה.",
     };
+  }
+
+  if (formData.get("stay") === "1") {
+    return { signedIn: { id: user.id, role: user.role } };
   }
 
   redirect(postLoginPath(user.role, parsed.data.next));

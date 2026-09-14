@@ -39,6 +39,9 @@ import {
   formatIls,
   PRICE_UPDATE_STATUS_LABEL_PRO,
 } from "@/lib/validation/priceUpdates";
+import { AddToCalendar } from "@/components/ui/AddToCalendar";
+import { getAgreedArrivalWindow } from "@/lib/supabase/bids";
+import { describeWindow, windowHours } from "@/lib/validation/arrivalWindow";
 
 export const metadata = { title: "ניהול עבודה — Handy Pro" };
 
@@ -80,6 +83,10 @@ export default async function ProManageJobPage({
     ],
   );
   if (!job) notFound();
+
+  // The hours this pro committed to in their offer (Phase 13.7), if any.
+  const agreedWindow = await getAgreedArrivalWindow(job.selectedBidId);
+  const renderedAt = new Date().toISOString();
 
   const pending = pendingUpdate(updates);
   const settled = updates.filter((update) => update.status !== "pending");
@@ -137,6 +144,33 @@ export default async function ProManageJobPage({
           progress bar fill the rest. */}
       <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
         <aside className="space-y-4">
+          {agreedWindow && (
+            <Card>
+              <h2 className={SECTION_TITLE}>התחייבת להגיע</h2>
+              <p className="mt-3 text-sm text-muted">
+                {
+                  describeWindow(
+                    agreedWindow.start,
+                    agreedWindow.end,
+                    new Date(renderedAt),
+                  ).day
+                }
+              </p>
+              <p className="ltr-nums mt-1 text-2xl font-bold text-ink">
+                {windowHours(agreedWindow.start, agreedWindow.end)}
+              </p>
+              <div className="mt-4">
+                <AddToCalendar
+                  uid={`${jobId}-pro`}
+                  start={agreedWindow.start}
+                  end={agreedWindow.end}
+                  title={`Handy · ${active.categoryName}`}
+                  location={job.addressText}
+                />
+              </div>
+            </Card>
+          )}
+
           {pending ? (
             <section className="rounded-2xl border-2 border-alert bg-surface p-5">
               <h2 className={SECTION_TITLE}>בקשת עדכון מחיר נשלחה</h2>

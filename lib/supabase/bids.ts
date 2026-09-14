@@ -4,6 +4,7 @@ import {
   isBidStatus,
   type BidStatus,
 } from "@/lib/validation/bids";
+import { logServerError } from "@/lib/observability";
 
 /**
  * Read side of the bidding flow — the third file in the same family as
@@ -36,6 +37,9 @@ export type JobBid = {
   acceptDeadline: string | null;
   createdAt: string;
   unreadCount: number;
+  /** The hours the pro committed to (Phase 13.7). Both or neither. */
+  arrivalWindowStart: string | null;
+  arrivalWindowEnd: string | null;
 };
 
 function toBidStatus(value: string): BidStatus {
@@ -64,7 +68,29 @@ export async function listBidsForJob(jobId: string): Promise<JobBid[]> {
     acceptDeadline: row.accept_deadline,
     createdAt: row.created_at,
     unreadCount: row.unread_count,
+    arrivalWindowStart: row.arrival_window_start,
+    arrivalWindowEnd: row.arrival_window_end,
   }));
+}
+
+/**
+ * The window on the offer a job was given to, for the two sides of it. A plain
+ * select under RLS: the customer reads bids on their own job, the pro reads
+ * their own, and neither needs anything a definer would add.
+ */
+export async function getAgreedArrivalWindow(
+  bidId: string | null,
+): Promise<{ start: string; end: string } | null> {
+  if (!bidId) return null;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("bids")
+    .select("arrival_window_start, arrival_window_end")
+    .eq("id", bidId)
+    .maybeSingle();
+  return data?.arrival_window_start && data.arrival_window_end
+    ? { start: data.arrival_window_start, end: data.arrival_window_end }
+    : null;
 }
 
 /**
@@ -75,7 +101,11 @@ export async function listBidsForJob(jobId: string): Promise<JobBid[]> {
  *
  * Only live offers can win a badge, so a lapsed bid never sorts to the top.
  */
-export function sortBids(bids: readonly JobBid[], sort: BidSort): JobBid[] {
+export function sortBids(
+  bids: readonly JobBid[],
+  sort: BidSort,
+  now: number = Date.now(),
+): JobBid[] {
   const rank = (bid: JobBid) => (bid.status === "pending" ? 0 : 1);
 
   return [...bids].sort((a, b) => {
@@ -85,7 +115,7 @@ export function sortBids(bids: readonly JobBid[], sort: BidSort): JobBid[] {
       case "cheapest":
         return a.price - b.price;
       case "fastest":
-        return a.etaMinutes - b.etaMinutes;
+        return arrivesBy(a, now) - arrivesBy(b, now);
       case "recommended":
       default: {
         const byRating = (b.proRating ?? 0) - (a.proRating ?? 0);
@@ -93,6 +123,18 @@ export function sortBids(bids: readonly JobBid[], sort: BidSort): JobBid[] {
       }
     }
   });
+}
+
+/**
+ * When a pro will be at the door, as one number to sort on. An offer with an
+ * arrival window (Phase 13.7) is at the start of that window; one without is
+ * `eta_minutes` from now. Without this, "הגעה מהירה" ranked a pro who comes in
+ * thirty minutes tomorrow ahead of one who comes in forty-five today.
+ */
+export function arrivesBy(bid: JobBid, now: number = Date.now()): number {
+  return bid.arrivalWindowStart
+    ? Date.parse(bid.arrivalWindowStart)
+    : now + bid.etaMinutes * 60_000;
 }
 
 /**
@@ -119,7 +161,7 @@ export function bidHighlights(bids: readonly JobBid[]): Map<string, string[]> {
   );
   add([...live].sort((a, b) => a.price - b.price)[0]?.id, "המחיר הזול");
   add(
-    [...live].sort((a, b) => a.etaMinutes - b.etaMinutes)[0]?.id,
+    [...live].sort((a, b) => arrivesBy(a) - arrivesBy(b))[0]?.id,
     "הגעה מהירה",
   );
 
@@ -138,6 +180,26 @@ export async function countBidsOnJob(jobId: string): Promise<number> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("job_bid_count", { p_job_id: jobId });
   return data ?? 0;
+}
+
+/**
+ * The calling pro opened this call (Phase 13.7). A failure is logged and
+ * otherwise swallowed: what it feeds is a count on somebody else's screen, and
+ * it must never break this pro's own page.
+ */
+export async function recordJobView(jobId: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_job_view", { p_job_id: jobId });
+  if (error) logServerError("bids.recordJobView", error, { jobId });
+}
+
+/** How many pros opened the customer's call — a number, never who. */
+export async function countJobViews(jobId: string): Promise<number | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("job_view_count", {
+    p_job_id: jobId,
+  });
+  return error ? null : data;
 }
 
 /** A bid as its author sees it — design/screens/pro-2.4-my-bids.png. */

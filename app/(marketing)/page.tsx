@@ -5,6 +5,7 @@ import {
   BUTTON_QUIET,
   CARD_BASE,
   HERO_TITLE,
+  INPUT_CLASS,
 } from "@/components/ui/primitives";
 import { DemoLoginPanel } from "@/components/marketing/DemoLoginPanel";
 import { CategoryIcon } from "@/lib/categories";
@@ -109,7 +110,40 @@ export default async function LandingPage() {
           מה צריך לתקן?
         </h2>
 
-        <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {/*
+          "מה קרה?" — a sentence in, the form out with the trade already
+          chosen and the description already written. A plain GET form rather
+          than a client component: the new-request page reads `q` on the
+          server and matches it there (lib/content/intent.ts), so this works
+          before any JavaScript has loaded, and a phone on a slow network is
+          exactly who is typing into it.
+        */}
+        <form
+          action={CUSTOMER_ROUTES.newRequest}
+          method="get"
+          role="search"
+          className="mx-auto mt-6 flex max-w-2xl flex-col gap-3 sm:flex-row"
+        >
+          <label htmlFor="what-happened" className="sr-only">
+            מה קרה? תארו את התקלה במילים שלכם
+          </label>
+          <input
+            id="what-happened"
+            name="q"
+            type="search"
+            maxLength={200}
+            required
+            placeholder="מה קרה? למשל: המזגן מטפטף מים"
+            className={`${INPUT_CLASS} bg-surface`}
+          />
+          <button type="submit" className={`${BUTTON_CTA} shrink-0`}>
+            המשך
+          </button>
+        </form>
+
+        <p className="mt-3 text-center text-sm text-muted">או בחרו תחום:</p>
+
+        <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {categories.map((category) => (
             <li key={category.id}>
               <Link

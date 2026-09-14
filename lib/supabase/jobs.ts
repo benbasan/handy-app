@@ -46,6 +46,10 @@ export type JobSummary = {
   voiceNotePath: string | null;
   latitude: number | null;
   longitude: number | null;
+  /** The offer the job was given to — null until a pro accepted it. */
+  selectedBidId: string | null;
+  /** When the customer last added to the call (Phase 13.7), or null. */
+  detailsAddedAt: string | null;
   /**
    * Offers still waiting on this customer, or null where the query did not ask.
    *
@@ -57,7 +61,7 @@ export type JobSummary = {
 };
 
 const JOB_COLUMNS =
-  "id, description, address_text, status, preferred_time, created_at, photo_urls, video_url, voice_note_url, latitude, longitude, categories(name_he, slug)";
+  "id, description, address_text, status, preferred_time, created_at, photo_urls, video_url, voice_note_url, latitude, longitude, selected_bid_id, details_added_at, categories(name_he, slug)";
 
 /**
  * The list view asks for the offers alongside the jobs — one round trip, under
@@ -90,6 +94,8 @@ type JobRow = {
   voice_note_url: string | null;
   latitude: number | null;
   longitude: number | null;
+  selected_bid_id: string | null;
+  details_added_at: string | null;
   categories: { name_he: string; slug: string } | null;
   bids?: { status: string; expires_at: string }[];
 };
@@ -118,6 +124,8 @@ function toSummary(row: JobRow): JobSummary {
     voiceNotePath: row.voice_note_url,
     latitude: row.latitude,
     longitude: row.longitude,
+    selectedBidId: row.selected_bid_id,
+    detailsAddedAt: row.details_added_at,
     liveBidsCount: liveBids(row),
   };
 }

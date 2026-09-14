@@ -34,6 +34,8 @@ function bid(
     acceptDeadline: status === "selected" ? "2099-01-01T02:00:00Z" : null,
     createdAt: "2026-09-04T09:00:00Z",
     unreadCount: 0,
+    arrivalWindowStart: null,
+    arrivalWindowEnd: null,
   };
 }
 
@@ -112,5 +114,21 @@ describe("bidHighlights", () => {
 
     expect(tags.has("dead-cheap")).toBe(false);
     expect(tags.get("c")).toContain("המחיר הזול");
+  });
+});
+
+describe("arrival windows in the fastest sort", () => {
+  it("ranks by when the pro will actually be at the door", () => {
+    const now = Date.parse("2026-09-15T10:00:00Z");
+    const tomorrowQuick = {
+      ...bid("tomorrow", 300, 15, 5),
+      arrivalWindowStart: "2026-09-16T06:00:00Z",
+      arrivalWindowEnd: "2026-09-16T08:00:00Z",
+    };
+    const todaySlow = bid("today", 300, 60, 5);
+
+    expect(
+      sortBids([tomorrowQuick, todaySlow], "fastest", now).map((b) => b.id),
+    ).toEqual(["today", "tomorrow"]);
   });
 });

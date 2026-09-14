@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ClearJobDraft } from "@/components/customer/ClearJobDraft";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
 import { PushPermissionCard } from "@/components/ui/PushPermissionCard";
 import { CheckIcon } from "@/components/ui/icons";
@@ -45,6 +46,7 @@ export default async function JobPublishedPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <ClearJobDraft />
       <header className="text-center">
         <span
           aria-hidden

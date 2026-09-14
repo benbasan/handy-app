@@ -18,6 +18,7 @@ import {
   updateBidSchema,
   withdrawSelectionSchema,
 } from "@/lib/validation/bids";
+import { slotWindow } from "@/lib/validation/arrivalWindow";
 
 /**
  * The write paths for bidding — product-spec.md 3.3 and 4.4.
@@ -61,6 +62,8 @@ export async function submitBid(
     price: formData.get("price"),
     etaMinutes: formData.get("etaMinutes"),
     note: formData.get("note") ?? "",
+    windowDay: formData.get("windowDay") ?? undefined,
+    windowSlot: formData.get("windowSlot") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -69,15 +72,43 @@ export async function submitBid(
 
   const supabase = await createClient();
 
+  const { windowDay, windowSlot } = parsed.data;
+  const window =
+    windowDay !== undefined && windowSlot !== undefined
+      ? slotWindow(windowDay, windowSlot)
+      : null;
+
   const { error } = await supabase.from("bids").insert({
     job_id: parsed.data.jobId,
     pro_id: user.id,
     price: parsed.data.price,
     eta_minutes: parsed.data.etaMinutes,
     note: parsed.data.note ?? null,
+    arrival_window_start: window?.start.toISOString() ?? null,
+    arrival_window_end: window?.end.toISOString() ?? null,
   });
 
   if (error) {
+    // 23514 on insert is one of the two arrival-window rules the trigger
+    // enforces (the check constraints cannot fail: the form only builds
+    // two-hour slots). Each gets a sentence the pro can act on. PostgREST does
+    // not forward the constraint name, so the trigger's own message tells them
+    // apart.
+    if (error.code === "23514") {
+      logExpectedRefusal("bids.submitBid.arrivalWindow", error, {
+        jobId: parsed.data.jobId,
+        proId: user.id,
+      });
+      return {
+        ...INVALID,
+        fieldErrors: {
+          windowSlot: error.message.includes("in the past")
+            ? "השעה שבחרתם כבר עברה. בחרו חלון מאוחר יותר."
+            : "הלקוח ביקש היום או מחר — בחרו יום ושעת הגעה.",
+        },
+      };
+    }
+
     // 23505 is the unique (job_id, pro_id) constraint: one offer per pro per
     // call, and the honest fix is to edit the one already sent.
     if (error.code === "23505") {

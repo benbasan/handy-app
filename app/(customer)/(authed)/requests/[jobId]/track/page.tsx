@@ -31,6 +31,8 @@ import {
   formatIls,
   PRICE_UPDATE_STATUS_LABEL,
 } from "@/lib/validation/priceUpdates";
+import { AddToCalendar } from "@/components/ui/AddToCalendar";
+import { describeWindow, windowHours } from "@/lib/validation/arrivalWindow";
 
 export const metadata = { title: "מעקב אחרי הקריאה — Handy" };
 
@@ -108,6 +110,9 @@ export default async function JobTrackingPage({
 
   const enRoute = job.status === "assigned";
 
+  // "היום"/"מחר" on the window is decided by the server's clock at render.
+  const renderedAt = new Date().toISOString();
+
   return (
     <div className="space-y-6 pb-24">
       <RealtimeRefresh table="job_locations" filter={`job_id=eq.${jobId}`} />
@@ -150,6 +155,41 @@ export default async function JobTrackingPage({
               <StatusTick done={false}>תשלום וקבלה</StatusTick>
             </ol>
           </Card>
+
+          {/*
+            The hours the pro committed to (Phase 13.7), on the screen the
+            customer opens on the day. Day and hours on separate lines: two
+            bidi runs, one fact each.
+          */}
+          {chosen.arrivalWindowStart && chosen.arrivalWindowEnd && (
+            <Card>
+              <h2 className={SECTION_TITLE}>חלון ההגעה שסוכם</h2>
+              <p className="mt-3 text-sm text-muted">
+                {
+                  describeWindow(
+                    chosen.arrivalWindowStart,
+                    chosen.arrivalWindowEnd,
+                    new Date(renderedAt),
+                  ).day
+                }
+              </p>
+              <p className="ltr-nums mt-1 text-2xl font-bold text-ink">
+                {windowHours(
+                  chosen.arrivalWindowStart,
+                  chosen.arrivalWindowEnd,
+                )}
+              </p>
+              <div className="mt-4">
+                <AddToCalendar
+                  uid={chosen.id}
+                  start={chosen.arrivalWindowStart}
+                  end={chosen.arrivalWindowEnd}
+                  title={`Handy · ${job.categoryName ?? "ביקור בעל מקצוע"}`}
+                  location={job.addressText}
+                />
+              </div>
+            </Card>
+          )}
 
           {pending ? (
             <p className="rounded-2xl border-2 border-alert bg-alert-soft p-4 text-sm font-bold text-alert">

@@ -141,11 +141,21 @@ const COPY: Record<
     body: "אפשר לראות את סיכום החיוב, להוריד קבלה ולדרג.",
     tone: "cta",
   },
+  no_bids_yet: {
+    title: "עוד לא הגיעו הצעות לקריאה",
+    body: "תמונה או עוד כמה פרטים עוזרים לבעלי מקצוע לתמחר. אפשר להוסיף אותם עכשיו.",
+    tone: "alert",
+  },
 
   // ---- both ----
   message_received: {
     title: "הודעה חדשה",
     body: "בשיחה על אחת הקריאות שלכם.",
+    tone: "brand",
+  },
+  visit_reminder: {
+    title: "תזכורת: ביקור היום",
+    body: "חלון ההגעה שסוכם מתחיל היום. הפרטים במסך העבודה.",
     tone: "brand",
   },
 };
@@ -190,6 +200,7 @@ function hrefFor({ kind, jobId, payload, role }: Input): string {
   switch (kind) {
     case "first_bid_received":
     case "bid_received":
+    case "no_bids_yet":
     case "pro_declined":
     case "selection_lapsed_customer":
       return CUSTOMER_ROUTES.offers(jobId);
