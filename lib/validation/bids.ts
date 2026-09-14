@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ARRIVAL_SLOT_HOURS, isDayKey } from "@/lib/validation/arrivalWindow";
 
 /**
  * Bids (הצעות מחיר) — product-spec.md 3.3 and 4.4.
@@ -130,13 +131,47 @@ const note = z
   .optional()
   .transform((value) => (value === "" ? undefined : value));
 
+/**
+ * The arrival window, as the form sends it: a day in Israel and the start hour
+ * of a two-hour slot. Both or neither — half a window is not a commitment.
+ * Whether *this* call needs one, and whether it has already passed, are the
+ * database's questions (`bids_check_arrival_window`), because they need the job
+ * and the clock at the moment of the insert.
+ */
+const windowDay = z
+  .string()
+  .optional()
+  .transform((value) => (value ? value : undefined))
+  .refine((value) => value === undefined || isDayKey(value), {
+    error: "יום לא תקין",
+  });
+
+const windowSlot = z
+  .string()
+  .optional()
+  .transform((value) => (value ? Number(value) : undefined))
+  .refine(
+    (value) =>
+      value === undefined ||
+      (ARRIVAL_SLOT_HOURS as readonly number[]).includes(value),
+    { error: "יש לבחור שעת הגעה מהרשימה" },
+  );
+
 /** Submitting a new offer — design/screens/pro-2.3-submit-bid.png. */
-export const submitBidSchema = z.object({
-  jobId: z.uuid({ error: "מזהה קריאה לא תקין" }),
-  price,
-  etaMinutes,
-  note,
-});
+export const submitBidSchema = z
+  .object({
+    jobId: z.uuid({ error: "מזהה קריאה לא תקין" }),
+    price,
+    etaMinutes,
+    note,
+    windowDay,
+    windowSlot,
+  })
+  .refine(
+    (value) =>
+      (value.windowDay === undefined) === (value.windowSlot === undefined),
+    { error: "יש לבחור גם יום וגם שעה", path: ["windowSlot"] },
+  );
 
 /** "עדכן הצעה" on design/screens/pro-2.4-my-bids.png. */
 export const updateBidSchema = z.object({

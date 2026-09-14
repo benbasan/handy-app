@@ -24,6 +24,14 @@ import {
   PRICE_STEP,
 } from "@/lib/validation/bids";
 import { ACCEPTANCE_FEE, feeBreakdown } from "@/lib/validation/pros";
+import {
+  ARRIVAL_SLOT_WIDTH_HOURS,
+  dayLabel,
+  openSlots,
+  windowDayOptions,
+  windowOffered,
+  windowRequired,
+} from "@/lib/validation/arrivalWindow";
 
 /**
  * design/screens/pro-2.3-submit-bid.png — the dark price card on the leading
@@ -48,6 +56,8 @@ export function SubmitBidForm({
   initialEta,
   initialNote,
   priceRange,
+  preferredTime = null,
+  now,
 }: {
   jobId: string;
   /** Present when editing an offer already sent. */
@@ -56,6 +66,14 @@ export function SubmitBidForm({
   initialEta?: number;
   initialNote?: string | null;
   priceRange: PriceRange | null;
+  /**
+   * When the customer asked for the work. Decides whether the form asks for
+   * an arrival window and which days it offers. Not passed when editing: an
+   * edit keeps the window the offer already has.
+   */
+  preferredTime?: string | null;
+  /** The server's clock at render, so the open slots are the same on both sides of hydration. */
+  now?: string;
 }) {
   const [state, formAction, pending] = useActionState(
     bidId ? updateBid : submitBid,
@@ -66,6 +84,20 @@ export function SubmitBidForm({
   const [eta, setEta] = useState(initialEta ?? DEFAULT_ETA_MINUTES);
 
   const { net } = feeBreakdown(price);
+
+  const clockNow = now ? new Date(now) : null;
+  const askWindow = !bidId && clockNow !== null && windowOffered(preferredTime);
+  const mustWindow = askWindow && windowRequired(preferredTime);
+  const days = askWindow
+    ? windowDayOptions(preferredTime, clockNow).filter(
+        (day) => openSlots(day, clockNow).length > 0,
+      )
+    : [];
+  const [windowDay, setWindowDay] = useState<string | null>(
+    mustWindow ? (days[0] ?? null) : null,
+  );
+  const [windowSlot, setWindowSlot] = useState<number | null>(null);
+  const slots = windowDay && clockNow ? openSlots(windowDay, clockNow) : [];
 
   // The three quick prices in the design. Anchored on what the pro has already
   // chosen, so they stay useful after a nudge rather than jumping back.
@@ -92,6 +124,12 @@ export function SubmitBidForm({
       )}
       <input type="hidden" name="price" value={price} />
       <input type="hidden" name="etaMinutes" value={eta} />
+      {askWindow && windowDay !== null && windowSlot !== null && (
+        <>
+          <input type="hidden" name="windowDay" value={windowDay} />
+          <input type="hidden" name="windowSlot" value={windowSlot} />
+        </>
+      )}
 
       <div className="order-1 space-y-4 lg:order-2">
         <div className="rounded-2xl bg-ink p-6 text-white">
@@ -195,12 +233,17 @@ export function SubmitBidForm({
 
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || (mustWindow && windowSlot === null)}
             className={`${BUTTON_PRO} mt-4 w-full`}
           >
             {pending ? "שולח…" : bidId ? "עדכון ההצעה" : "שלח הצעה ללקוח"}
           </button>
 
+          {mustWindow && windowSlot === null && (
+            <p className="mt-2 text-center text-xs font-semibold text-muted">
+              כדי לשלוח, בחרו מתי תגיעו.
+            </p>
+          )}
           <p className="mt-2 text-center text-xs text-muted">
             ההצעה תקפה {BID_VALIDITY_MINUTES} דקות
             {bidId ? " — עדכון מחיר מתחיל את הספירה מחדש." : "."}
@@ -226,8 +269,99 @@ export function SubmitBidForm({
       </div>
 
       <div className="order-2 space-y-6 lg:order-1">
+        {/*
+          The hours the pro commits to (Phase 13.7). Asked before the ETA on a
+          call that is not for right now, because on such a call it is the
+          answer the customer is actually waiting for. Required for today and
+          tomorrow — the database refuses the offer without one — and optional
+          for the rest of the week.
+        */}
+        {askWindow && (
+          <fieldset className={`${CARD_CLASS}`}>
+            <legend className={`px-1 ${SECTION_TITLE}`}>
+              מתי תגיעו?{mustWindow ? "" : " (לא חובה)"}
+            </legend>
+            <p className="mt-1 text-sm text-muted">
+              {mustWindow
+                ? `הלקוח ביקש ${preferredTime === "today" ? "היום" : "מחר"}. בחרו חלון של ${ARRIVAL_SLOT_WIDTH_HOURS} שעות — הוא יופיע ללקוח בהצעה.`
+                : `חלון של ${ARRIVAL_SLOT_WIDTH_HOURS} שעות עוזר ללקוח לבחור, אבל אפשר גם לתאם בצ׳אט.`}
+            </p>
+
+            {days.length === 0 ? (
+              <p className="mt-3 text-sm font-semibold text-alert">
+                אין כרגע חלון פתוח בימים שהלקוח ביקש.
+              </p>
+            ) : (
+              <>
+                <div
+                  role="radiogroup"
+                  aria-label="יום ההגעה"
+                  className="mt-3 flex flex-wrap gap-2"
+                >
+                  {days.map((day) => (
+                    <button
+                      key={day}
+                      type="button"
+                      role="radio"
+                      aria-checked={day === windowDay}
+                      onClick={() => {
+                        setWindowDay(
+                          day === windowDay && !mustWindow ? null : day,
+                        );
+                        setWindowSlot(null);
+                      }}
+                      className={`min-h-11 rounded-xl border px-4 text-sm font-semibold transition-colors ${
+                        day === windowDay
+                          ? "border-pro bg-pro text-white"
+                          : "border-line bg-surface text-ink hover:border-pro/40"
+                      }`}
+                    >
+                      {dayLabel(day, clockNow!)}
+                    </button>
+                  ))}
+                </div>
+
+                {windowDay && (
+                  <div
+                    role="radiogroup"
+                    aria-label="שעת ההגעה"
+                    className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3"
+                  >
+                    {slots.map((hour) => (
+                      <button
+                        key={hour}
+                        type="button"
+                        role="radio"
+                        aria-checked={hour === windowSlot}
+                        onClick={() => setWindowSlot(hour)}
+                        className={`min-h-11 rounded-xl border px-3 text-sm font-semibold transition-colors ${
+                          hour === windowSlot
+                            ? "border-pro bg-pro text-white"
+                            : "border-line bg-surface text-ink hover:border-pro/40"
+                        }`}
+                      >
+                        <span className="ltr-nums">
+                          {`${String(hour).padStart(2, "0")}:00–${String(hour + ARRIVAL_SLOT_WIDTH_HOURS).padStart(2, "0")}:00`}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {state.fieldErrors?.windowSlot && (
+              <div className="mt-2">
+                <ErrorText>{state.fieldErrors.windowSlot}</ErrorText>
+              </div>
+            )}
+          </fieldset>
+        )}
+
         <fieldset className={`${CARD_CLASS}`}>
-          <legend className={`px-1 ${SECTION_TITLE}`}>זמן הגעה</legend>
+          <legend className={`px-1 ${SECTION_TITLE}`}>
+            {askWindow ? "כמה זמן לוקח לכם להגיע מרגע שיוצאים" : "זמן הגעה"}
+          </legend>
 
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {ETA_OPTIONS.map((option) => (

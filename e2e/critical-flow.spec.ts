@@ -430,15 +430,26 @@ async function postAndAssign(
   await pro.goto(`/pro/jobs/${jobId}/quote`);
   await pro.getByLabel("מחיר מדויק בשקלים").fill(String(price));
   await pro.getByLabel("מחיר מדויק בשקלים").blur();
+
+  // Phase 13.7: a call for today cannot be answered without the hours. The
+  // send button stays disabled until a slot is chosen, and the first open slot
+  // is whatever the clock leaves — today's, or tomorrow's after 20:00.
+  await expect(
+    pro.getByRole("button", { name: "שלח הצעה ללקוח" }),
+  ).toBeDisabled();
+  await pro
+    .getByRole("radiogroup", { name: "שעת ההגעה" })
+    .getByRole("radio")
+    .first()
+    .click();
   await pro.getByRole("button", { name: "שלח הצעה ללקוח" }).click();
   await pro.waitForURL(/\/pro\/offers/);
 
   await customer.goto(`/requests/${jobId}/offers`);
-  await customer
-    .locator("li")
-    .filter({ hasText: DEMO_USERS.pro.name })
-    .getByRole("button", { name: "בחר הצעה" })
-    .click();
+  const offer = customer.locator("li").filter({ hasText: DEMO_USERS.pro.name });
+  // The customer sees the hours, not a number of minutes.
+  await expect(offer).toContainText(/מגיע (היום|מחר)/);
+  await offer.getByRole("button", { name: "בחר הצעה" }).click();
   await expect(
     customer.getByRole("heading", { name: "ממתינים לאישור בעל המקצוע" }),
   ).toBeVisible();

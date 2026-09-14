@@ -20,6 +20,7 @@ import {
   initials,
 } from "@/lib/validation/bids";
 import { Countdown } from "@/components/ui/Countdown";
+import { describeWindow } from "@/lib/validation/arrivalWindow";
 
 /**
  * One offer on design/screens/customer-2.2-compare-bids.png: the price large
@@ -47,6 +48,7 @@ export function BidCard({
   highlights,
   decided,
   featured = false,
+  now,
 }: {
   bid: JobBid;
   jobId: string;
@@ -66,6 +68,8 @@ export function BidCard({
    * first one in the same statement. That is the whole of "אפשר להתחרט".
    */
   decided: boolean;
+  /** The server's clock at render, so "היום"/"מחר" agree across hydration. */
+  now: string;
 }) {
   const [state, formAction, pending] = useActionState(
     selectBid,
@@ -75,6 +79,15 @@ export function BidCard({
   const live = bid.status === "pending";
   const waiting = bid.status === "selected";
   const won = bid.status === "accepted";
+
+  const window =
+    bid.arrivalWindowStart && bid.arrivalWindowEnd
+      ? describeWindow(
+          bid.arrivalWindowStart,
+          bid.arrivalWindowEnd,
+          new Date(now),
+        )
+      : null;
 
   return (
     <li
@@ -141,9 +154,29 @@ export function BidCard({
                   ·{" "}
                 </>
               )}
-              <span className="ltr-nums">{bid.proJobsCompleted}</span> עבודות ·
-              מגיע תוך <span className="ltr-nums">{bid.etaMinutes}</span> דק׳
+              <span className="ltr-nums">{bid.proJobsCompleted}</span> עבודות
+              {!window && (
+                <>
+                  {" "}
+                  · מגיע תוך <span className="ltr-nums">
+                    {bid.etaMinutes}
+                  </span>{" "}
+                  דק׳
+                </>
+              )}
             </p>
+
+            {/*
+              The agreed hours, on a line of their own: a day in Hebrew and a
+              range in digits are two bidi runs, and CLAUDE.md section 3 keeps
+              such a line to one fact.
+            */}
+            {window && (
+              <p className="mt-1 text-sm font-semibold text-ink">
+                מגיע {window.day} ·{" "}
+                <span className="ltr-nums">{window.hours}</span>
+              </p>
+            )}
 
             {bid.note && (
               <p className="mt-3 rounded-xl bg-canvas px-4 py-3 text-sm text-ink">

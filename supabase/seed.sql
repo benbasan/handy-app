@@ -304,7 +304,7 @@ insert into public.bids (
     'a0000000-0000-4000-8000-000000000003',
     380, 25, 'אחריות שנה על העבודה. מביא חלקים מקוריים.',
     'pending', now() + interval '40 minutes', now() - interval '5 minutes',
-    now() + interval '1 hour', now() + interval '3 hours'
+    date_trunc('hour', now()) + interval '2 hours', date_trunc('hour', now()) + interval '4 hours'
   ),
   (
     'b0000000-0000-4000-8000-000000000002',
@@ -312,7 +312,7 @@ insert into public.bids (
     'a0000000-0000-4000-8000-000000000006',
     340, 40, 'זמין גם בשעות הערב, ללא תוספת מחיר.',
     'pending', now() + interval '35 minutes', now() - interval '10 minutes',
-    now() + interval '2 hours', now() + interval '4 hours'
+    date_trunc('hour', now()) + interval '3 hours', date_trunc('hour', now()) + interval '5 hours'
   ),
   (
     'b0000000-0000-4000-8000-000000000003',
@@ -320,7 +320,7 @@ insert into public.bids (
     'a0000000-0000-4000-8000-000000000007',
     300, 55, 'מגיע מחר בבוקר עם כל הציוד.',
     'pending', now() + interval '25 minutes', now() - interval '20 minutes',
-    now() + interval '3 hours', now() + interval '5 hours'
+    date_trunc('hour', now()) + interval '4 hours', date_trunc('hour', now()) + interval '6 hours'
   ),
   (
     'b0000000-0000-4000-8000-000000000004',
@@ -328,7 +328,7 @@ insert into public.bids (
     'a0000000-0000-4000-8000-000000000006',
     420, 60, 'אפשר גם היום אחרי 17:00.',
     'expired', now() - interval '2 hours', now() - interval '3 hours',
-    now() + interval '20 hours', now() + interval '22 hours'
+    date_trunc('hour', now()) + interval '21 hours', date_trunc('hour', now()) + interval '23 hours'
   );
 
 -- One conversation, so the chat screens have something other than an empty
@@ -697,7 +697,7 @@ insert into public.bids (
     now() + interval '15 minutes',
     now() + interval '1 hour' + interval '25 minutes',
     now() - interval '30 minutes',
-    now() + interval '2 hours', now() + interval '4 hours'
+    date_trunc('hour', now()) + interval '3 hours', date_trunc('hour', now()) + interval '5 hours'
   ),
   -- Still pending, still choosable: the customer may change their mind at any
   -- point in the window, and this is who they would change it to.
@@ -710,7 +710,7 @@ insert into public.bids (
     now() + interval '20 minutes',
     null,
     now() - interval '25 minutes',
-    now() + interval '1 hour', now() + interval '3 hours'
+    date_trunc('hour', now()) + interval '2 hours', date_trunc('hour', now()) + interval '4 hours'
   );
 
 -- ---------------------------------------------------------------------------
