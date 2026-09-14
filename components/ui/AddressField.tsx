@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { savePlace } from "@/lib/actions/places";
 import { EMPTY_SAVED_PLACE_STATE } from "@/lib/actions/state";
 import {
+  BUTTON_COMPACT,
   BUTTON_QUIET,
   FIELD_LABEL,
   INPUT_CLASS,
@@ -394,7 +395,7 @@ export function AddressField({
           type="button"
           onClick={fillFromDeviceLocation}
           disabled={location.status === "locating"}
-          className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+          className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
         >
           השתמשו במיקום הנוכחי
         </button>
@@ -407,7 +408,7 @@ export function AddressField({
               setSaveError(null);
               setSavingPanel(true);
             }}
-            className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+            className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
           >
             שמרו כתובת זו
           </button>
@@ -454,7 +455,7 @@ export function AddressField({
               type="button"
               disabled={saving || saveLabel.trim() === ""}
               onClick={saveThisAddress}
-              className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+              className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
             >
               {saving ? "שומרים…" : "שמירה"}
             </button>
@@ -465,7 +466,7 @@ export function AddressField({
                 setSavingPanel(false);
                 setSaveError(null);
               }}
-              className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+              className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
             >
               ביטול
             </button>

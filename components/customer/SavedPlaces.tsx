@@ -5,6 +5,7 @@ import { removePlace, renamePlace, savePlace } from "@/lib/actions/places";
 import { EMPTY_SAVED_PLACE_STATE } from "@/lib/actions/state";
 import { AddressField, type AddressValue } from "@/components/ui/AddressField";
 import {
+  BUTTON_COMPACT,
   BUTTON_CTA,
   BUTTON_QUIET,
   FIELD_LABEL,
@@ -68,7 +69,7 @@ export function SavedPlaces({
             setAdding((wasOpen) => !wasOpen);
             setOpenId(null);
           }}
-          className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+          className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
         >
           {adding ? "ביטול" : "הוספת כתובת"}
         </button>
@@ -200,7 +201,7 @@ function PlacePanel({ place }: { place: SavedPlace }) {
           <button
             type="submit"
             disabled={renaming}
-            className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+            className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
           >
             שינוי שם
           </button>
@@ -211,7 +212,7 @@ function PlacePanel({ place }: { place: SavedPlace }) {
           <button
             type="submit"
             disabled={removing}
-            className={`${BUTTON_QUIET} px-3 py-1.5 text-sm`}
+            className={`${BUTTON_QUIET} ${BUTTON_COMPACT}`}
           >
             מחיקה
           </button>
