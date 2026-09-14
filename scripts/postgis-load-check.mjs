@@ -122,7 +122,7 @@ function psql(sql) {
 const LOAD = `
 insert into public.jobs
   (customer_id, category_id, description, location, address_text,
-   preferred_time, search_radius_km)
+   preferred_time)
 select
   '${CUSTOMER_A}',
   '${PLUMBING}',
@@ -132,8 +132,7 @@ select
     31.90 + random() * 0.36
   )::extensions.geography,
   'רחוב הבדיקה ' || g || ', תל אביב',
-  (array['asap','today','tomorrow','this_week','flexible'])[1 + floor(random() * 5)],
-  (array[3,5,10,15,25])[1 + floor(random() * 5)]
+  (array['asap','today','tomorrow','this_week','flexible'])[1 + floor(random() * 5)]
 from generate_series(1, ${JOBS}) g;
 
 insert into auth.users (
