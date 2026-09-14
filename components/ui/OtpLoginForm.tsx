@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   requestOtp,
   verifyOtp,
@@ -13,7 +13,11 @@ import {
   INPUT_CLASS,
   PAGE_TITLE,
 } from "@/components/ui/primitives";
-import { formatIsraeliMobile, type SignupRole } from "@/lib/validation/auth";
+import {
+  formatIsraeliMobile,
+  type SignupRole,
+  type UserRole,
+} from "@/lib/validation/auth";
 
 type Props = {
   role: SignupRole;
@@ -27,6 +31,15 @@ type Props = {
    * the thing that makes it safe (see `postLoginPath` in lib/routes.ts).
    */
   next?: string | null;
+  /**
+   * Stay on this screen after signing in, and hand the new identity back
+   * instead of navigating. The posting form uses it: somebody who has just
+   * written a whole call must not be sent to their account page half-way
+   * through publishing it. Absent, the server redirects as it always has.
+   */
+  onSignedIn?: (user: { id: string; role: UserRole }) => void;
+  /** A smaller heading, for when the form sits inside another screen. */
+  compact?: boolean;
 };
 
 /**
@@ -57,6 +70,8 @@ function OtpLoginFormAttempt({
   subtitle,
   askForName = true,
   next,
+  onSignedIn,
+  compact = false,
   onRestart,
 }: Props & { onRestart: () => void }) {
   const [requestState, requestAction, requestPending] = useActionState(
@@ -70,9 +85,22 @@ function OtpLoginFormAttempt({
 
   const sentTo = requestState.sentTo;
 
+  // Reported once per sign-in. The ref keeps a re-render of the parent from
+  // calling back twice with the same identity, which would publish twice.
+  const reported = useRef(false);
+  useEffect(() => {
+    if (!verifyState.signedIn || reported.current) return;
+    reported.current = true;
+    onSignedIn?.(verifyState.signedIn);
+  }, [verifyState.signedIn, onSignedIn]);
+
   return (
     <div className="w-full">
-      <h1 className={PAGE_TITLE}>{title}</h1>
+      {compact ? (
+        <h2 className="text-xl font-bold text-ink">{title}</h2>
+      ) : (
+        <h1 className={PAGE_TITLE}>{title}</h1>
+      )}
       <p className="mt-2 text-sm text-muted">{subtitle}</p>
 
       {sentTo ? (
@@ -87,6 +115,7 @@ function OtpLoginFormAttempt({
           */}
           <input type="hidden" name="role" value={role} />
           {next && <input type="hidden" name="next" value={next} />}
+          {onSignedIn && <input type="hidden" name="stay" value="1" />}
           {requestState.fullName && (
             <input
               type="hidden"

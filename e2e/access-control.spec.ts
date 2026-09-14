@@ -30,7 +30,10 @@ test.describe("an anonymous visitor", () => {
 
   const gated: ReadonlyArray<{ path: string; login: string }> = [
     { path: "/account", login: "/login" },
-    { path: "/new-request", login: "/login" },
+    {
+      path: "/new-request/published/d0000000-0000-4000-8000-000000000001",
+      login: "/login",
+    },
     { path: `/requests/${JOB_OF_CUSTOMER_A}/offers`, login: "/login" },
     { path: `/requests/${JOB_OF_CUSTOMER_A}/chat`, login: "/login" },
     { path: "/pro/dashboard", login: "/pro/login" },

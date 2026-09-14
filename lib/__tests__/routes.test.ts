@@ -47,7 +47,15 @@ describe("loginPathFor", () => {
     expect(loginPathFor("/admin/jobs/8842")).toBe(ROLE_LOGIN.admin);
     expect(loginPathFor("/account")).toBe(ROLE_LOGIN.customer);
     expect(loginPathFor("/requests/8842/track")).toBe(ROLE_LOGIN.customer);
-    expect(loginPathFor("/new-request")).toBe(ROLE_LOGIN.customer);
+    expect(
+      loginPathFor(
+        "/new-request/published/d0000000-0000-4000-8000-000000000001",
+      ),
+    ).toBe(ROLE_LOGIN.customer);
+  });
+
+  it("leaves the posting form open: the phone is asked for at publish", () => {
+    expect(loginPathFor("/new-request")).toBeNull();
   });
 
   it("leaves the marketing pages public", () => {

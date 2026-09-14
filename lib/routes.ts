@@ -185,9 +185,11 @@ export const USER_ROLE_LABEL: Record<UserRole, string> = {
 
 const PROTECTED_AREAS: ReadonlyArray<{ prefix: string; login: string }> = [
   { prefix: ROLE_HOME.customer, login: ROLE_LOGIN.customer },
-  // Posting a job sits outside /account but is just as signed-in: a customer
-  // registers on the way to their first job (product-spec.md section 2).
-  { prefix: "/new-request", login: ROLE_LOGIN.customer },
+  // The confirmation after posting is signed-in. The form itself at
+  // /new-request is not, since Phase 13.7: a customer registers on the way to
+  // their first job, at the publish button (product-spec.md section 2), and
+  // `createJob` is what requires the session.
+  { prefix: "/new-request/published", login: ROLE_LOGIN.customer },
   // Comparing offers and chatting about a job — signed-in customer screens
   // that sit outside /account for the same reason /new-request does.
   { prefix: "/requests", login: ROLE_LOGIN.customer },

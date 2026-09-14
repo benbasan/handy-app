@@ -7,7 +7,7 @@ import { toEwkt } from "@/lib/maps/geometry";
 import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { optional } from "@/lib/actions/formData";
 import { createClient } from "@/lib/supabase/server";
-import { requireRole } from "@/lib/supabase/session";
+import { getCurrentUser, requireRole } from "@/lib/supabase/session";
 import { countProsNearPoint } from "@/lib/supabase/jobs";
 import { coordinatesInIsrael } from "@/lib/maps/geometry";
 import { createJobSchema } from "@/lib/validation/jobs";
@@ -180,12 +180,20 @@ export async function createJob(
  * Null means "we could not ask" and the screen says nothing — that is a
  * different sentence from "nobody covers you", and only one of them is the
  * customer's problem.
+ *
+ * Since Phase 13.7 the form is open to visitors who have not signed in, and
+ * this is called from it for them too. `requireRole()` would answer that with
+ * a redirect — from inside a server action, which navigates somebody who is
+ * half-way through describing a leak to the login page. So a caller who is not
+ * a customer gets null, the screen stays silent, and `pros_near_point()` stays
+ * granted to `authenticated` only, exactly as Phase 12 decided.
  */
 export async function countProsCovering(
   lat: number,
   lng: number,
 ): Promise<number | null> {
-  await requireRole("customer");
+  const user = await getCurrentUser();
+  if (user?.role !== "customer") return null;
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   if (!coordinatesInIsrael(lat, lng)) return null;
