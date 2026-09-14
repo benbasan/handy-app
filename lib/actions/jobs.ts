@@ -123,9 +123,35 @@ export async function createJob(
     };
   }
 
+  // `/new-request?pro=<slug>` (Phase 13.8): the customer asked for one pro by
+  // name. Resolved here, against verified pros only, rather than trusting an id
+  // from the form — and the insert trigger checks it again.
+  const proSlug = optional(formData.get("proSlug"));
+  let requestedProId: string | null = null;
+  if (proSlug) {
+    const { data: proId } = await supabase.rpc("verified_pro_id_by_slug", {
+      p_slug: proSlug,
+    });
+    if (!proId) {
+      logExpectedRefusal(
+        "jobs.postJob.requestedPro",
+        "unknown or unverified slug",
+        {
+          customerId: user.id,
+        },
+      );
+      return {
+        error:
+          "בעל המקצוע שביקשתם כבר לא זמין דרך הקישור הזה. אפשר להסיר אותו ולפרסם לכל בעלי המקצוע באזור.",
+      };
+    }
+    requestedProId = proId;
+  }
+
   const { data: job, error } = await supabase
     .from("jobs")
     .insert({
+      requested_pro_id: requestedProId,
       customer_id: user.id,
       category_id: input.categoryId,
       description: input.description,
@@ -257,4 +283,34 @@ export async function addJobDetails(
 
   revalidatePath(CUSTOMER_ROUTES.offers(parsed.data.jobId));
   return { savedAt: Date.now() };
+}
+
+/**
+ * "פתחו לכל בעלי המקצוע באזור" — the customer stops waiting on the one pro
+ * they asked for (Phase 13.8). `open_job_to_all()` checks ownership and that
+ * the call is still waiting on that pro, and tells every pro in radius.
+ */
+export async function openJobToAll(
+  _prevState: { error?: string },
+  formData: FormData,
+): Promise<{ error?: string }> {
+  await requireRole("customer");
+
+  const jobId = String(formData.get("jobId") ?? "");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("open_job_to_all", { p_job_id: jobId });
+
+  if (error) {
+    const record = error.code === "22023" ? logExpectedRefusal : logServerError;
+    record("jobs.openJobToAll", error, { jobId });
+    return {
+      error:
+        error.code === "22023"
+          ? "הקריאה כבר פתוחה לכל בעלי המקצוע."
+          : "לא הצלחנו לפתוח את הקריאה. נסו שוב בעוד רגע.",
+    };
+  }
+
+  revalidatePath(CUSTOMER_ROUTES.offers(jobId));
+  return {};
 }

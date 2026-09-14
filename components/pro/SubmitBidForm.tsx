@@ -58,6 +58,7 @@ export function SubmitBidForm({
   priceRange,
   preferredTime = null,
   now,
+  fee = ACCEPTANCE_FEE,
 }: {
   jobId: string;
   /** Present when editing an offer already sent. */
@@ -74,6 +75,8 @@ export function SubmitBidForm({
   preferredTime?: string | null;
   /** The server's clock at render, so the open slots are the same on both sides of hydration. */
   now?: string;
+  /** What accepting this job would charge this pro (`my_fee_for_job()`). */
+  fee?: number;
 }) {
   const [state, formAction, pending] = useActionState(
     bidId ? updateBid : submitBid,
@@ -83,7 +86,7 @@ export function SubmitBidForm({
   const [price, setPrice] = useState(initialPrice ?? DEFAULT_BID_PRICE);
   const [eta, setEta] = useState(initialEta ?? DEFAULT_ETA_MINUTES);
 
-  const { net } = feeBreakdown(price);
+  const { net } = feeBreakdown(price, fee);
 
   const clockNow = now ? new Date(now) : null;
   const askWindow = !bidId && clockNow !== null && windowOffered(preferredTime);
@@ -216,9 +219,7 @@ export function SubmitBidForm({
             <div className="flex items-baseline justify-between gap-3 pb-3">
               <dt className="text-muted">דמי קבלת עבודה</dt>
               <dd className="font-bold text-ink">
-                <span className="ltr-nums">
-                  {ACCEPTANCE_FEE.toLocaleString("he-IL")}
-                </span>{" "}
+                <span className="ltr-nums">{fee.toLocaleString("he-IL")}</span>{" "}
                 ₪
               </dd>
             </div>
@@ -249,7 +250,9 @@ export function SubmitBidForm({
             {bidId ? " — עדכון מחיר מתחיל את הספירה מחדש." : "."}
           </p>
           <p className="mt-1 text-center text-xs text-muted">
-            דמי קבלת העבודה נגבים רק אם הלקוח יבחר בך ותאשר שאתה לוקח את העבודה.
+            {fee === 0
+              ? "לקוח חדש שהגיע דרך הקישור האישי שלך — העבודה הראשונה איתו בלי דמי קבלת עבודה."
+              : "דמי קבלת העבודה נגבים רק אם הלקוח יבחר בך ותאשר שאתה לוקח את העבודה."}
           </p>
 
           {state.error && (

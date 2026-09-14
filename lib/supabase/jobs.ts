@@ -50,6 +50,10 @@ export type JobSummary = {
   selectedBidId: string | null;
   /** When the customer last added to the call (Phase 13.7), or null. */
   detailsAddedAt: string | null;
+  /** The pro the customer asked for by name (Phase 13.8), or null. */
+  requestedProId: string | null;
+  /** When a directed call was opened to everyone; null while it waits on one pro. */
+  openedToAllAt: string | null;
   /**
    * Offers still waiting on this customer, or null where the query did not ask.
    *
@@ -61,7 +65,7 @@ export type JobSummary = {
 };
 
 const JOB_COLUMNS =
-  "id, description, address_text, status, preferred_time, created_at, photo_urls, video_url, voice_note_url, latitude, longitude, selected_bid_id, details_added_at, categories(name_he, slug)";
+  "id, description, address_text, status, preferred_time, created_at, photo_urls, video_url, voice_note_url, latitude, longitude, selected_bid_id, details_added_at, requested_pro_id, opened_to_all_at, categories(name_he, slug)";
 
 /**
  * The list view asks for the offers alongside the jobs — one round trip, under
@@ -96,6 +100,8 @@ type JobRow = {
   longitude: number | null;
   selected_bid_id: string | null;
   details_added_at: string | null;
+  requested_pro_id: string | null;
+  opened_to_all_at: string | null;
   categories: { name_he: string; slug: string } | null;
   bids?: { status: string; expires_at: string }[];
 };
@@ -126,6 +132,8 @@ function toSummary(row: JobRow): JobSummary {
     longitude: row.longitude,
     selectedBidId: row.selected_bid_id,
     detailsAddedAt: row.details_added_at,
+    requestedProId: row.requested_pro_id,
+    openedToAllAt: row.opened_to_all_at,
     liveBidsCount: liveBids(row),
   };
 }
@@ -216,4 +224,16 @@ export async function countProsNearPoint(
   }
 
   return data ?? 0;
+}
+
+/** Who a directed call is waiting on — the name and slug, to its owner only. */
+export async function getRequestedPro(
+  jobId: string,
+): Promise<{ fullName: string | null; slug: string | null } | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("requested_pro_for_job", {
+    p_job_id: jobId,
+  });
+  const row = data?.[0];
+  return row ? { fullName: row.full_name, slug: row.public_slug } : null;
 }

@@ -15,6 +15,7 @@ import {
   countBidsOnJob,
   getSimilarBidRange,
   listMyBids,
+  getMyFeeForJob,
   recordJobView,
 } from "@/lib/supabase/bids";
 import { getJob } from "@/lib/supabase/jobs";
@@ -57,7 +58,7 @@ export default async function SubmitBidPage({
   const mine = (await listMyBids()).find((bid) => bid.jobId === jobId);
   if (mine) redirect(`${PRO_ROUTES.offers}?bid=${mine.id}`);
 
-  const [bidsCount, priceRange, feed] = await Promise.all([
+  const [bidsCount, priceRange, feed, , fee] = await Promise.all([
     countBidsOnJob(jobId),
     getSimilarBidRange(jobId),
     // Only for the "1.2 ק״מ ממך" line: the distance is computed by PostGIS in
@@ -67,6 +68,7 @@ export default async function SubmitBidPage({
     // for a job outside this pro's radius or no longer collecting offers, and
     // its failure is never this page's problem — it is a statistic.
     recordJobView(jobId),
+    getMyFeeForJob(jobId),
   ]);
 
   // Read once, on the server, and handed to the form: which arrival slots are
@@ -148,6 +150,7 @@ export default async function SubmitBidPage({
         priceRange={priceRange}
         preferredTime={job.preferredTime}
         now={renderedAt}
+        fee={fee ?? undefined}
       />
     </div>
   );

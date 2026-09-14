@@ -313,13 +313,21 @@ export const setVerificationSchema = z.object({
  * the number from one place, and because what it subtracts changed once
  * already.
  */
-export function feeBreakdown(price: number): {
+export function feeBreakdown(
+  price: number,
+  /**
+   * What accepting this particular job would charge — `my_fee_for_job()`.
+   * The flat fee unless the call is a new customer's first, through this
+   * pro's own link (Phase 13.8). A display, never an input to anything.
+   */
+  fee: number = ACCEPTANCE_FEE,
+): {
   fee: number;
   net: number;
 } {
   return {
-    fee: ACCEPTANCE_FEE,
-    net: Math.round((price - ACCEPTANCE_FEE) * 100) / 100,
+    fee,
+    net: Math.round((price - fee) * 100) / 100,
   };
 }
 

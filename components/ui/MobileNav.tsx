@@ -108,7 +108,14 @@ function itemsFor(
 
   return {
     primary: [
-      { href: "/account", label: "הקריאות שלי", icon: ClipboardIcon },
+      // `exact`, now that two more screens live under /account and would
+      // otherwise light this tab up too.
+      {
+        href: "/account",
+        label: "הקריאות שלי",
+        icon: ClipboardIcon,
+        exact: true,
+      },
       { href: "/new-request", label: "פרסם קריאה", icon: MapPinIcon },
       {
         href: "/account/notifications",
@@ -119,6 +126,7 @@ function itemsFor(
       },
     ],
     more: [
+      { href: "/account/home", label: "תיק הבית", icon: MapPinIcon },
       {
         href: MARKETING_ROUTES.howItWorks,
         label: "איך זה עובד",

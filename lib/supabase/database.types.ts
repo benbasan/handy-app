@@ -356,9 +356,11 @@ export type Database = {
           latitude: number | null
           location: unknown
           longitude: number | null
+          opened_to_all_at: string | null
           photo_urls: string[]
           preferred_time: string | null
           quiet_warned_at: string | null
+          requested_pro_id: string | null
           selected_bid_id: string | null
           status: string
           video_url: string | null
@@ -376,9 +378,11 @@ export type Database = {
           latitude?: number | null
           location: unknown
           longitude?: number | null
+          opened_to_all_at?: string | null
           photo_urls?: string[]
           preferred_time?: string | null
           quiet_warned_at?: string | null
+          requested_pro_id?: string | null
           selected_bid_id?: string | null
           status?: string
           video_url?: string | null
@@ -396,9 +400,11 @@ export type Database = {
           latitude?: number | null
           location?: unknown
           longitude?: number | null
+          opened_to_all_at?: string | null
           photo_urls?: string[]
           preferred_time?: string | null
           quiet_warned_at?: string | null
+          requested_pro_id?: string | null
           selected_bid_id?: string | null
           status?: string
           video_url?: string | null
@@ -416,6 +422,13 @@ export type Database = {
           {
             foreignKeyName: "jobs_customer_id_fkey"
             columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_requested_pro_id_fkey"
+            columns: ["requested_pro_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1170,6 +1183,10 @@ export type Database = {
       is_job_owner: { Args: { p_job_id: string }; Returns: boolean }
       is_verified_pro: { Args: never; Returns: boolean }
       job_acceptance_fee: { Args: never; Returns: number }
+      job_acceptance_fee_for: {
+        Args: { p_job_id: string; p_pro_id: string }
+        Returns: number
+      }
       job_bid_count: { Args: { p_job_id: string }; Returns: number }
       job_city: { Args: { p_address: string }; Returns: string }
       job_contact: {
@@ -1304,6 +1321,24 @@ export type Database = {
           rating_count: number
         }[]
       }
+      my_fee_for_job: { Args: { p_job_id: string }; Returns: number }
+      my_home_record: {
+        Args: never
+        Returns: {
+          address_text: string
+          category_name_he: string
+          category_slug: string
+          completed_at: string
+          description: string
+          job_id: string
+          photo_urls: string[]
+          place_id: string
+          place_label: string
+          pro_name: string
+          pro_slug: string
+          total_price: number
+        }[]
+      }
       my_message_threads: {
         Args: never
         Returns: {
@@ -1371,6 +1406,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      open_job_to_all: { Args: { p_job_id: string }; Returns: undefined }
       open_jobs_for_pro: {
         Args: { p_max_km?: number }
         Returns: {
@@ -1388,6 +1424,7 @@ export type Database = {
           longitude: number
           photo_urls: string[]
           preferred_time: string
+          requested_for_me: boolean
           status: string
         }[]
       }
@@ -1445,6 +1482,14 @@ export type Database = {
           reviewer_name: string
         }[]
       }
+      pro_reaches_job: {
+        Args: {
+          p_opened_to_all_at: string
+          p_point: unknown
+          p_requested_pro_id: string
+        }
+        Returns: boolean
+      }
       pro_serves_job: { Args: { p_point: unknown }; Returns: boolean }
       pros_in_range: { Args: { p_job_id: string }; Returns: number }
       pros_near_point: {
@@ -1460,6 +1505,10 @@ export type Database = {
         }[]
       }
       record_job_view: { Args: { p_job_id: string }; Returns: undefined }
+      release_directed_job: {
+        Args: { p_job_id: string; p_tell_customer: boolean }
+        Returns: boolean
+      }
       remind_todays_visits: { Args: never; Returns: number }
       reply_to_review: {
         Args: { p_reply: string; p_review_id: string }
@@ -1483,6 +1532,13 @@ export type Database = {
           p_photo_url: string
         }
         Returns: string
+      }
+      requested_pro_for_job: {
+        Args: { p_job_id: string }
+        Returns: {
+          full_name: string
+          public_slug: string
+        }[]
       }
       resolve_dispute: {
         Args: {
@@ -1535,6 +1591,7 @@ export type Database = {
           sender_name: string
         }[]
       }
+      verified_pro_id_by_slug: { Args: { p_slug: string }; Returns: string }
       warn_expiring_selections: { Args: never; Returns: number }
       warn_quiet_jobs: { Args: never; Returns: number }
       withdraw_bid_selection: { Args: { p_job_id: string }; Returns: undefined }

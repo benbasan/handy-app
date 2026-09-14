@@ -12,6 +12,7 @@
 export const NOTIFICATION_KINDS = [
   // The pro's side.
   "job_in_radius",
+  "job_requested",
   "bid_selected",
   "selection_moved",
   "selection_withdrawn",
@@ -33,6 +34,7 @@ export const NOTIFICATION_KINDS = [
   "price_update_requested",
   "job_completed",
   "no_bids_yet",
+  "requested_pro_passed",
   // Both.
   "message_received",
   "visit_reminder",
@@ -56,6 +58,7 @@ export const KIND_AUDIENCE: Record<
   "pro" | "customer" | "both"
 > = {
   job_in_radius: "pro",
+  job_requested: "pro",
   bid_selected: "pro",
   selection_moved: "pro",
   selection_withdrawn: "pro",
@@ -76,6 +79,7 @@ export const KIND_AUDIENCE: Record<
   price_update_requested: "customer",
   job_completed: "customer",
   no_bids_yet: "customer",
+  requested_pro_passed: "customer",
   message_received: "both",
   visit_reminder: "both",
 };
@@ -123,4 +127,8 @@ export const PUSH_ELIGIBLE_KINDS: readonly NotificationKind[] = [
   // and the morning of a visit.
   "no_bids_yet",
   "visit_reminder",
+  // Phase 13.8. Somebody asked for this pro by name, and the one thing that
+  // opens the call to everyone else is their answer.
+  "job_requested",
+  "requested_pro_passed",
 ];

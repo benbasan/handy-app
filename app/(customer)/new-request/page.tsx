@@ -14,6 +14,7 @@ import { listCategories } from "@/lib/supabase/jobs";
 import { countMyUnreadNotifications } from "@/lib/supabase/notifications";
 import { mySavedPlaces } from "@/lib/supabase/places";
 import { getCurrentUser } from "@/lib/supabase/session";
+import { getPublicProProfile } from "@/lib/supabase/publicProfiles";
 import { DESCRIPTION_MAX } from "@/lib/validation/jobs";
 
 export const metadata = { title: "פרסום קריאה חדשה — Handy" };
@@ -60,8 +61,22 @@ export default async function NewRequestPage({
   // the description, and — only when no tile was chosen and the sentence
   // clearly names one trade — the category too (lib/content/intent.ts).
   const typed = first(params.q)?.trim().slice(0, DESCRIPTION_MAX) || null;
+
+  // `?pro=<slug>` is a pro's personal link (Phase 13.8): the call goes to them
+  // first and only. Looked up through the same public function a stranger's
+  // profile page uses, so an unknown or unverified slug simply is not there
+  // and the form is the ordinary one.
+  const proSlug = first(params.pro)?.trim().toLowerCase() || null;
+  const requestedPro = proSlug ? await getPublicProProfile(proSlug) : null;
+
+  // A pro who works in exactly one trade has already answered step 1.
+  const proTrade =
+    requestedPro?.categorySlugs.length === 1
+      ? requestedPro.categorySlugs[0]
+      : null;
+
   const requested =
-    first(params.category) ?? (typed && matchCategoryIntent(typed));
+    first(params.category) ?? (typed && matchCategoryIntent(typed)) ?? proTrade;
 
   const initialCategoryId =
     categories.find((category) => category.slug === requested)?.id ?? null;
@@ -96,6 +111,17 @@ export default async function NewRequestPage({
             savedPlaces={savedPlaces}
             initialCategoryId={initialCategoryId}
             initialDescription={typed}
+            requestedPro={
+              requestedPro
+                ? {
+                    slug: requestedPro.slug,
+                    fullName: requestedPro.fullName,
+                    avatarUrl: requestedPro.avatarUrl,
+                    ratingAvg: requestedPro.ratingAvg,
+                    jobsCompletedCount: requestedPro.jobsCompletedCount,
+                  }
+                : null
+            }
           />
         </>
       )}

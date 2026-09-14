@@ -154,6 +154,10 @@ describe("feeBreakdown", () => {
       expect(Number((fee + net).toFixed(2))).toBe(price);
     }
   });
+
+  it("shows the whole price as net when the fee is waived", () => {
+    expect(feeBreakdown(320, 0)).toEqual({ fee: 0, net: 320 });
+  });
 });
 
 describe("minutesLeft", () => {
