@@ -56,9 +56,14 @@ export default async function CustomerAccountPage() {
           </p>
         </header>
 
-        <Link href="/new-request" className={BUTTON_CTA}>
-          קריאה חדשה
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href={CUSTOMER_ROUTES.home} className={BUTTON_QUIET}>
+            תיק הבית
+          </Link>
+          <Link href="/new-request" className={BUTTON_CTA}>
+            קריאה חדשה
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">

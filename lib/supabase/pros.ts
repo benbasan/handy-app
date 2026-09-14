@@ -153,6 +153,8 @@ export type FeedJob = {
   bidsCount: number;
   /** Already offered to somebody who has not answered yet. */
   awaitingAnswer: boolean;
+  /** A customer asked for this pro by name (Phase 13.8). */
+  requestedForMe: boolean;
   /**
    * The design's orange "קריאה חדשה נכנסה עכשיו" ribbon. Derived here, from
    * one reading of the clock per query, rather than in the card: "now" is not
@@ -199,6 +201,7 @@ export async function listFeedJobs(maxKm: number | null): Promise<FeedJob[]> {
     distanceKm: row.distance_km,
     bidsCount: row.bids_count,
     awaitingAnswer: row.awaiting_answer,
+    requestedForMe: row.requested_for_me,
     justArrived: new Date(row.created_at).getTime() > freshBefore,
   }));
 }

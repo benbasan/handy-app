@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   useActionState,
   useCallback,
@@ -124,6 +125,19 @@ type Props = {
   initialCategoryId?: string | null;
   /** What they typed into the landing page's "מה קרה?" box. */
   initialDescription?: string | null;
+  /**
+   * The pro whose personal link brought them here (Phase 13.8). The call goes
+   * to this pro alone until they pass or the customer opens it to everyone.
+   */
+  requestedPro?: RequestedPro | null;
+};
+
+export type RequestedPro = {
+  slug: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  ratingAvg: number | null;
+  jobsCompletedCount: number;
 };
 
 /**
@@ -141,7 +155,7 @@ export function PostJobForm(props: Props) {
   useEffect(() => releaseJobDraftCache, []);
 
   const carriesIntent = Boolean(
-    props.initialCategoryId || props.initialDescription,
+    props.initialCategoryId || props.initialDescription || props.requestedPro,
   );
   const draft = carriesIntent ? null : parseJobDraft(raw);
 
@@ -161,6 +175,7 @@ function PostJobFormBody({
   savedPlaces = [],
   initialCategoryId = null,
   initialDescription = null,
+  requestedPro = null,
   draft,
 }: Props & { draft: JobDraft | null }) {
   const [state, formAction, pending] = useActionState(createJob, INITIAL);
@@ -368,6 +383,49 @@ function PostJobFormBody({
       >
         <input type="hidden" name="categoryId" value={categoryId ?? ""} />
         <input type="hidden" name="preferredTime" value={preferredTime ?? ""} />
+        {requestedPro && (
+          <input type="hidden" name="proSlug" value={requestedPro.slug} />
+        )}
+
+        {/*
+          The pro's personal link (Phase 13.8). Said at the top, because it
+          changes what "publish" means: this call goes to one person first.
+        */}
+        {requestedPro && (
+          <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-brand bg-brand-soft p-4">
+            {requestedPro.avatarUrl ? (
+              // A public-bucket portrait, drawn the way ProCard draws it.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={requestedPro.avatarUrl}
+                alt=""
+                className="size-14 shrink-0 rounded-xl object-cover"
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-surface font-bold text-brand"
+              >
+                {(requestedPro.fullName ?? "?").slice(0, 1)}
+              </span>
+            )}
+            <div className="min-w-48 flex-1">
+              <p className="font-bold text-ink">
+                הקריאה תישלח קודם אל {requestedPro.fullName ?? "בעל המקצוע"}
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                רק בעל המקצוע הזה יראה אותה. אם לא יתאים לו, הקריאה תיפתח לכל
+                בעלי המקצוע המאומתים באזור — ואפשר לפתוח אותה בעצמכם בכל רגע.
+              </p>
+            </div>
+            <Link
+              href="/new-request"
+              className="inline-flex min-h-11 items-center text-sm font-semibold text-brand underline underline-offset-2"
+            >
+              שליחה לכל בעלי המקצוע במקום
+            </Link>
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="space-y-6">

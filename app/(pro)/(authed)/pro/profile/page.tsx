@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PersonalLinkCard } from "@/components/pro/PersonalLinkCard";
 import { PublicProfileForm } from "@/components/pro/PublicProfileForm";
 import { ReviewReplyForm } from "@/components/pro/ReviewReplyForm";
 import {
@@ -57,6 +58,10 @@ export default async function ProPublicProfilePage() {
 
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
         <aside className="order-2 space-y-4 lg:order-2">
+          {profile.verificationStatus === "verified" && (
+            <PersonalLinkCard slug={profile.publicSlug} />
+          )}
+
           <div className="rounded-2xl bg-ink p-5 text-white sm:p-6">
             <h2 className="text-base font-bold">חוזק הפרופיל</h2>
             <p className="ltr-nums mt-1 text-4xl font-bold text-cta">

@@ -384,3 +384,20 @@ export async function listMyPendingAcceptances(): Promise<PendingAcceptance[]> {
     selectedAt: row.selected_at,
   }));
 }
+
+/**
+ * What accepting this job would charge the calling pro — 35 ₪, or 0 on a new
+ * customer's first call through this pro's own link (Phase 13.8). Null when it
+ * could not be asked, and the form then shows the flat fee.
+ */
+export async function getMyFeeForJob(jobId: string): Promise<number | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_fee_for_job", {
+    p_job_id: jobId,
+  });
+  if (error) {
+    logServerError("bids.getMyFeeForJob", error, { jobId });
+    return null;
+  }
+  return data === null ? null : Number(data);
+}

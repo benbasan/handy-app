@@ -98,6 +98,15 @@ export function FeedJobCard({
               and they are entitled to know that before they price it. How
               long the other pro has been thinking is not their business, so
               this is a flag and not a clock. */}
+          {/* Phase 13.8: the call came through this pro's own link, and
+              nobody else can see it until they answer. Saying so is what
+              makes "לא מתאים לי" a decision rather than a tidy-up. */}
+          {job.requestedForMe && (
+            <p className="mt-2 text-sm font-semibold text-pro">
+              הלקוח ביקש אותך ישירות — הקריאה נשלחה רק אליך. ״לא מתאים לי״ יפתח
+              אותה לבעלי מקצוע אחרים.
+            </p>
+          )}
           {job.awaitingAnswer && (
             <p className="mt-2 text-sm font-semibold text-alert">
               הלקוח כבר בחר הצעה וממתין לאישור בעל המקצוע. אפשר להגיש הצעה — היא

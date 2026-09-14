@@ -101,7 +101,16 @@ export const CUSTOMER_ROUTES = {
    * map — which is the failure mode a top-level `/notifications` would invite.
    */
   notifications: "/account/notifications",
+  /**
+   * תיק הבית (Phase 13.8): every finished job, under the saved address it
+   * happened at. Under `/account` for the same reason the notification centre
+   * is — PROTECTED_AREAS already covers the prefix.
+   */
+  home: "/account/home",
   newRequest: "/new-request",
+  /** A call directed at one pro, by their public slug (Phase 13.8). */
+  newRequestTo: (proSlug: string) =>
+    `/new-request?pro=${encodeURIComponent(proSlug)}`,
   /**
    * Posting a call, carrying the choice the visitor has already made.
    *

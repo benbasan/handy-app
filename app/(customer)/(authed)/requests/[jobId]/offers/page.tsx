@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddJobDetails } from "@/components/customer/AddJobDetails";
 import { BidCard } from "@/components/customer/BidCard";
+import { OpenToAllButton } from "@/components/customer/OpenToAllButton";
 import { NoProsNearby } from "@/components/customer/NoProsNearby";
 import { WaitingForProCard } from "@/components/customer/WaitingForProCard";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
@@ -25,7 +26,7 @@ import {
   sortBids,
   sweepExpiredBids,
 } from "@/lib/supabase/bids";
-import { getJob } from "@/lib/supabase/jobs";
+import { getJob, getRequestedPro } from "@/lib/supabase/jobs";
 import { requireRole } from "@/lib/supabase/session";
 import {
   BID_SORTS,
@@ -72,10 +73,15 @@ export default async function JobOffersPage({
   // job" — the correct answer either way.
   if (!job) notFound();
 
-  const [bids, prosNearby, views] = await Promise.all([
+  // A call directed at one pro through their personal link (Phase 13.8), and
+  // still waiting on them alone.
+  const directed = job.requestedProId !== null && job.openedToAllAt === null;
+
+  const [bids, prosNearby, views, requestedPro] = await Promise.all([
     listBidsForJob(jobId),
     countProsInRange(jobId),
     countJobViews(jobId),
+    job.requestedProId ? getRequestedPro(jobId) : Promise.resolve(null),
   ]);
 
   // Read once, on the server, so "היום"/"מחר" on a window is the same answer
@@ -122,7 +128,12 @@ export default async function JobOffersPage({
                   sentence — and the card below explains it. No radius in
                   either: the customer has not had one since 11.9.2026, and a
                   number they never chose is not theirs to be told. */}
-              {prosNearby === 0 ? (
+              {directed ? (
+                <>
+                  הקריאה נשלחה רק אל{" "}
+                  {requestedPro?.fullName ?? "בעל המקצוע שביקשתם"}
+                </>
+              ) : prosNearby === 0 ? (
                 <>אין כרגע בעל מקצוע מאומת שמכסה את הכתובת</>
               ) : (
                 <>
@@ -192,7 +203,7 @@ export default async function JobOffersPage({
             />
             {/* With offers already on the screen the pulse card is gone, so
                 adding to the call lives here instead. */}
-            {collecting && bids.length > 0 && (
+            {collecting && (bids.length > 0 || directed) && (
               <AddJobDetails
                 jobId={jobId}
                 userId={user.id}
@@ -273,7 +284,29 @@ export default async function JobOffersPage({
             )
           )}
 
-          {bids.length === 0 ? (
+          {/*
+            Waiting on the one pro the customer asked for. Stated, with the
+            way out beside it: the call stays theirs until they pass (decided
+            14.9.2026), and this button is what keeps "until" from meaning
+            "for ever".
+          */}
+          {directed && collecting && (
+            <div className={`${CARD_BASE} p-6`}>
+              <h3 className={SECTION_TITLE}>
+                ממתינים ל{requestedPro?.fullName ?? "בעל המקצוע שביקשתם"}
+              </h3>
+              <p className="mt-2 text-sm text-muted">
+                ביקשתם בעל מקצוע מסוים, ולכן הקריאה נשלחה רק אליו. אם לא יתאים
+                לו, היא תיפתח מעצמה לכל בעלי המקצוע המאומתים באזור. לא רוצים
+                לחכות? אפשר לפתוח אותה עכשיו.
+              </p>
+              <div className="mt-4">
+                <OpenToAllButton jobId={jobId} />
+              </div>
+            </div>
+          )}
+
+          {bids.length === 0 && directed ? null : bids.length === 0 ? (
             prosNearby === 0 ? (
               <NoProsNearby />
             ) : (
