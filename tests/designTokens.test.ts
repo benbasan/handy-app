@@ -96,3 +96,34 @@ describe("a value that has a name in primitives.tsx is used by that name", () =>
     ).toEqual([]);
   });
 });
+
+/**
+ * 44px is the floor for anything a finger presses (CLAUDE.md section 3).
+ *
+ * The Phase 13.5 sweep that introduced BUTTON_COMPACT matched one spelling —
+ * `px-4 py-2 text-sm` — and so missed seven buttons written `px-3 py-1.5
+ * text-sm`, all of them on the address step of the posting form: "השתמשו
+ * במיקום הנוכחי", "שמרו כתובת זו" and the saved-place chips. That is the step
+ * a customer does with a thumb, often standing where the fault is. This audit
+ * matches the padding rather than a string, so the next spelling is caught too.
+ *
+ * A button weight shrunk below BUTTON_BASE's `py-3` has to go through
+ * BUTTON_COMPACT, which carries `min-h-11`.
+ */
+describe("no button is shrunk below the 44px touch floor", () => {
+  const files = sourceFiles(["app", "components"], [".tsx"]).filter(
+    (file) => file !== "components/ui/primitives.tsx",
+  );
+
+  it("composes BUTTON_COMPACT instead of a smaller vertical padding", () => {
+    const hits = scan(
+      files,
+      /\$\{BUTTON_(?:CTA|BRAND|PRO|QUIET|BASE)\}[^`"]*\bpy-(?:0|0\.5|1|1\.5)\b/,
+    );
+
+    expect(
+      hits,
+      `Use \${BUTTON_COMPACT} for a smaller button — it keeps min-h-11 (44px):\n${describeHits(hits)}`,
+    ).toEqual([]);
+  });
+});
