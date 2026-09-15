@@ -88,7 +88,10 @@ export function SiteHeader({
         </div>
       </div>
 
-      <MobileNav role="customer" unreadNotifications={unreadNotifications} />
+      <MobileNav
+        role={user ? "customer" : "visitor"}
+        unreadNotifications={unreadNotifications}
+      />
     </header>
   );
 }
