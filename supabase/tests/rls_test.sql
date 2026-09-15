@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(523);
+select plan(524);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -5125,6 +5125,12 @@ select is(
   public.my_fee_for_job('f1500000-0000-4000-8000-0000000000a3'),
   0::numeric,
   'and their next job now shows no fee'
+);
+
+select is(
+  public.my_base_fee_for_job('f1500000-0000-4000-8000-0000000000a3'),
+  35::numeric,
+  'while the base fee still says 35 — so the form can tell a credit from the new-customer waiver'
 );
 
 select throws_ok(

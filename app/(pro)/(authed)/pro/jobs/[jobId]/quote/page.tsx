@@ -15,6 +15,7 @@ import {
   countBidsOnJob,
   getSimilarBidRange,
   listMyBids,
+  getMyBaseFeeForJob,
   getMyFeeForJob,
   recordJobView,
 } from "@/lib/supabase/bids";
@@ -58,7 +59,7 @@ export default async function SubmitBidPage({
   const mine = (await listMyBids()).find((bid) => bid.jobId === jobId);
   if (mine) redirect(`${PRO_ROUTES.offers}?bid=${mine.id}`);
 
-  const [bidsCount, priceRange, feed, , fee] = await Promise.all([
+  const [bidsCount, priceRange, feed, , fee, baseFee] = await Promise.all([
     countBidsOnJob(jobId),
     getSimilarBidRange(jobId),
     // Only for the "1.2 ק״מ ממך" line: the distance is computed by PostGIS in
@@ -69,7 +70,10 @@ export default async function SubmitBidPage({
     // its failure is never this page's problem — it is a statistic.
     recordJobView(jobId),
     getMyFeeForJob(jobId),
+    getMyBaseFeeForJob(jobId),
   ]);
+
+  const feeReason = fee === 0 ? (baseFee === 0 ? "waiver" : "credit") : null;
 
   // Read once, on the server, and handed to the form: which arrival slots are
   // still open has to be the same answer on both sides of hydration.
@@ -151,6 +155,7 @@ export default async function SubmitBidPage({
         preferredTime={job.preferredTime}
         now={renderedAt}
         fee={fee ?? undefined}
+        feeReason={feeReason}
       />
     </div>
   );

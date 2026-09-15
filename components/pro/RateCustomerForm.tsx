@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   rateCustomer,
   type CancellationState,
@@ -25,12 +25,27 @@ export function RateCustomerForm({
   alreadyRated: boolean;
 }) {
   const [state, formAction, pending] = useActionState(rateCustomer, INITIAL);
+  const [open, setOpen] = useState(false);
 
   if (alreadyRated || state.saved) {
     return (
       <p className="text-sm text-muted">
         ✓ דירגת את הלקוח. הדירוג נשמר אצל צוות Handy בלבד.
       </p>
+    );
+  }
+
+  // Folded, like the dispute below it: a history of ten jobs must not be ten
+  // open forms.
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-sm font-semibold text-pro underline-offset-2 hover:underline"
+      >
+        דרגו את הלקוח (פרטי)
+      </button>
     );
   }
 

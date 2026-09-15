@@ -180,6 +180,25 @@ as $$
   end;
 $$;
 
+-- The bid form has to say *why* a job would cost nothing — "a new customer
+-- through your link" and "your credit covers it" are different sentences, and
+-- printing the first for the second is a false statement to a pro about money.
+create function public.my_base_fee_for_job(p_job_id uuid)
+returns numeric
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select public.job_base_fee_for(p_job_id, (select auth.uid()));
+$$;
+
+comment on function public.my_base_fee_for_job(uuid) is
+  'The calling pro''s fee on this job before credits: 0 only under the new-customer waiver.';
+
+revoke execute on function public.my_base_fee_for_job(uuid) from public, anon;
+grant execute on function public.my_base_fee_for_job(uuid) to authenticated;
+
 comment on function public.job_acceptance_fee_for(uuid, uuid) is
   'What accepting this job would charge this pro: 0 under the new-customer waiver or while they hold an unspent credit; job_acceptance_fee() otherwise.';
 

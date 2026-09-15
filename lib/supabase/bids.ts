@@ -458,3 +458,18 @@ export async function listMyRatedJobIds(): Promise<Set<string>> {
   }
   return new Set((data ?? []).map((row) => row.job_id));
 }
+
+/** The calling pro's fee on a job before credits (Phase 15): 0 only under the waiver. */
+export async function getMyBaseFeeForJob(
+  jobId: string,
+): Promise<number | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_base_fee_for_job", {
+    p_job_id: jobId,
+  });
+  if (error) {
+    logServerError("bids.getMyBaseFeeForJob", error, { jobId });
+    return null;
+  }
+  return data === null ? null : Number(data);
+}

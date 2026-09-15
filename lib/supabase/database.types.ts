@@ -1394,6 +1394,7 @@ export type Database = {
           unread_count: number
         }[]
       }
+      my_base_fee_for_job: { Args: { p_job_id: string }; Returns: number }
       my_bid_stats: {
         Args: never
         Returns: {
