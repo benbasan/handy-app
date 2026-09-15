@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/AppShell";
+import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import {
   BUTTON_CTA,
   BUTTON_QUIET,
@@ -11,7 +12,7 @@ import {
   PAGE_TITLE,
   SECTION_TITLE,
 } from "@/components/ui/primitives";
-import { MARKETING_ROUTES } from "@/lib/routes";
+import { CUSTOMER_ROUTES, MARKETING_ROUTES } from "@/lib/routes";
 import { JsonLd, absoluteUrl, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 import {
   getPublicProProfile,
@@ -77,7 +78,6 @@ export default async function PublicProProfilePage({
 
   const reviews = await listPublicProReviews(slug);
   const name = pro.fullName ?? "בעל מקצוע מאומת";
-  const initial = name.trim().charAt(0);
 
   const documents = [
     { label: "תעודת זהות", ok: pro.hasIdCard },
@@ -130,12 +130,7 @@ export default async function PublicProProfilePage({
               className="size-28 rounded-2xl object-cover"
             />
           ) : (
-            <span
-              aria-hidden
-              className="flex size-28 items-center justify-center rounded-2xl bg-brand-soft text-4xl font-bold text-brand"
-            >
-              {initial}
-            </span>
+            <InitialAvatar name={name} className="size-28 text-4xl" />
           )}
 
           <div className="min-w-64 flex-1">
@@ -185,7 +180,13 @@ export default async function PublicProProfilePage({
           </div>
 
           <div className="w-full space-y-3 sm:w-56">
-            <Link href="/new-request" className={`${BUTTON_CTA} w-full`}>
+            {/* A call directed at this pro (Phase 13.8), not a blank form:
+                the button says "invite them", and until Phase 19 it opened a
+                call that went to everyone in the radius instead. */}
+            <Link
+              href={CUSTOMER_ROUTES.newRequestTo(slug)}
+              className={`${BUTTON_CTA} w-full`}
+            >
               הזמן את {name.split(" ")[0]} לקריאה
             </Link>
             <Link href="/login" className={`${BUTTON_QUIET} w-full`}>

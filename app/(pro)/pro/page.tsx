@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FeedPhoneMockup } from "@/components/marketing/ProductMockups";
 import { ProLogo } from "@/components/pro/ProLogo";
 import {
   BUTTON_BRIGHT,
@@ -125,43 +126,38 @@ export default async function ProLandingPage() {
               </dl>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-8 sm:p-10">
-              <p className="text-sm font-semibold text-cta-bright">
-                השקיפות עובדת גם לטובתך
-              </p>
-              <p className="mt-3 text-2xl leading-snug font-bold">
-                עדכון מחיר בשטח מגובה בתמונה ובאישור של הלקוח — בכתב.
-              </p>
-              <p className="mt-4 text-white/75">
-                כשהמחיר משתנה בצורה מתועדת, אין ויכוח בסוף העבודה ואין מחלוקת על
-                מה שסוכם.
-              </p>
-            </div>
+            <FeedPhoneMockup />
           </div>
         </section>
 
         {/*
           Phase 17: the one proof that recruits a pro — there is work here, now.
-          Counted from `jobs` by open_calls_by_city(); and when there is nothing
-          to count, the section says that rather than going quiet, because a
-          pro who joins on launch day deserves to know the market is new.
+          Counted from `jobs` by open_calls_by_city(), which since Phase 19
+          returns only cities with three open calls or more. Below that there
+          is no count worth printing ("1 בחריש" recruits nobody), so the card
+          says where Handy is starting instead of showing a thin number.
         */}
-        <section className="mx-auto max-w-6xl px-4 pt-14 sm:px-6">
+        <section className="mx-auto grid max-w-6xl gap-4 px-4 pt-14 sm:px-6 lg:grid-cols-2">
           <div className={`${CARD_BASE} p-6 sm:p-8`}>
-            <h2 className="text-2xl font-bold text-ink">
-              קריאות פתוחות עכשיו, לפי עיר
-            </h2>
             {demand.length === 0 ? (
-              <p className="mt-3 text-muted">
-                כרגע אין קריאות פתוחות מהשבועיים האחרונים. Handy חדשה — בעלי
-                מקצוע שמצטרפים עכשיו רואים את הקריאות הראשונות באזור שלהם.
-              </p>
+              <>
+                <h2 className="text-2xl font-bold text-ink">
+                  מתחילים בתל אביב והמרכז
+                </h2>
+                <p className="mt-3 text-muted">
+                  Handy נפתחת עכשיו באזור. בעלי מקצוע שמצטרפים עכשיו רואים את
+                  הקריאות הראשונות באזור שלהם, לפי המרחק שהם עצמם בוחרים.
+                </p>
+              </>
             ) : (
               <>
+                <h2 className="text-2xl font-bold text-ink">
+                  קריאות פתוחות עכשיו, לפי עיר
+                </h2>
                 <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {demand.map((row) => (
                     <li key={row.city} className="rounded-xl bg-canvas p-4">
-                      <p className="ltr-nums text-3xl font-bold text-pro">
+                      <p className="ltr-nums font-display text-3xl font-bold text-pro">
                         {row.openCalls}
                       </p>
                       <p className="mt-1 text-sm font-semibold text-ink">
@@ -176,6 +172,19 @@ export default async function ProLandingPage() {
               </>
             )}
           </div>
+
+          <div className="rounded-2xl bg-pro-soft p-6 sm:p-8">
+            <p className="text-sm font-bold text-pro">
+              השקיפות עובדת גם לטובתך
+            </p>
+            <h2 className="mt-2 text-2xl leading-snug font-bold text-ink">
+              עדכון מחיר בשטח מגובה בתמונה ובאישור של הלקוח.
+            </h2>
+            <p className="mt-3 text-ink/80">
+              כשהמחיר משתנה בצורה מתועדת, אין ויכוח בסוף העבודה ואין מחלוקת על
+              מה שסוכם.
+            </p>
+          </div>
         </section>
 
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
@@ -187,7 +196,7 @@ export default async function ProLandingPage() {
             <Step
               index={1}
               title="פרופיל מאומת"
-              body="ת.ז, רישיון ותמונה — אישור תוך 24 שעות."
+              body="ת.ז ותמונה, ורישיון וביטוח אם יש. צוות Handy בודק ידנית — יעד מענה 24 שעות."
             />
             <Step
               index={2}

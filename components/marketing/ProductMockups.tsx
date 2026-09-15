@@ -263,3 +263,67 @@ export function StepPicture({ step }: { step: 1 | 2 | 3 }) {
     </div>
   );
 }
+
+/** The pro's feed, in a phone: a new call nearby and what they can do with it. */
+export function FeedPhoneMockup({ className = "" }: { className?: string }) {
+  return (
+    <div className={className}>
+      <p className="sr-only">
+        דוגמה לפיד של בעל מקצוע: קריאה חדשה באזור, עם תיאור, תמונה, מרחק ומועד,
+        וכפתור להגשת הצעה.
+      </p>
+      <div
+        aria-hidden
+        className="mx-auto w-full max-w-[18rem] rounded-[2.5rem] bg-ink p-2.5 shadow-overlay"
+      >
+        <div className="space-y-2 rounded-[2rem] bg-canvas px-3 pt-4 pb-4">
+          <div className="flex items-center justify-between gap-2 px-1">
+            <p className="font-display text-sm font-bold text-ink">
+              קריאות באזור שלך
+            </p>
+            <ExampleTag />
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-pro bg-surface p-3 shadow-lift">
+            <div className="flex items-center justify-between gap-2">
+              <span className="rounded-full bg-alert-soft px-2 py-0.5 text-[11px] font-bold text-alert-strong">
+                חדשה
+              </span>
+              <span className="text-xs text-muted">
+                <span className="ltr-nums">3.2</span> ק״מ · היום
+              </span>
+            </div>
+            <p className="text-sm font-bold text-ink">אינסטלציה · רמת גן</p>
+            <p className="text-xs text-muted">
+              נזילה מתחת לכיור במטבח, יש מים על הרצפה.
+            </p>
+            <div className="flex h-16 items-center justify-center gap-1.5 rounded-xl bg-[repeating-linear-gradient(45deg,#efe5d8_0_8px,#f6eee3_8px_16px)] text-xs text-muted">
+              <CameraIcon className="size-4" />
+              תמונה מהלקוח
+            </div>
+            <div className="grid grid-cols-[1fr_auto] gap-1.5">
+              <span className="flex min-h-9 items-center justify-center rounded-xl bg-pro text-sm font-bold text-white">
+                הגשת הצעה
+              </span>
+              <span className="flex min-h-9 items-center justify-center rounded-xl border border-line px-3 text-xs font-semibold text-muted">
+                לא מתאים לי
+              </span>
+            </div>
+          </div>
+
+          <div className={`${CARD_BASE} space-y-1 p-3`}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-bold text-ink">
+                מיזוג אוויר · גבעתיים
+              </p>
+              <span className="text-xs text-muted">
+                <span className="ltr-nums">5.8</span> ק״מ
+              </span>
+            </div>
+            <p className="text-xs text-muted">המזגן בחדר השינה לא מקרר.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
