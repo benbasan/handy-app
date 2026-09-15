@@ -417,3 +417,59 @@ export async function getMyFeeForJob(jobId: string): Promise<number | null> {
   }
   return data === null ? null : Number(data);
 }
+
+/**
+ * What was charged on a job already taken — the ledger row, under the caller's
+ * own RLS ("job_fees: pro reads own", or the admin's). Null when there is none.
+ */
+export async function getMyFeeOnJob(jobId: string): Promise<number | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("job_fees")
+    .select("fee_amount")
+    .eq("job_id", jobId)
+    .maybeSingle();
+  return data ? Number(data.fee_amount) : null;
+}
+
+/** Unspent credits the calling pro holds (Phase 15), under their own RLS. */
+export async function countMyFeeCredits(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("fee_credits")
+    .select("id", { count: "exact", head: true })
+    .is("used_on_job_id", null);
+  if (error) {
+    logServerError("bids.countMyFeeCredits", error, {});
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/** Job ids whose customer the calling pro already rated (Phase 15). */
+export async function listMyRatedJobIds(): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("customer_ratings")
+    .select("job_id");
+  if (error) {
+    logServerError("bids.listMyRatedJobIds", error, {});
+    return new Set();
+  }
+  return new Set((data ?? []).map((row) => row.job_id));
+}
+
+/** The calling pro's fee on a job before credits (Phase 15): 0 only under the waiver. */
+export async function getMyBaseFeeForJob(
+  jobId: string,
+): Promise<number | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_base_fee_for_job", {
+    p_job_id: jobId,
+  });
+  if (error) {
+    logServerError("bids.getMyBaseFeeForJob", error, { jobId });
+    return null;
+  }
+  return data === null ? null : Number(data);
+}

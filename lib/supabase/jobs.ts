@@ -34,6 +34,7 @@ export const listCategories = cache(async (): Promise<Category[]> => {
 
 export type JobSummary = {
   id: string;
+  customerId: string;
   description: string;
   addressText: string;
   status: string;
@@ -54,6 +55,9 @@ export type JobSummary = {
   requestedProId: string | null;
   /** When a directed call was opened to everyone; null while it waits on one pro. */
   openedToAllAt: string | null;
+  /** Phase 15: who cancelled (customer | pro | admin) and why, on a cancelled job. */
+  cancelledBy: string | null;
+  cancelReason: string | null;
   /**
    * Offers still waiting on this customer, or null where the query did not ask.
    *
@@ -65,7 +69,7 @@ export type JobSummary = {
 };
 
 const JOB_COLUMNS =
-  "id, description, address_text, status, preferred_time, created_at, photo_urls, video_url, voice_note_url, latitude, longitude, selected_bid_id, details_added_at, requested_pro_id, opened_to_all_at, categories(name_he, slug)";
+  "id, customer_id, description, address_text, status, preferred_time, created_at, photo_urls, video_url, voice_note_url, latitude, longitude, selected_bid_id, details_added_at, requested_pro_id, opened_to_all_at, cancelled_by, cancel_reason, categories(name_he, slug)";
 
 /**
  * The list view asks for the offers alongside the jobs — one round trip, under
@@ -88,6 +92,7 @@ const JOB_LIST_COLUMNS = `${JOB_COLUMNS}, bids!bids_job_id_fkey(status, expires_
 
 type JobRow = {
   id: string;
+  customer_id: string;
   description: string;
   address_text: string;
   status: string;
@@ -102,6 +107,8 @@ type JobRow = {
   details_added_at: string | null;
   requested_pro_id: string | null;
   opened_to_all_at: string | null;
+  cancelled_by: string | null;
+  cancel_reason: string | null;
   categories: { name_he: string; slug: string } | null;
   bids?: { status: string; expires_at: string }[];
 };
@@ -118,6 +125,7 @@ function liveBids(row: JobRow): number | null {
 function toSummary(row: JobRow): JobSummary {
   return {
     id: row.id,
+    customerId: row.customer_id,
     description: row.description,
     addressText: row.address_text,
     status: row.status,
@@ -134,6 +142,8 @@ function toSummary(row: JobRow): JobSummary {
     detailsAddedAt: row.details_added_at,
     requestedProId: row.requested_pro_id,
     openedToAllAt: row.opened_to_all_at,
+    cancelledBy: row.cancelled_by,
+    cancelReason: row.cancel_reason,
     liveBidsCount: liveBids(row),
   };
 }

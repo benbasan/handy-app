@@ -59,6 +59,7 @@ export function SubmitBidForm({
   preferredTime = null,
   now,
   fee = ACCEPTANCE_FEE,
+  feeReason = null,
 }: {
   jobId: string;
   /** Present when editing an offer already sent. */
@@ -77,6 +78,8 @@ export function SubmitBidForm({
   now?: string;
   /** What accepting this job would charge this pro (`my_fee_for_job()`). */
   fee?: number;
+  /** Why a zero fee is zero: the new-customer waiver, or a credit (Phase 15). */
+  feeReason?: "waiver" | "credit" | null;
 }) {
   const [state, formAction, pending] = useActionState(
     bidId ? updateBid : submitBid,
@@ -250,9 +253,11 @@ export function SubmitBidForm({
             {bidId ? " — עדכון מחיר מתחיל את הספירה מחדש." : "."}
           </p>
           <p className="mt-1 text-center text-xs text-muted">
-            {fee === 0
+            {fee === 0 && feeReason === "waiver"
               ? "לקוח חדש שהגיע דרך הקישור האישי שלך — העבודה הראשונה איתו בלי דמי קבלת עבודה."
-              : "דמי קבלת העבודה נגבים רק אם הלקוח יבחר בך ותאשר שאתה לוקח את העבודה."}
+              : fee === 0 && feeReason === "credit"
+                ? "יש לך זיכוי מעבודה שבוטלה — הוא יכסה את דמי קבלת העבודה אם תאשר את העבודה הזו."
+                : "דמי קבלת העבודה נגבים רק אם הלקוח יבחר בך ותאשר שאתה לוקח את העבודה."}
           </p>
 
           {state.error && (

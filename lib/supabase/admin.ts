@@ -5,6 +5,7 @@ import {
   type AdminJobState,
 } from "@/lib/validation/admin";
 import { isDisputeStatus, type DisputeStatus } from "@/lib/validation/disputes";
+import { logServerError } from "@/lib/observability";
 
 /**
  * Read side of the admin dashboard — product-spec.md section 5.
@@ -310,4 +311,54 @@ export async function getProEnforcement(
     priceUpdatesBlocked: data.price_updates_blocked,
     documentsRequiredAt: data.documents_required_at,
   };
+}
+
+/** Phase 15 — cancellations in the last thirty days, for the console. */
+export type CancellationStats = {
+  byCustomer: number;
+  byPro: number;
+  byAdmin: number;
+  creditsOpen: number;
+  topProName: string | null;
+  topProCancellations: number | null;
+};
+
+export async function getCancellationStats(): Promise<CancellationStats | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_cancellation_stats");
+  if (error) {
+    logServerError("admin.getCancellationStats", error, {});
+    return null;
+  }
+  const row = data?.[0];
+  if (!row) return null;
+  return {
+    byCustomer: row.by_customer,
+    byPro: row.by_pro,
+    byAdmin: row.by_admin,
+    creditsOpen: row.credits_open,
+    topProName: row.top_pro_name,
+    topProCancellations: row.top_pro_cancellations,
+  };
+}
+
+/** The private ratings pros gave this customer, across every job (Phase 15). */
+export async function listCustomerRatings(
+  customerId: string,
+): Promise<{ jobId: string; rating: number; comment: string | null }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("customer_ratings")
+    .select("job_id, rating, comment")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    logServerError("admin.listCustomerRatings", error, { customerId });
+    return [];
+  }
+  return (data ?? []).map((row) => ({
+    jobId: row.job_id,
+    rating: row.rating,
+    comment: row.comment,
+  }));
 }

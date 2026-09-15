@@ -79,6 +79,10 @@ export default async function JobTrackingPage({
   // summary, the receipt and the rating are where the call now lives.
   if (job.status === "completed") redirect(CUSTOMER_ROUTES.summary(jobId));
 
+  // Phase 15: the offers screen is where a cancelled call explains itself and
+  // offers the dispute.
+  if (job.status === "cancelled") redirect(CUSTOMER_ROUTES.offers(jobId));
+
   const [contact, location, updates, threads] = await Promise.all([
     getJobContact(jobId),
     getJobLocation(jobId),
@@ -201,6 +205,13 @@ export default async function JobTrackingPage({
               ויחכה לאישור שלך.
             </p>
           )}
+
+          {/* Phase 15: after a pro has taken the job, the customer does not
+              cancel with a button — the pro has already paid 35 ₪ to come. */}
+          <p className={`${CARD_BASE} p-4 text-sm text-muted`}>
+            צריכים לבטל? כתבו על כך בצ׳אט, והביטול יסומן במסך העבודה — או פנו
+            לתמיכה.
+          </p>
 
           <Card className="bg-ink text-white">
             <h2 className="font-bold">התראות</h2>

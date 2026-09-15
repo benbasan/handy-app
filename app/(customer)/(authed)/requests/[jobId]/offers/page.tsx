@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddJobDetails } from "@/components/customer/AddJobDetails";
+import { CancelJobForm } from "@/components/customer/CancelJobForm";
+import { DisputeOpener } from "@/components/ui/DisputeOpener";
+import { listJobDisputes } from "@/lib/supabase/disputes";
+import { CANCEL_REASON_LABEL } from "@/lib/validation/cancellation";
 import { BidCard } from "@/components/customer/BidCard";
 import { OpenToAllButton } from "@/components/customer/OpenToAllButton";
 import { NoProsNearby } from "@/components/customer/NoProsNearby";
@@ -12,6 +16,7 @@ import {
   BUTTON_QUIET,
   Card,
   CARD_BASE,
+  EmptyState,
   SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
@@ -71,6 +76,43 @@ export default async function JobOffersPage({
   // RLS returns nothing for someone else's job, which arrives here as "no such
   // job" — the correct answer either way.
   if (!job) notFound();
+
+  // Phase 15: a cancelled call has nothing left to compare. It says who
+  // cancelled and why, and — when it was not the customer — offers the dispute
+  // that is the check on a pro reporting a cancellation that never happened.
+  if (job.status === "cancelled") {
+    const disputes =
+      job.cancelledBy === "customer" ? [] : await listJobDisputes(jobId);
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <EmptyState
+          title="הקריאה בוטלה"
+          body={
+            job.cancelledBy === "customer"
+              ? `ביטלתם אותה${
+                  job.cancelReason
+                    ? ` — ${CANCEL_REASON_LABEL[job.cancelReason as keyof typeof CANCEL_REASON_LABEL] ?? ""}`
+                    : ""
+                }. כל ההצעות שהתקבלו נסגרו, ולא נגבה דבר מאף אחד.`
+              : job.cancelledBy === "pro"
+                ? "בעל המקצוע דיווח שביקשתם לבטל אחרי שהעבודה אושרה. לא ביקשתם? ספרו לנו כאן למטה."
+                : "צוות Handy ביטל את העבודה. אם יש שאלה, אפשר לפנות אלינו כאן למטה."
+          }
+          action={
+            <Link
+              href={CUSTOMER_ROUTES.newRequestFor(job.categorySlug)}
+              className={BUTTON_QUIET}
+            >
+              פרסום קריאה חדשה
+            </Link>
+          }
+        />
+        {job.cancelledBy !== "customer" && (
+          <DisputeOpener jobId={jobId} existingStatus={disputes[0]?.status} />
+        )}
+      </div>
+    );
+  }
 
   // A call directed at one pro through their personal link (Phase 13.8), and
   // still waiting on them alone.
@@ -210,6 +252,17 @@ export default async function JobOffersPage({
               />
             )}
           </Card>
+
+          {/* Phase 15: until a pro accepts, cancelling is the customer's own,
+              and free. After that it goes through the pro or support. */}
+          {!chosen &&
+            (job.status === "open" ||
+              job.status === "bidding" ||
+              job.status === "awaiting_pro") && (
+              <Card>
+                <CancelJobForm jobId={jobId} />
+              </Card>
+            )}
         </aside>
 
         <div className="order-1 space-y-4">

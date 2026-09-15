@@ -118,6 +118,58 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          job_id: string
+          pro_id: string
+          rating: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          job_id: string
+          pro_id: string
+          rating: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          job_id?: string
+          pro_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_ratings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_ratings_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_ratings_pro_id_fkey"
+            columns: ["pro_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disputes: {
         Row: {
           created_at: string
@@ -175,6 +227,58 @@ export type Database = {
             columns: ["resolved_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_credits: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          pro_id: string
+          source_job_id: string
+          used_at: string | null
+          used_on_job_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          pro_id: string
+          source_job_id: string
+          used_at?: string | null
+          used_on_job_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          pro_id?: string
+          source_job_id?: string
+          used_at?: string | null
+          used_on_job_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_credits_pro_id_fkey"
+            columns: ["pro_id"]
+            isOneToOne: false
+            referencedRelation: "pro_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fee_credits_source_job_id_fkey"
+            columns: ["source_job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_credits_used_on_job_id_fkey"
+            columns: ["used_on_job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -347,6 +451,9 @@ export type Database = {
       jobs: {
         Row: {
           address_text: string
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           category_id: string
           created_at: string
           customer_id: string
@@ -370,6 +477,9 @@ export type Database = {
         }
         Insert: {
           address_text: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           category_id: string
           created_at?: string
           customer_id: string
@@ -393,6 +503,9 @@ export type Database = {
         }
         Update: {
           address_text?: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           category_id?: string
           created_at?: string
           customer_id?: string
@@ -1006,6 +1119,18 @@ export type Database = {
         Args: { p_job_id: string; p_photo_paths?: string[]; p_text: string }
         Returns: undefined
       }
+      admin_cancellation_stats: {
+        Args: never
+        Returns: {
+          by_admin: number
+          by_customer: number
+          by_pro: number
+          credits_open: number
+          top_pro_cancellations: number
+          top_pro_id: string
+          top_pro_name: string
+        }[]
+      }
       admin_category_mix: {
         Args: { p_days?: number }
         Returns: {
@@ -1142,6 +1267,11 @@ export type Database = {
         Args: { p_object_name: string }
         Returns: boolean
       }
+      cancel_assigned_job: { Args: { p_job_id: string }; Returns: undefined }
+      cancel_job: {
+        Args: { p_job_id: string; p_reason: string }
+        Returns: undefined
+      }
       category_pros: {
         Args: {
           p_category_slug: string
@@ -1192,6 +1322,10 @@ export type Database = {
       is_verified_pro: { Args: never; Returns: boolean }
       job_acceptance_fee: { Args: never; Returns: number }
       job_acceptance_fee_for: {
+        Args: { p_job_id: string; p_pro_id: string }
+        Returns: number
+      }
+      job_base_fee_for: {
         Args: { p_job_id: string; p_pro_id: string }
         Returns: number
       }
@@ -1260,6 +1394,7 @@ export type Database = {
           unread_count: number
         }[]
       }
+      my_base_fee_for_job: { Args: { p_job_id: string }; Returns: number }
       my_bid_stats: {
         Args: never
         Returns: {
@@ -1514,6 +1649,10 @@ export type Database = {
         Returns: {
           slug: string
         }[]
+      }
+      rate_customer: {
+        Args: { p_comment?: string; p_job_id: string; p_rating: number }
+        Returns: string
       }
       record_job_view: { Args: { p_job_id: string }; Returns: undefined }
       release_directed_job: {
