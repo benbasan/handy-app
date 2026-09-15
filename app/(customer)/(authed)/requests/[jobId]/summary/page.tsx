@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { RatingForm } from "@/components/customer/RatingForm";
 import { SaveProButton } from "@/components/customer/SaveProButton";
 import { DisputeOpener } from "@/components/ui/DisputeOpener";
+import { ShareReceipt } from "@/components/customer/ShareReceipt";
+import { absoluteUrl } from "@/lib/seo";
 import {
   BUTTON_CTA,
   BUTTON_QUIET,
@@ -222,7 +224,34 @@ export default async function JobSummaryPage({
             actually remembers is a dispute, not a button — Phase 6 said so and
             left it to Phase 7. This is that door.
           */}
-          <DisputeOpener jobId={jobId} existingStatus={disputes[0]?.status} />
+          <DisputeOpener
+            jobId={jobId}
+            existingStatus={disputes[0]?.status}
+            resolutionNote={disputes[0]?.resolutionNote ?? null}
+            creditAmount={disputes[0]?.creditAmount ?? null}
+          />
+
+          <ShareReceipt jobId={jobId} />
+
+          {/* Phase 17: the one moment in the product with real goodwill in it
+              — a job that went well — and until now nothing on the screen
+              let the customer pass Handy on. No reward, by the user's decision
+              (15.9.2026): there is nothing to credit a customer with. */}
+          <Card>
+            <h2 className={SECTION_TITLE}>היה טוב? ספרו לחבר</h2>
+            <p className="mt-2 text-sm text-muted">
+              חבר שצריך אינסטלטור, חשמלאי או מזגנאי — יקבל הצעות מחיר מבעלי
+              מקצוע מאומתים, בחינם.
+            </p>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`מצאתי בעל מקצוע טוב דרך Handy — מפרסמים קריאה בחינם ומקבלים הצעות מחיר: ${absoluteUrl("/")}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${BUTTON_QUIET} mt-3 w-full`}
+            >
+              שיתוף בוואטסאפ
+            </a>
+          </Card>
 
           <Card>
             <h2 className="font-bold text-ink">מה שילמתם, ולמה</h2>

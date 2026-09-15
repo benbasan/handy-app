@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/primitives";
 import { PRO_ROUTES, ROLE_LOGIN } from "@/lib/routes";
 import { getCurrentUser } from "@/lib/supabase/session";
+import { listOpenCallsByCity } from "@/lib/supabase/publicProfiles";
 import { ACCEPTANCE_FEE } from "@/lib/validation/pros";
 
 // Identity is a per-request fact, not a build-time one.
@@ -35,7 +36,10 @@ export const metadata = {
  * commercial terms instead, which are facts.
  */
 export default async function ProLandingPage() {
-  const user = await getCurrentUser();
+  const [user, demand] = await Promise.all([
+    getCurrentUser(),
+    listOpenCallsByCity(),
+  ]);
 
   // A signed-in pro gets "לדשבורד"; anyone else gets the sign-up path. A
   // customer who lands here is not bounced — this page is public, and the
@@ -117,6 +121,44 @@ export default async function ProLandingPage() {
                 מה שסוכם.
               </p>
             </div>
+          </div>
+        </section>
+
+        {/*
+          Phase 17: the one proof that recruits a pro — there is work here, now.
+          Counted from `jobs` by open_calls_by_city(); and when there is nothing
+          to count, the section says that rather than going quiet, because a
+          pro who joins on launch day deserves to know the market is new.
+        */}
+        <section className="mx-auto max-w-6xl px-4 pt-14 sm:px-6">
+          <div className={`${CARD_BASE} p-6 sm:p-8`}>
+            <h2 className="text-2xl font-bold text-ink">
+              קריאות פתוחות עכשיו, לפי עיר
+            </h2>
+            {demand.length === 0 ? (
+              <p className="mt-3 text-muted">
+                כרגע אין קריאות פתוחות מהשבועיים האחרונים. Handy חדשה — בעלי
+                מקצוע שמצטרפים עכשיו רואים את הקריאות הראשונות באזור שלהם.
+              </p>
+            ) : (
+              <>
+                <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {demand.map((row) => (
+                    <li key={row.city} className="rounded-xl bg-canvas p-4">
+                      <p className="ltr-nums text-3xl font-bold text-pro">
+                        {row.openCalls}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-ink">
+                        {row.city}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs text-muted">
+                  קריאות שעדיין מחכות להצעה או לאישור, מ-14 הימים האחרונים.
+                </p>
+              </>
+            )}
           </div>
         </section>
 
