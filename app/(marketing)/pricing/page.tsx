@@ -13,6 +13,7 @@ import { MARKETING_ROUTES } from "@/lib/routes";
 import { JsonLd, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 import { getPricingGuide } from "@/lib/supabase/publicProfiles";
 import { getCurrentUser } from "@/lib/supabase/session";
+import { MIN_PRICE_SAMPLE } from "@/lib/validation/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -46,9 +47,11 @@ const shekel = new Intl.NumberFormat("he-IL", {
 export default async function PricingPage() {
   const [user, rows] = await Promise.all([getCurrentUser(), getPricingGuide()]);
 
-  const withData = rows.filter((row) => row.jobsClosed > 0);
-  const withoutData = rows.filter((row) => row.jobsClosed === 0);
-  const sampleSize = rows.reduce((total, row) => total + row.jobsClosed, 0);
+  // A range over one or two jobs is those jobs' prices, said with more
+  // confidence than they carry — the same floor the posting form uses.
+  const withData = rows.filter((row) => row.jobsClosed >= MIN_PRICE_SAMPLE);
+  const withoutData = rows.filter((row) => row.jobsClosed < MIN_PRICE_SAMPLE);
+  const sampleSize = withData.reduce((total, row) => total + row.jobsClosed, 0);
 
   return (
     <AppShell user={user}>
