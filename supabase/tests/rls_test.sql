@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(472);
+select plan(474);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -101,13 +101,31 @@ select is(
   'stated directly: not one row belonging to anybody else'
 );
 
--- An UPDATE that matches no visible row silently affects nothing, which is the
--- correct RLS behaviour; what matters is that B's row is untouched.
-with attempted as (
-  update public.jobs set description = 'נחטף' where id = :job_b returning 1
-)
-select is((select count(*) from attempted), 0::bigint,
-  'customer A''s update of customer B''s job changes no rows');
+-- No client role holds an UPDATE grant on jobs at all (20260919120000): a
+-- posted call changes only through a definer function that knows its state.
+-- So customer A's attempt on B's job is refused before RLS is even asked —
+-- and so is A's attempt on their own.
+select throws_ok(
+  $$ update public.jobs set description = 'נחטף' where id = 'd0000000-0000-4000-8000-000000000002' $$,
+  '42501',
+  null,
+  'customer A cannot update customer B''s job'
+);
+
+select throws_ok(
+  $$ update public.jobs set description = 'תיאור אחר לגמרי' where id = 'd0000000-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'nor rewrite their own after pros have priced it — add_job_details() appends instead'
+);
+
+select throws_ok(
+  $$ update public.jobs set location = extensions.st_point(34.9482, 29.5581)::extensions.geography
+      where id = 'd0000000-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'nor move it, which would move it out from under the pros already told about it'
+);
 
 select throws_ok(
   $$ delete from public.jobs where id = 'd0000000-0000-4000-8000-000000000002' $$,
