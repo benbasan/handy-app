@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { arrangeFeed, isFeedSort, lastOfferByTrade } from "../feed";
+import {
+  arrangeFeed,
+  isFeedSort,
+  lastOfferByTrade,
+  pricingCoach,
+} from "../feed";
 
 const job = (
   id: string,
@@ -126,5 +131,56 @@ describe("lastOfferByTrade", () => {
     expect(map.get("plumbing")).toEqual({ price: 350, etaMinutes: 45 });
     expect(map.get("electrical")).toEqual({ price: 200, etaMinutes: 15 });
     expect(map.get("hvac")).toBeUndefined();
+  });
+});
+
+describe("pricingCoach", () => {
+  const lost = (categoryName: string, price: number, winningPrice: number) => ({
+    categoryName,
+    price,
+    status: "rejected",
+    winningPrice,
+  });
+
+  it("averages how far lost offers sat above the winner, per trade", () => {
+    const result = pricingCoach([
+      lost("אינסטלציה", 360, 300),
+      lost("אינסטלציה", 330, 300),
+      lost("אינסטלציה", 300, 300),
+    ]);
+    expect(result).toEqual([
+      { categoryName: "אינסטלציה", samples: 3, pctAboveWinner: 10 },
+    ]);
+  });
+
+  it("says nothing about a trade with fewer than three lost offers", () => {
+    expect(
+      pricingCoach([lost("חשמל", 500, 250), lost("חשמל", 500, 250)]),
+    ).toEqual([]);
+  });
+
+  it("ignores offers that were won, pending, or lost without a known winner", () => {
+    expect(
+      pricingCoach([
+        {
+          categoryName: "צבע",
+          price: 900,
+          status: "accepted",
+          winningPrice: null,
+        },
+        {
+          categoryName: "צבע",
+          price: 900,
+          status: "pending",
+          winningPrice: null,
+        },
+        {
+          categoryName: "צבע",
+          price: 900,
+          status: "rejected",
+          winningPrice: null,
+        },
+      ]),
+    ).toEqual([]);
   });
 });

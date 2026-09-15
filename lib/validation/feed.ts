@@ -102,3 +102,46 @@ export function lastOfferByTrade(
     ]),
   );
 }
+
+/** The fewest lost offers a trade needs before the coach says anything about it. */
+export const COACH_MIN_SAMPLE = 3;
+
+type DecidedOffer = {
+  categoryName: string;
+  price: number;
+  status: string;
+  /** The price that won — set only on an offer this pro lost. */
+  winningPrice: number | null;
+};
+
+/**
+ * "מאמן תמחור" (Phase 16): in each trade, how far this pro's lost offers sat
+ * from the offer the customer chose instead. Measured only on calls the pro
+ * lost, against the price that actually won on that same call — so it compares
+ * like with like, and never guesses at a market price nobody offered.
+ *
+ * Silent below `COACH_MIN_SAMPLE` lost offers in a trade: one lost job is one
+ * customer's choice, not a pattern worth a percentage.
+ */
+export function pricingCoach(
+  offers: readonly DecidedOffer[],
+): { categoryName: string; samples: number; pctAboveWinner: number }[] {
+  const byTrade = new Map<string, number[]>();
+  for (const offer of offers) {
+    if (offer.status !== "rejected" || !offer.winningPrice) continue;
+    const gaps = byTrade.get(offer.categoryName) ?? [];
+    gaps.push((offer.price - offer.winningPrice) / offer.winningPrice);
+    byTrade.set(offer.categoryName, gaps);
+  }
+
+  return [...byTrade]
+    .filter(([, gaps]) => gaps.length >= COACH_MIN_SAMPLE)
+    .map(([categoryName, gaps]) => ({
+      categoryName,
+      samples: gaps.length,
+      pctAboveWinner: Math.round(
+        (gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length) * 100,
+      ),
+    }))
+    .sort((a, b) => Math.abs(b.pctAboveWinner) - Math.abs(a.pctAboveWinner));
+}

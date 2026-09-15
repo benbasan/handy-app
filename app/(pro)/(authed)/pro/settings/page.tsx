@@ -67,11 +67,12 @@ export default async function ProSettingsPage() {
                 <span dir="ltr" className="ltr-nums">
                   {profile.payoutAccountLast4}
                 </span>
-                . הגבייה מתבצעת כל שני וחמישי.
+                .
               </p>
             ) : (
               <p className="mt-2">
-                עוד לא הוגדר חשבון לגבייה. הוא נקבע בשלב 5 של ההרשמה.
+                עוד לא הוגדר חשבון. לא חובה כדי לקבל עבודות, ואפשר להוסיף אותו
+                כאן.
               </p>
             )}
             <Link

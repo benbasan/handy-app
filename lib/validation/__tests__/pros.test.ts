@@ -162,6 +162,23 @@ describe("payoutSchema", () => {
     const result = payoutSchema.safeParse({ ...valid, paymentMethods: [] });
     expect(result.success).toBe(false);
   });
+  it("accepts no bank account at all — it no longer blocks the approval", () => {
+    const result = payoutSchema.safeParse({
+      ...valid,
+      bankName: "",
+      bankBranch: "",
+      accountLast4: "",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("refuses half an account, and says which field is missing", () => {
+    const result = payoutSchema.safeParse({ ...valid, accountLast4: "" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.path[0])).toContain(
+      "accountLast4",
+    );
+  });
 });
 
 describe("availabilitySchema", () => {

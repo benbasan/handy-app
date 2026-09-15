@@ -258,24 +258,69 @@ export const practiceBidSchema = z.object({
 });
 
 /** Step 5 — how money moves, on both sides of the fee. */
-export const payoutSchema = z.object({
-  paymentMethods: z
-    .array(z.enum(PAYMENT_METHODS))
-    .min(1, { error: "יש לבחור לפחות אמצעי גבייה אחד" }),
-  bankName: z
-    .string()
-    .trim()
-    .min(2, { error: "יש להזין שם בנק" })
-    .max(60, { error: "שם הבנק ארוך מדי" }),
-  bankBranch: z
-    .string()
-    .trim()
-    .regex(/^\d{1,4}$/, { error: "מספר סניף מורכב מעד 4 ספרות" }),
-  accountLast4: z
-    .string()
-    .trim()
-    .regex(/^\d{4}$/, { error: "יש להזין את 4 הספרות האחרונות של החשבון" }),
-});
+/**
+ * Step 5 — how the pro collects from customers, and optionally the account the
+ * fee is settled against.
+ *
+ * Since Phase 16 the bank account does not block the approval: nothing settles
+ * the fee yet (CLAUDE.md section 9), `submit_pro_for_approval()` never required
+ * it, and a pro should see real calls as early as possible. So the three bank
+ * fields are all or nothing — empty is fine, half an account is not.
+ */
+export const payoutSchema = z
+  .object({
+    paymentMethods: z
+      .array(z.enum(PAYMENT_METHODS))
+      .min(1, { error: "יש לבחור לפחות אמצעי גבייה אחד" }),
+    bankName: z
+      .string()
+      .trim()
+      .max(60, { error: "שם הבנק ארוך מדי" })
+      .refine((value) => value === "" || value.length >= 2, {
+        error: "יש להזין שם בנק",
+      }),
+    bankBranch: z
+      .string()
+      .trim()
+      .regex(/^(\d{1,4})?$/, { error: "מספר סניף מורכב מעד 4 ספרות" }),
+    accountLast4: z
+      .string()
+      .trim()
+      .regex(/^(\d{4})?$/, {
+        error: "יש להזין את 4 הספרות האחרונות של החשבון",
+      }),
+  })
+  .superRefine((value, ctx) => {
+    const given = [value.bankName, value.bankBranch, value.accountLast4];
+    if (
+      given.every((field) => field === "") ||
+      given.every((field) => field !== "")
+    ) {
+      return;
+    }
+    for (const [key, field] of [
+      ["bankName", value.bankName],
+      ["bankBranch", value.bankBranch],
+      ["accountLast4", value.accountLast4],
+    ] as const) {
+      if (field === "") {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: "השלימו את פרטי החשבון, או השאירו את שלושת השדות ריקים",
+        });
+      }
+    }
+  });
+
+/** Whether a parsed payout form carries a bank account at all. */
+export function hasBankAccount(value: {
+  bankName: string;
+  bankBranch: string;
+  accountLast4: string;
+}): boolean {
+  return value.accountLast4 !== "";
+}
 
 /** The availability screen — design/screens/pro-5.2-availability-settings.png. */
 export const availabilitySchema = z.object({

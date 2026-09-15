@@ -204,6 +204,11 @@ export default async function ProOnboardingPage({
                 }}
                 canSubmit={missing.length === 0}
                 missing={missing}
+                alreadySubmitted={
+                  profile !== null &&
+                  profile.verificationStatus !== "draft" &&
+                  profile.verificationStatus !== "rejected"
+                }
               />
             )}
           </div>

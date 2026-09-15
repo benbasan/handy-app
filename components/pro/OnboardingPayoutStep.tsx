@@ -38,6 +38,7 @@ export function OnboardingPayoutStep({
   defaults,
   canSubmit,
   missing,
+  alreadySubmitted = false,
 }: {
   defaults: {
     paymentMethods: string[];
@@ -48,6 +49,8 @@ export function OnboardingPayoutStep({
   /** What the database will independently re-check when the form is posted. */
   canSubmit: boolean;
   missing: string[];
+  /** Past submission (or verified): this form saves details, it does not submit. */
+  alreadySubmitted?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(
     submitProProfile,
@@ -110,8 +113,8 @@ export function OnboardingPayoutStep({
           חשבון בנק לגביית דמי קבלת עבודה
         </h3>
         <p className="mb-3 text-xs text-muted">
-          הגבייה מתבצעת כל שני וחמישי על עבודות שאישרת. נשמרות רק 4 הספרות
-          האחרונות של החשבון — מספיק כדי שתזהו אותו, ולא יותר מזה.
+          לא חובה כדי לשלוח לאישור — אפשר להשלים אחר כך מהדשבורד. נשמרות רק 4
+          הספרות האחרונות של החשבון — מספיק כדי שתזהו אותו, ולא יותר מזה.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -123,7 +126,6 @@ export function OnboardingPayoutStep({
               id="bankName"
               name="bankName"
               type="text"
-              required
               maxLength={60}
               defaultValue={defaults.bankName}
               placeholder="בנק לאומי"
@@ -145,7 +147,6 @@ export function OnboardingPayoutStep({
               name="bankBranch"
               type="text"
               inputMode="numeric"
-              required
               maxLength={4}
               defaultValue={defaults.bankBranch}
               placeholder="800"
@@ -167,7 +168,6 @@ export function OnboardingPayoutStep({
               name="accountLast4"
               type="text"
               inputMode="numeric"
-              required
               maxLength={4}
               defaultValue={defaults.accountLast4}
               placeholder="4417"
@@ -198,7 +198,11 @@ export function OnboardingPayoutStep({
       {state.error && <ErrorText>{state.error}</ErrorText>}
 
       <button type="submit" disabled={pending} className={BUTTON_PRO}>
-        {pending ? "שולח…" : "שלח את הפרופיל לאישור"}
+        {pending
+          ? "שולח…"
+          : alreadySubmitted
+            ? "שמירת הפרטים"
+            : "שלח את הפרופיל לאישור"}
       </button>
     </form>
   );

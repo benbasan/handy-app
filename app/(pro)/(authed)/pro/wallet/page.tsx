@@ -26,6 +26,8 @@ import {
 } from "@/lib/validation/completion";
 import { formatIls } from "@/lib/validation/priceUpdates";
 import { PAYMENT_METHOD_LABEL } from "@/lib/validation/pros";
+import { listMyBids } from "@/lib/supabase/bids";
+import { pricingCoach } from "@/lib/validation/feed";
 
 export const metadata = { title: "ארנק והכנסות — Handy Pro" };
 
@@ -59,12 +61,17 @@ export default async function ProWalletPage({
 
   const since = rangeStart(range);
 
-  const [profile, stats, jobs, bidStats] = await Promise.all([
+  const [profile, stats, jobs, bidStats, myBids] = await Promise.all([
     getMyProProfile(),
     getMyEarningsStats(since),
     listMyCompletedJobs(since),
     getMyBidStats(),
+    listMyBids(),
   ]);
+
+  // Phase 16: the wallet stops being only a statement. Measured on this pro's
+  // own lost offers against the price that won the same call.
+  const coach = pricingCoach(myBids);
 
   const bars = earningsByDay(jobs, range);
   const peak = Math.max(...bars.map((bar) => bar.total), 1);
@@ -203,6 +210,50 @@ export default async function ProWalletPage({
           )}
         </Card>
       </div>
+
+      <Card>
+        <h2 className={SECTION_TITLE}>מאמן תמחור</h2>
+        {coach.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">
+            אחרי שלוש הצעות שלא נבחרו באותו תחום, נראה כאן כמה רחוק היה המחיר
+            שלך מההצעה שהלקוח בחר באותן קריאות.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2 text-sm text-ink">
+            {coach.map((line) => (
+              <li key={line.categoryName}>
+                {line.pctAboveWinner > 0 ? (
+                  <>
+                    ב{line.categoryName}, בקריאות שלא נבחרת בהן, ההצעה שלך הייתה
+                    בממוצע גבוהה ב-
+                    <span className="ltr-nums font-bold">
+                      {line.pctAboveWinner}%
+                    </span>{" "}
+                    מההצעה שנבחרה
+                  </>
+                ) : line.pctAboveWinner < 0 ? (
+                  <>
+                    ב{line.categoryName}, בקריאות שלא נבחרת בהן, ההצעה שלך הייתה
+                    דווקא זולה ב-
+                    <span className="ltr-nums font-bold">
+                      {Math.abs(line.pctAboveWinner)}%
+                    </span>{" "}
+                    מההצעה שנבחרה — כנראה שהמחיר לא היה הסיבה
+                  </>
+                ) : (
+                  <>
+                    ב{line.categoryName}, המחיר שלך היה כמעט זהה להצעה שנבחרה —
+                    כנראה שהמחיר לא היה הסיבה
+                  </>
+                )}{" "}
+                <span className="text-muted">
+                  (לפי <span className="ltr-nums">{line.samples}</span> קריאות)
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       <Card className="p-0">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-5 sm:p-6">
