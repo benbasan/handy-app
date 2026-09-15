@@ -178,7 +178,7 @@ export default async function ProDashboardPage({
                 : `${bidStats.acceptancePct}%`
             }
             label="מההצעות שלך הפכו לעבודה"
-            hint={`${bidStats.accepted} מתוך ${bidStats.total} הצעות`}
+            hint={`${bidStats.accepted} עבודות מתוך ההצעות שכבר הוכרעו`}
           />
           <Stat
             value={

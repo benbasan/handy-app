@@ -202,6 +202,11 @@ The product is Hebrew-facing, but all code (tables, variables, routes, types) is
 | זיכוי | `fee_credits` · `job_base_fee_for()` · `my_base_fee_for_job()` | Spent by `accept_job()`. The base fee is what tells "a credit" from "the new-customer waiver" on the bid form |
 | דירוג לקוח | `customer_ratings` · `rate_customer()` | Private: author and admin only |
 | ביטולים בקונסולה | `admin_cancellation_stats()` | Thirty days, by who cancelled, open credits, the pro who reports cancellations most |
+| סיבת החלטה | `pro_profiles.verification_reason` | What the admin wrote on a rejection or suspension; the pro's status card prints it. No client grant, cleared on approval |
+| סיבת ויתור | `PASS_REASONS` · `job_dismissals.reason` · `decline_reasons` | Why a pro passed. Closed vocabulary synced with the migration by Vitest. A decline's reason is its own table: the customer reads every column of `bids` |
+| סידור הפיד | `arrangeFeed()` · `lib/validation/feed.ts` | Sort and filter over the rows the policy returned — the query's cost is untouched |
+| הצעה מהירה | `QuickBidButton` · `lastOfferByTrade()` | The pro's own last offer in the trade, through `submitBid`. Never on a call for today/tomorrow |
+| מאמן תמחור | `pricingCoach()` | Lost offers against the price that won the same call, per trade, from three up |
 | ערוץ שליחה | `lib/notifications/provider.ts` | The seam. `costsMoney` is what makes turning on a paid channel a flag rather than an edit; an Israeli SMS gateway is one file and one line |
 
 Add new rows here whenever a new domain concept appears — do not let this glossary drift out of date.

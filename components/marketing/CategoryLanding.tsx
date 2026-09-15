@@ -168,8 +168,8 @@ export function CategoryLanding({
         {pros.length === 0 ? (
           <p className={`mt-4 ${CARD_BASE} p-6 text-muted`}>
             עדיין אין {copy.professionalPlural} מאומתים שמכסים את האזור הזה.
-            אפשר לפרסם קריאה בכל מקרה — היא תישלח לכל מי שיצטרף לאזור, ואפשר
-            להרחיב את רדיוס החיפוש.
+            אפשר לפרסם קריאה בכל מקרה — בעל מקצוע שיצטרף לאזור יראה אותה בפיד
+            שלו כל עוד היא פתוחה.
           </p>
         ) : (
           <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

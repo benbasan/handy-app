@@ -214,7 +214,7 @@ export default async function ProJobFeedPage({
         </nav>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <aside className="order-2 space-y-4 lg:order-2">
           <Card className="overflow-hidden p-0">
             {mapsKey && profile?.serviceAddressText ? (
