@@ -135,6 +135,11 @@ export async function submitBid(
 
   revalidatePath(PRO_ROUTES.jobs);
   revalidatePath(PRO_ROUTES.offers);
+
+  // A quick bid from the feed card (Phase 16) stays on the feed, so the pro can
+  // answer the next call without coming back to it.
+  if (formData.get("quick") === "1") return { saved: true };
+
   redirect(`${PRO_ROUTES.offers}?sent=1`);
 }
 

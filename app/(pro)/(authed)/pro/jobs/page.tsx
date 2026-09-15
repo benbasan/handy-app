@@ -22,6 +22,17 @@ import {
 } from "@/lib/supabase/pros";
 import { requireRole } from "@/lib/supabase/session";
 import { BID_SPEED_NOTE } from "@/lib/validation/bids";
+import { listMyBids } from "@/lib/supabase/bids";
+import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
+import { windowRequired } from "@/lib/validation/arrivalWindow";
+import {
+  FEED_SORTS,
+  FEED_SORT_LABEL,
+  arrangeFeed,
+  isFeedSort,
+  lastOfferByTrade,
+  type FeedSort,
+} from "@/lib/validation/feed";
 import {
   SERVICE_RADIUS_LABEL,
   SERVICE_RADIUS_OPTIONS,
@@ -48,7 +59,7 @@ export const dynamic = "force-dynamic";
 export default async function ProJobFeedPage({
   searchParams,
 }: PageProps<"/pro/jobs">) {
-  await requireRole("pro");
+  const user = await requireRole("pro");
 
   const [profile, categories, params] = await Promise.all([
     getMyProProfile(),
@@ -65,10 +76,52 @@ export default async function ProJobFeedPage({
     ? requested
     : null;
 
-  const [jobs, dismissedCount] = await Promise.all([
+  const [allJobs, dismissedCount, myBids] = await Promise.all([
     listFeedJobs(activeRadius),
     countDismissedJobs(),
+    listMyBids(),
   ]);
+
+  // Phase 16: sort and filter over the rows the policy already returned — the
+  // query, and its cost, are unchanged (TECHNICAL_DEBT.md #26).
+  const first = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value;
+  const requestedSort = first(params.sort);
+  const sort: FeedSort = isFeedSort(requestedSort) ? requestedSort : "new";
+  const myTradeSlugs = categories
+    .filter((category) => profile?.categoryIds.includes(category.id))
+    .map((category) => category.slug);
+  const requestedCategory = first(params.cat) ?? null;
+  const category =
+    requestedCategory && categories.some((c) => c.slug === requestedCategory)
+      ? requestedCategory
+      : null;
+  const urgentOnly = first(params.urgent) === "1";
+
+  const jobs = arrangeFeed(allJobs, { sort, category, urgentOnly });
+
+  // "הצעה מהירה": this pro's own last offer per trade, offered only where a
+  // quick bid can be valid — not on a call they already answered, and not on
+  // one for today or tomorrow, which needs the hours a quick bid cannot pick.
+  const lastOffers = lastOfferByTrade(myBids);
+  const answered = new Set(myBids.map((bid) => bid.jobId));
+
+  /** The feed's own URL with one parameter changed, the rest kept. */
+  const hrefWith = (change: Record<string, string | null>) => {
+    const next = new URLSearchParams();
+    const current: Record<string, string | null> = {
+      radius: activeRadius ? String(activeRadius) : null,
+      sort: sort === "new" ? null : sort,
+      cat: category,
+      urgent: urgentOnly ? "1" : null,
+      ...change,
+    };
+    for (const [key, value] of Object.entries(current)) {
+      if (value) next.set(key, value);
+    }
+    const query = next.toString();
+    return query ? `${PRO_ROUTES.jobs}?${query}` : PRO_ROUTES.jobs;
+  };
 
   // One batch of signed URLs for the whole page. Storage only signs a path the
   // caller's own RLS lets them read, so this is a convenience, not the gate.
@@ -100,13 +153,16 @@ export default async function ProJobFeedPage({
         </div>
 
         <nav aria-label="רדיוס חיפוש" className="flex flex-wrap gap-2">
-          <RadiusChip href={PRO_ROUTES.jobs} active={activeRadius === null}>
+          <RadiusChip
+            href={hrefWith({ radius: null })}
+            active={activeRadius === null}
+          >
             הרדיוס שלי
           </RadiusChip>
           {SERVICE_RADIUS_OPTIONS.map((option) => (
             <RadiusChip
               key={option}
-              href={`${PRO_ROUTES.jobs}?radius=${option}`}
+              href={hrefWith({ radius: String(option) })}
               active={activeRadius === option}
             >
               {SERVICE_RADIUS_LABEL[option]}
@@ -114,6 +170,49 @@ export default async function ProJobFeedPage({
           ))}
         </nav>
       </header>
+
+      {/* A new call in radius arrives as a notification row; that is the
+          signal to re-read the feed, without a poll (Phase 16). */}
+      <RealtimeRefresh
+        table="notifications"
+        filter={`user_id=eq.${user.id}`}
+        label="הפיד מתעדכן מעצמו"
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <nav aria-label="מיון" className="flex flex-wrap gap-2">
+          {FEED_SORTS.map((option) => (
+            <RadiusChip
+              key={option}
+              href={hrefWith({ sort: option === "new" ? null : option })}
+              active={sort === option}
+            >
+              {FEED_SORT_LABEL[option]}
+            </RadiusChip>
+          ))}
+        </nav>
+        <span aria-hidden className="mx-1 h-6 border-s border-line" />
+        <nav aria-label="סינון" className="flex flex-wrap gap-2">
+          <RadiusChip
+            href={hrefWith({ urgent: urgentOnly ? null : "1" })}
+            active={urgentOnly}
+          >
+            רק דחוף והיום
+          </RadiusChip>
+          {myTradeSlugs.length > 1 &&
+            categories
+              .filter((c) => myTradeSlugs.includes(c.slug))
+              .map((c) => (
+                <RadiusChip
+                  key={c.slug}
+                  href={hrefWith({ cat: category === c.slug ? null : c.slug })}
+                  active={category === c.slug}
+                >
+                  {c.nameHe}
+                </RadiusChip>
+              ))}
+        </nav>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
         <aside className="order-2 space-y-4 lg:order-2">
@@ -171,6 +270,21 @@ export default async function ProJobFeedPage({
         <div className="order-1 lg:order-1">
           {profile && profile.verificationStatus !== "verified" ? (
             <ProStatusCard profile={profile} />
+          ) : jobs.length === 0 && allJobs.length > 0 ? (
+            // The filters hid everything — which is not "nothing in your area".
+            <EmptyState
+              icon={ClipboardIcon}
+              title="אין קריאות שמתאימות לסינון"
+              body={`יש ${allJobs.length} קריאות פתוחות באזור שלך — הסינון שבחרתם מסתיר אותן.`}
+              action={
+                <Link
+                  href={hrefWith({ cat: null, urgent: null })}
+                  className={BUTTON_PRO}
+                >
+                  ניקוי הסינון
+                </Link>
+              }
+            />
           ) : jobs.length === 0 ? (
             <EmptyState
               icon={ClipboardIcon}
@@ -198,6 +312,11 @@ export default async function ProJobFeedPage({
                       : null
                   }
                   justArrived={job.justArrived}
+                  quickBid={
+                    !answered.has(job.id) && !windowRequired(job.preferredTime)
+                      ? (lastOffers.get(job.categorySlug) ?? null)
+                      : null
+                  }
                 />
               ))}
             </ul>

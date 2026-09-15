@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BUTTON_CTA, Badge, SECTION_TITLE } from "@/components/ui/primitives";
 import { DismissJobButton } from "@/components/pro/DismissJobButton";
+import { QuickBidButton } from "@/components/pro/QuickBidButton";
 import { CategoryIcon } from "@/lib/categories";
 import { PRO_ROUTES } from "@/lib/routes";
 import type { FeedJob } from "@/lib/supabase/pros";
@@ -23,9 +24,12 @@ export function FeedJobCard({
   job,
   photoUrl,
   justArrived,
+  quickBid = null,
 }: {
   job: FeedJob;
   photoUrl: string | null;
+  /** This pro's last offer in the trade, when a quick bid is allowed here. */
+  quickBid?: { price: number; etaMinutes: number } | null;
   /** Decided once per request on the page, not per render: "now" is not pure. */
   justArrived: boolean;
 }) {
@@ -77,7 +81,7 @@ export function FeedJobCard({
           </div>
 
           <p className="mt-1 text-sm text-muted">
-            {job.categoryName} ·{" "}
+            {job.postedAgo} · {job.categoryName} ·{" "}
             <span dir="ltr" className="font-mono">
               {jobReference(job.id)}
             </span>
@@ -122,6 +126,14 @@ export function FeedJobCard({
           >
             הגש הצעת מחיר
           </Link>
+
+          {quickBid && (
+            <QuickBidButton
+              jobId={job.id}
+              price={quickBid.price}
+              etaMinutes={quickBid.etaMinutes}
+            />
+          )}
 
           <DismissJobButton jobId={job.id} />
         </div>

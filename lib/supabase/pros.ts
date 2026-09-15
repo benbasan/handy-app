@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { VERIFICATION_DOCS_BUCKET } from "./buckets";
 import { createClient } from "./server";
+import { relativeTime } from "@/lib/validation/bids";
 import type { VerificationDocType } from "@/lib/validation/pros";
 
 /**
@@ -169,6 +170,8 @@ export type FeedJob = {
    * a pure value, and a component must not read it during render.
    */
   justArrived: boolean;
+  /** "לפני 12 דק׳" — read from one clock per query, for the same reason. */
+  postedAgo: string;
 };
 
 /** How long a job wears the "just arrived" ribbon. */
@@ -191,7 +194,8 @@ export async function listFeedJobs(maxKm: number | null): Promise<FeedJob[]> {
     p_max_km: maxKm ?? undefined,
   });
 
-  const freshBefore = Date.now() - JUST_ARRIVED_MS;
+  const now = Date.now();
+  const freshBefore = now - JUST_ARRIVED_MS;
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -211,6 +215,7 @@ export async function listFeedJobs(maxKm: number | null): Promise<FeedJob[]> {
     awaitingAnswer: row.awaiting_answer,
     requestedForMe: row.requested_for_me,
     justArrived: new Date(row.created_at).getTime() > freshBefore,
+    postedAgo: relativeTime(row.created_at, now),
   }));
 }
 
