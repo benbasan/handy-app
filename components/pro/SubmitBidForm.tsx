@@ -60,6 +60,7 @@ export function SubmitBidForm({
   now,
   fee = ACCEPTANCE_FEE,
   feeReason = null,
+  recentNotes = [],
 }: {
   jobId: string;
   /** Present when editing an offer already sent. */
@@ -80,6 +81,8 @@ export function SubmitBidForm({
   fee?: number;
   /** Why a zero fee is zero: the new-customer waiver, or a credit (Phase 15). */
   feeReason?: "waiver" | "credit" | null;
+  /** Notes from this pro's own latest offers, offered as one-tap chips (Phase 18). */
+  recentNotes?: readonly string[];
 }) {
   const [state, formAction, pending] = useActionState(
     bidId ? updateBid : submitBid,
@@ -88,6 +91,16 @@ export function SubmitBidForm({
 
   const [price, setPrice] = useState(initialPrice ?? DEFAULT_BID_PRICE);
   const [eta, setEta] = useState(initialEta ?? DEFAULT_ETA_MINUTES);
+  const [note, setNote] = useState(initialNote ?? "");
+
+  /** A chip adds its note on a line of its own, and never twice. */
+  function addNote(text: string) {
+    setNote((current) => {
+      if (current.includes(text)) return current;
+      const next = current.trim() ? `${current.trimEnd()}\n${text}` : text;
+      return next.slice(0, BID_NOTE_MAX);
+    });
+  }
 
   const { net } = feeBreakdown(price, fee);
 
@@ -405,10 +418,35 @@ export function SubmitBidForm({
             name="note"
             rows={4}
             maxLength={BID_NOTE_MAX}
-            defaultValue={initialNote ?? ""}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
             placeholder="לדוגמה: אחריות שנה על העבודה, מביא חלקים מקוריים"
             className={`${INPUT_CLASS} mt-3 resize-y`}
           />
+          {recentNotes.length > 0 && (
+            <div className="mt-3">
+              <p id="recent-notes-label" className="text-xs text-muted">
+                מהצעות קודמות שלך — לחיצה מוסיפה:
+              </p>
+              <div
+                role="group"
+                aria-labelledby="recent-notes-label"
+                className="mt-2 flex flex-wrap gap-2"
+              >
+                {recentNotes.map((text) => (
+                  <button
+                    key={text}
+                    type="button"
+                    onClick={() => addNote(text)}
+                    disabled={note.includes(text)}
+                    className="min-h-11 max-w-full truncate rounded-full border border-line bg-surface px-4 text-sm text-ink transition-colors hover:border-pro/40 disabled:border-pro/40 disabled:bg-pro/10"
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {state.fieldErrors?.note && (
             <div className="mt-2">
               <ErrorText>{state.fieldErrors.note}</ErrorText>

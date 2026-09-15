@@ -4,6 +4,7 @@ import {
   isFeedSort,
   lastOfferByTrade,
   pricingCoach,
+  recentNotes,
 } from "../feed";
 
 const job = (
@@ -182,5 +183,32 @@ describe("pricingCoach", () => {
         },
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("recentNotes", () => {
+  const offer = (note: string | null, createdAt: string) => ({
+    note,
+    createdAt,
+  });
+
+  it("returns the pro's own notes newest first, each once", () => {
+    expect(
+      recentNotes([
+        offer("אחריות שנה", "2026-09-10T10:00:00Z"),
+        offer("מביא חלקים", "2026-09-12T10:00:00Z"),
+        offer("אחריות  שנה ", "2026-09-14T10:00:00Z"),
+      ]),
+    ).toEqual(["אחריות שנה", "מביא חלקים"]);
+  });
+
+  it("skips empty notes and stops at the limit", () => {
+    const many = Array.from({ length: 8 }, (_, index) =>
+      offer(`הערה ${index}`, `2026-09-0${index + 1}T10:00:00Z`),
+    );
+    expect(
+      recentNotes([offer("   ", "2026-09-20T10:00:00Z"), ...many]),
+    ).toEqual(["הערה 7", "הערה 6", "הערה 5", "הערה 4"]);
+    expect(recentNotes([offer(null, "2026-09-20T10:00:00Z")])).toEqual([]);
   });
 });

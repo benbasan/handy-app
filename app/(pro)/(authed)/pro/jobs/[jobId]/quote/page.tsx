@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
+import { QuickBidButton } from "@/components/pro/QuickBidButton";
 import { SubmitBidForm } from "@/components/pro/SubmitBidForm";
 import {
   BUTTON_QUIET,
@@ -22,7 +23,9 @@ import {
 import { getJob } from "@/lib/supabase/jobs";
 import { listFeedJobs } from "@/lib/supabase/pros";
 import { requireRole } from "@/lib/supabase/session";
+import { windowRequired } from "@/lib/validation/arrivalWindow";
 import { BID_SPEED_NOTE, relativeTime } from "@/lib/validation/bids";
+import { lastOfferByTrade, recentNotes } from "@/lib/validation/feed";
 import {
   PREFERRED_TIME_LABEL,
   jobReference,
@@ -56,8 +59,18 @@ export default async function SubmitBidPage({
   const job = await getJob(jobId);
   if (!job) notFound();
 
-  const mine = (await listMyBids()).find((bid) => bid.jobId === jobId);
+  const myBids = await listMyBids();
+  const mine = myBids.find((bid) => bid.jobId === jobId);
   if (mine) redirect(`${PRO_ROUTES.offers}?bid=${mine.id}`);
+
+  // Phase 18: the "קריאה חדשה" push lands on this page, so the feed's quick
+  // offer is repeated here — one tap from the lock screen to an offer, with
+  // the call's description above it. The same rule as the feed: never on a
+  // call for today or tomorrow, which needs hours a quick offer cannot pick.
+  const quickBid =
+    job.categorySlug && !windowRequired(job.preferredTime)
+      ? (lastOfferByTrade(myBids).get(job.categorySlug) ?? null)
+      : null;
 
   const [bidsCount, priceRange, feed, , fee, baseFee] = await Promise.all([
     countBidsOnJob(jobId),
@@ -149,7 +162,25 @@ export default async function SubmitBidPage({
         </p>
       </Card>
 
+      {quickBid && (
+        <Card>
+          <h2 className={SECTION_TITLE}>הצעה מהירה</h2>
+          <p className="mt-1 text-sm text-muted">
+            אותו מחיר ואותו זמן הגעה כמו בהצעה האחרונה שלך בתחום. אפשר לערוך
+            אותה אחרי השליחה, כמו כל הצעה.
+          </p>
+          <div className="mt-4 sm:max-w-sm">
+            <QuickBidButton
+              jobId={jobId}
+              price={quickBid.price}
+              etaMinutes={quickBid.etaMinutes}
+            />
+          </div>
+        </Card>
+      )}
+
       <SubmitBidForm
+        recentNotes={recentNotes(myBids)}
         jobId={jobId}
         priceRange={priceRange}
         preferredTime={job.preferredTime}
