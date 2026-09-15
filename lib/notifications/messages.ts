@@ -151,6 +151,11 @@ const COPY: Record<
     body: "הקריאה נפתחה לכל בעלי המקצוע המאומתים באזור, והצעות יגיעו לכאן.",
     tone: "brand",
   },
+  review_reminder: {
+    title: "איך היה?",
+    body: "דירוג של דקה עוזר ללקוחות הבאים לבחור — ולבעל המקצוע לקבל עוד עבודה.",
+    tone: "cta",
+  },
   no_bids_yet: {
     title: "עוד לא הגיעו הצעות לקריאה",
     body: "תמונה או עוד כמה פרטים עוזרים לבעלי מקצוע לתמחר. אפשר להוסיף אותם עכשיו.",
@@ -217,6 +222,7 @@ function hrefFor({ kind, jobId, payload, role }: Input): string {
     case "selection_lapsed_customer":
       return CUSTOMER_ROUTES.offers(jobId);
     case "job_completed":
+    case "review_reminder":
       return CUSTOMER_ROUTES.summary(jobId);
     case "message_received": {
       const proId = payload.pro_id;

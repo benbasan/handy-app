@@ -361,6 +361,7 @@ export type Database = {
           preferred_time: string | null
           quiet_warned_at: string | null
           requested_pro_id: string | null
+          review_reminded_at: string | null
           selected_bid_id: string | null
           status: string
           video_url: string | null
@@ -383,6 +384,7 @@ export type Database = {
           preferred_time?: string | null
           quiet_warned_at?: string | null
           requested_pro_id?: string | null
+          review_reminded_at?: string | null
           selected_bid_id?: string | null
           status?: string
           video_url?: string | null
@@ -405,6 +407,7 @@ export type Database = {
           preferred_time?: string | null
           quiet_warned_at?: string | null
           requested_pro_id?: string | null
+          review_reminded_at?: string | null
           selected_bid_id?: string | null
           status?: string
           video_url?: string | null
@@ -1119,11 +1122,16 @@ export type Database = {
           id: string
           note: string
           price: number
+          pro_avatar_path: string
           pro_id: string
           pro_jobs_completed: number
           pro_name: string
           pro_rating: number
+          pro_response_minutes: number
+          pro_reviews_count: number
+          pro_slug: string
           pro_verified: boolean
+          pro_years_experience: number
           status: string
           unread_count: number
         }[]
@@ -1387,10 +1395,12 @@ export type Database = {
       my_saved_pros: {
         Args: never
         Returns: {
+          avatar_path: string
           bio: string
           full_name: string
           jobs_completed_count: number
           pro_id: string
+          public_slug: string
           rating_avg: number
           saved_at: string
           verified: boolean
@@ -1490,6 +1500,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      pro_response_minutes: { Args: { p_pro_id: string }; Returns: number }
       pro_serves_job: { Args: { p_point: unknown }; Returns: boolean }
       pros_in_range: { Args: { p_job_id: string }; Returns: number }
       pros_near_point: {
@@ -1510,6 +1521,7 @@ export type Database = {
         Returns: boolean
       }
       remind_todays_visits: { Args: never; Returns: number }
+      remind_unreviewed_jobs: { Args: never; Returns: number }
       reply_to_review: {
         Args: { p_reply: string; p_review_id: string }
         Returns: string

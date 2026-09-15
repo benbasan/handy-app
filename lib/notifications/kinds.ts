@@ -35,6 +35,7 @@ export const NOTIFICATION_KINDS = [
   "job_completed",
   "no_bids_yet",
   "requested_pro_passed",
+  "review_reminder",
   // Both.
   "message_received",
   "visit_reminder",
@@ -80,6 +81,7 @@ export const KIND_AUDIENCE: Record<
   job_completed: "customer",
   no_bids_yet: "customer",
   requested_pro_passed: "customer",
+  review_reminder: "customer",
   message_received: "both",
   visit_reminder: "both",
 };
