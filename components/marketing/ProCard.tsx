@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { StarIcon } from "@/components/ui/icons";
+import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { Badge, CARD_BASE, SECTION_TITLE } from "@/components/ui/primitives";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import type { CategoryPro } from "@/lib/supabase/publicProfiles";
@@ -14,8 +15,6 @@ import type { CategoryPro } from "@/lib/supabase/publicProfiles";
  * and how many jobs they have closed — and leaves the marketing labels out.
  */
 export function ProCard({ pro }: { pro: CategoryPro }) {
-  const initial = (pro.fullName ?? "?").trim().charAt(0);
-
   return (
     <article
       className={`flex h-full flex-col items-center ${CARD_BASE} p-5 text-center`}
@@ -31,12 +30,7 @@ export function ProCard({ pro }: { pro: CategoryPro }) {
           className="size-16 rounded-2xl object-cover"
         />
       ) : (
-        <span
-          aria-hidden
-          className="flex size-16 items-center justify-center rounded-2xl bg-brand-soft text-xl font-bold text-brand"
-        >
-          {initial}
-        </span>
+        <InitialAvatar name={pro.fullName ?? "?"} />
       )}
 
       <h3 className="mt-3 font-bold text-ink">
@@ -53,7 +47,10 @@ export function ProCard({ pro }: { pro: CategoryPro }) {
           "עדיין ללא דירוג"
         ) : (
           <>
-            <StarIcon filled className="inline size-3.5 align-[-2px]" />{" "}
+            <StarIcon
+              filled
+              className="inline size-3.5 align-[-2px] text-accent"
+            />{" "}
             <span className="ltr-nums">{pro.ratingAvg.toFixed(2)}</span> ·{" "}
             <span className="ltr-nums">{pro.jobsCompletedCount}</span> עבודות
           </>
