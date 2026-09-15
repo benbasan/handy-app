@@ -181,7 +181,7 @@ export default async function AdminOverviewPage() {
               <p className="text-sm text-white/70">
                 הכנסות מדמי קבלת עבודה החודש
               </p>
-              <p className="mt-2 text-4xl font-bold text-cta">
+              <p className="mt-2 text-4xl font-bold text-cta-bright">
                 <span className="ltr-nums">
                   {formatIls(overview.feesMonth)}
                 </span>{" "}

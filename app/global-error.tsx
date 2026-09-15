@@ -38,8 +38,8 @@ export default function GlobalError({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#f7f9fc",
-          color: "#0f172a",
+          backgroundColor: "#f8f4ec",
+          color: "#1f1a14",
           fontFamily: "system-ui, -apple-system, 'Segoe UI', Arial, sans-serif",
           padding: "24px",
         }}
@@ -49,7 +49,7 @@ export default function GlobalError({
             משהו השתבש
           </h1>
 
-          <p style={{ color: "#64748b", margin: "0 0 24px", lineHeight: 1.6 }}>
+          <p style={{ color: "#6b6257", margin: "0 0 24px", lineHeight: 1.6 }}>
             אירעה תקלה בטעינת האתר. התקלה נרשמה אצלנו. נסו לרענן, ואם זה חוזר
             פנו לתמיכה.
           </p>
@@ -58,7 +58,7 @@ export default function GlobalError({
             type="button"
             onClick={() => retry()}
             style={{
-              backgroundColor: "#047857",
+              backgroundColor: "#0b6b5d",
               color: "#ffffff",
               border: "none",
               borderRadius: "12px",
@@ -74,12 +74,12 @@ export default function GlobalError({
 
           {error.digest && (
             <p
-              style={{ color: "#64748b", fontSize: "0.875rem", marginTop: 32 }}
+              style={{ color: "#6b6257", fontSize: "0.875rem", marginTop: 32 }}
             >
               <span>מספר התקלה: </span>
               <span
                 dir="ltr"
-                style={{ fontFamily: "monospace", color: "#0f172a" }}
+                style={{ fontFamily: "monospace", color: "#1f1a14" }}
               >
                 {error.digest}
               </span>

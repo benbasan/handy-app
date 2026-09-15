@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/ui/BrandMark";
 import { ADMIN_ROUTES } from "@/lib/routes";
 
 /**
@@ -14,17 +15,12 @@ export function AdminLogo({ href = ADMIN_ROUTES.home }: { href?: string }) {
     <Link
       href={href}
       dir="ltr"
-      className="flex items-center gap-2 text-xl font-bold"
+      className="flex items-center gap-2 font-display text-2xl font-bold"
       aria-label="Handy Admin — ללוח הניהול"
     >
       <span className="text-ink">Handy</span>
       <span className="text-muted">Admin</span>
-      <span
-        aria-hidden
-        className="flex size-7 items-center justify-center rounded-full bg-ink text-sm font-bold text-white"
-      >
-        H
-      </span>
+      <BrandMark tone="ink" className="size-8" />
     </Link>
   );
 }

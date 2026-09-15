@@ -2,7 +2,7 @@ import Link from "next/link";
 import { HelpBrowser } from "@/components/marketing/HelpBrowser";
 import { AppShell } from "@/components/ui/AppShell";
 import {
-  BUTTON_CTA,
+  BUTTON_BRIGHT,
   CARD_CLASS,
   HERO_TITLE,
   SECTION_TITLE,
@@ -48,7 +48,7 @@ export default async function HelpPage() {
             </p>
             <Link
               href={MARKETING_ROUTES.contact}
-              className={`${BUTTON_CTA} mt-4 w-full`}
+              className={`${BUTTON_BRIGHT} mt-4 w-full`}
             >
               פנייה לתמיכה
             </Link>

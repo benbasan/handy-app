@@ -23,9 +23,9 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     dir: "rtl",
     lang: "he",
-    background_color: "#f7f9fc",
+    background_color: "#f8f4ec",
     // `--color-brand` from the @theme block in app/globals.css.
-    theme_color: "#1e40af",
+    theme_color: "#0b6b5d",
     icons: [
       { src: "/icon", sizes: "32x32", type: "image/png" },
       { src: "/apple-icon", sizes: "180x180", type: "image/png" },

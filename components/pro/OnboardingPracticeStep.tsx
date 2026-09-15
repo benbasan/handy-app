@@ -144,7 +144,7 @@ export function OnboardingPracticeStep() {
           />
           <div className="flex items-baseline justify-between gap-3 border-t border-white/15 pt-2">
             <dt className="font-bold">נטו אליך</dt>
-            <dd className="ltr-nums text-xl font-bold text-cta">
+            <dd className="ltr-nums text-xl font-bold text-cta-bright">
               {valid ? `${net.toLocaleString("he-IL")} ₪` : "—"}
             </dd>
           </div>

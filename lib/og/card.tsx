@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { BRAND_HEX, BRAND_MARK_PATHS } from "@/components/ui/BrandMark";
 import { toVisualOrder } from "./bidi";
 import { OG_COPY } from "./copy";
 
@@ -24,13 +25,18 @@ import { OG_COPY } from "./copy";
  * sentence mixing scripts for the algorithm to reorder.
  */
 
-/** The @theme block in app/globals.css is the source of these. */
+/**
+ * The @theme block in app/globals.css is the source of these. The card is the
+ * pro side's dark petrol since Phase 19 — the brand, at the weight a
+ * thumbnail in a WhatsApp thread needs. Mint on it is 7.1:1 and the warm
+ * grey 5.5:1.
+ */
 export const OG_COLORS = {
-  ink: "#0f172a",
-  brand: "#1e40af",
-  cta: "#34d399",
-  canvas: "#f7f9fc",
-  muted: "#94a3b8",
+  ground: "#123c37",
+  brand: "#0b6b5d",
+  cta: "#6fd8c0",
+  canvas: "#f8f4ec",
+  muted: "#b9ad9c",
 } as const;
 
 /** What Open Graph consumers expect; anything else gets cropped. */
@@ -100,7 +106,11 @@ export function OgCard({
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        background: OG_COLORS.ink,
+        // satori lays out left-to-right whatever `direction` says, so a
+        // stretched line with textAlign "right" still drew flush left. Every
+        // row is pushed to the right edge explicitly instead (Phase 19).
+        alignItems: "flex-end",
+        background: OG_COLORS.ground,
         color: "white",
         fontFamily: "Heebo",
         padding: 72,
@@ -109,25 +119,36 @@ export function OgCard({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 999,
-            background: OG_COLORS.brand,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 30,
-            fontWeight: 700,
-          }}
-        >
-          H
-        </div>
+        {/* Left-to-right, so the word comes first and the mark sits on the
+            right edge — where it sits in the site header. */}
         <div style={{ fontSize: 34, fontWeight: 700 }}>Handy</div>
+        <svg viewBox="0 0 32 32" width={60} height={60}>
+          <path d={BRAND_MARK_PATHS.house} fill={BRAND_HEX.canvas} />
+          <path
+            d={BRAND_MARK_PATHS.check}
+            fill="none"
+            stroke={OG_COLORS.ground}
+            strokeWidth={2.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle
+            cx={BRAND_MARK_PATHS.dot.cx}
+            cy={BRAND_MARK_PATHS.dot.cy}
+            r={BRAND_MARK_PATHS.dot.r}
+            fill={BRAND_HEX.accent}
+          />
+        </svg>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 18,
+        }}
+      >
         {eyebrow && (
           <div style={{ fontSize: 30, color: OG_COLORS.cta, fontWeight: 700 }}>
             {toVisualOrder(eyebrow)}

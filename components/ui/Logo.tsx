@@ -1,25 +1,21 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/ui/BrandMark";
 
 /**
- * The wordmark from design/screens: "Handy" in brand blue beside a filled
- * circle carrying an H. Latin text inside an RTL page, so it carries its own
- * dir rather than relying on the bidi algorithm to guess right.
+ * The wordmark: "Handy" in the display face beside the mark (Phase 19). Latin
+ * text inside an RTL page, so it carries its own dir rather than relying on the
+ * bidi algorithm to guess right.
  */
 export function Logo({ href = "/" }: { href?: string }) {
   return (
     <Link
       href={href}
       dir="ltr"
-      className="flex items-center gap-2 text-xl font-bold text-brand"
+      className="flex items-center gap-2 font-display text-2xl font-bold text-ink"
       aria-label="Handy — לעמוד הבית"
     >
       <span>Handy</span>
-      <span
-        aria-hidden
-        className="flex size-7 items-center justify-center rounded-full bg-brand text-sm font-bold text-white"
-      >
-        H
-      </span>
+      <BrandMark className="size-8" />
     </Link>
   );
 }
