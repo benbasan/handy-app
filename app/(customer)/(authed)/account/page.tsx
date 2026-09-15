@@ -57,6 +57,9 @@ export default async function CustomerAccountPage() {
         </header>
 
         <div className="flex flex-wrap gap-3">
+          <Link href={CUSTOMER_ROUTES.messages} className={BUTTON_QUIET}>
+            הודעות
+          </Link>
           <Link href={CUSTOMER_ROUTES.home} className={BUTTON_QUIET}>
             תיק הבית
           </Link>

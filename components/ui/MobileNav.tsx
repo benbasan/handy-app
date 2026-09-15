@@ -126,6 +126,7 @@ function itemsFor(
       },
     ],
     more: [
+      { href: "/account/messages", label: "הודעות", icon: MessageIcon },
       { href: "/account/home", label: "תיק הבית", icon: MapPinIcon },
       {
         href: MARKETING_ROUTES.howItWorks,

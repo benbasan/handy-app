@@ -107,6 +107,8 @@ export const CUSTOMER_ROUTES = {
    * is — PROTECTED_AREAS already covers the prefix.
    */
   home: "/account/home",
+  /** Every conversation across every call (Phase 17), under /account. */
+  messages: "/account/messages",
   newRequest: "/new-request",
   /** A call directed at one pro, by their public slug (Phase 13.8). */
   newRequestTo: (proSlug: string) =>
