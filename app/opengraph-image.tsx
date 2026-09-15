@@ -11,7 +11,7 @@ import { OG_COPY } from "@/lib/og/copy";
  * rather than a blank one.
  */
 
-export const alt = "Handy — בעל מקצוע אמין ליד הבית, היום";
+export const alt = "Handy — נזילה? קצר? מזגן שמטפטף? בעל מקצוע מאומת מהאזור";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 

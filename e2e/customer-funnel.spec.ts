@@ -21,7 +21,7 @@ test("the landing page's box carries a sentence into the form, trade chosen", as
   await page
     .getByRole("searchbox", { name: /מה קרה/ })
     .fill("המזגן בסלון מטפטף מים");
-  await page.getByRole("button", { name: "המשך" }).click();
+  await page.getByRole("button", { name: "קבלו הצעות מחיר" }).click();
 
   await page.waitForURL(/\/new-request\?q=/);
   await expect(
