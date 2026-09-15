@@ -49,7 +49,8 @@ export const CARD_RAISED =
  * The `<h1>` on a screen — one size, sixteen screens, previously sixteen
  * copies of the same four utilities.
  */
-export const PAGE_TITLE = "text-3xl font-bold text-ink sm:text-4xl";
+export const PAGE_TITLE =
+  "font-display text-3xl font-bold text-ink sm:text-4xl";
 
 /**
  * The `<h1>` on a page that is selling something rather than doing something:
@@ -58,7 +59,7 @@ export const PAGE_TITLE = "text-3xl font-bold text-ink sm:text-4xl";
  * three different spellings.
  */
 export const HERO_TITLE =
-  "text-4xl leading-tight font-bold text-ink sm:text-5xl";
+  "font-display text-4xl leading-tight font-bold text-ink sm:text-5xl";
 
 /**
  * The sentence under a page title. Nineteen inline copies before it had a name,
@@ -67,7 +68,7 @@ export const HERO_TITLE =
 export const PAGE_LEAD = "mt-2 text-muted";
 
 /** The `<h2>` heading a card or a section inside a screen. */
-export const SECTION_TITLE = "text-lg font-bold text-ink";
+export const SECTION_TITLE = "font-display text-lg font-bold text-ink";
 
 /** The label above a form control. */
 export const FIELD_LABEL = "mb-1 block text-sm font-medium text-ink";
@@ -103,7 +104,7 @@ export const BUTTON_CTA = `${BUTTON_BASE} bg-cta text-white hover:bg-cta-strong 
 
 export const BUTTON_BRAND = `${BUTTON_BASE} bg-brand text-white hover:bg-brand-strong focus-visible:ring-brand`;
 
-/** The pro side's primary weight — indigo, as in every design/screens/pro-*.png. */
+/** The pro side's primary weight — the brand petrol taken dark (Phase 19). */
 export const BUTTON_PRO = `${BUTTON_BASE} bg-pro text-white hover:bg-pro-strong focus-visible:ring-pro`;
 
 export const BUTTON_QUIET = `${BUTTON_BASE} border border-line bg-surface text-ink hover:bg-canvas focus-visible:ring-ink`;
