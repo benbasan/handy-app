@@ -33,6 +33,10 @@ import {
   PRICE_UPDATE_STATUS_LABEL,
 } from "@/lib/validation/priceUpdates";
 import { PAYMENT_METHOD_LABEL } from "@/lib/validation/pros";
+import { CancelAssignedJobForm } from "@/components/pro/CancelAssignedJobForm";
+import { getMyFeeOnJob } from "@/lib/supabase/bids";
+import { listCustomerRatings } from "@/lib/supabase/admin";
+import { CANCEL_REASON_LABEL } from "@/lib/validation/cancellation";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +71,11 @@ export default async function AdminJobDossierPage({
   const { jobId } = await params;
   const job = await getJob(jobId);
   if (!job) notFound();
+
+  const [adminFee, customerRatings] = await Promise.all([
+    getMyFeeOnJob(jobId),
+    listCustomerRatings(job.customerId),
+  ]);
 
   const [bids, priceUpdates, disputes, receipt] = await Promise.all([
     listBidsForJob(jobId),
@@ -147,7 +156,50 @@ export default async function AdminJobDossierPage({
               }
             />
             <Fact label="נפתחה" value={formatReceiptDate(job.createdAt)} ltr />
+            {job.status === "cancelled" && (
+              <Fact
+                label="בוטלה על ידי"
+                value={
+                  job.cancelledBy === "customer"
+                    ? `הלקוח — ${CANCEL_REASON_LABEL[job.cancelReason as keyof typeof CANCEL_REASON_LABEL] ?? ""}`
+                    : job.cancelledBy === "pro"
+                      ? "בעל המקצוע (דיווח שהלקוח ביטל)"
+                      : "צוות Handy"
+                }
+              />
+            )}
           </dl>
+
+          {/* Phase 15: an admin may cancel a job a pro has taken. The pro's
+              fee comes back as a credit, and both sides are told. */}
+          {(job.status === "assigned" || job.status === "in_progress") && (
+            <div className="mt-4 border-t border-line pt-4">
+              <CancelAssignedJobForm jobId={jobId} feeAmount={adminFee} admin />
+            </div>
+          )}
+
+          {/* Phase 15: how pros rated this customer, privately — every job,
+              not only this one, because a pattern is the only thing a single
+              rating can be evidence of. */}
+          <div className="mt-4 border-t border-line pt-4">
+            <h3 className="text-sm font-bold text-ink">
+              דירוגי הלקוח מבעלי מקצוע (פרטי)
+            </h3>
+            {customerRatings.length === 0 ? (
+              <p className="mt-1 text-sm text-muted">אין דירוגים.</p>
+            ) : (
+              <ul className="mt-2 space-y-1 text-sm">
+                {customerRatings.map((rating) => (
+                  <li key={rating.jobId} className="text-ink">
+                    <span className="ltr-nums font-semibold">
+                      {rating.rating}
+                    </span>
+                    /5{rating.comment ? ` — ${rating.comment}` : ""}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           {media.size > 0 && (
             <ul className="mt-4 flex flex-wrap gap-3">

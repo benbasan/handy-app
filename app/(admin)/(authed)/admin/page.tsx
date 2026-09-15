@@ -11,6 +11,7 @@ import {
 import { ADMIN_ROUTES } from "@/lib/routes";
 import {
   getAdminOverview,
+  getCancellationStats,
   listCategoryMix,
   listJobsPerDay,
 } from "@/lib/supabase/admin";
@@ -39,10 +40,11 @@ export const dynamic = "force-dynamic";
 export default async function AdminOverviewPage() {
   await requireRole("admin");
 
-  const [overview, days, mix] = await Promise.all([
+  const [overview, days, mix, cancellations] = await Promise.all([
     getAdminOverview(),
     listJobsPerDay(7),
     listCategoryMix(7),
+    getCancellationStats(),
   ]);
 
   const jobsChange = percentChange(overview.jobs24h, overview.jobsPrev24h);
@@ -98,7 +100,7 @@ export default async function AdminOverviewPage() {
           </header>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard
             label="קריאות חדשות"
             value={overview.jobs24h}
@@ -138,6 +140,25 @@ export default async function AdminOverviewPage() {
                 : "ממוצע בשבוע האחרון"
             }
           />
+          {/* Phase 15: the design's "ביטולים", now that something can
+              produce one. "Reported by a pro" is the figure to watch — it is
+              the one that returns a fee. */}
+          {cancellations && (
+            <StatCard
+              label="ביטולים ב-30 יום"
+              value={
+                cancellations.byCustomer +
+                cancellations.byPro +
+                cancellations.byAdmin
+              }
+              foot={
+                cancellations.byPro > 0 && cancellations.topProName
+                  ? `${cancellations.byPro} בדיווח בעל מקצוע · הכי הרבה: ${cancellations.topProName} (${cancellations.topProCancellations})`
+                  : `${cancellations.byCustomer} על ידי לקוחות · ${cancellations.creditsOpen} זיכויים פתוחים`
+              }
+              tone={cancellations.byPro > 0 ? "bad" : "neutral"}
+            />
+          )}
           <StatCard
             label="קריאות ללא הצעות"
             value={overview.jobsWithoutBids}

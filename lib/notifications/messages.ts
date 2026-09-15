@@ -168,6 +168,11 @@ const COPY: Record<
     body: "בשיחה על אחת הקריאות שלכם.",
     tone: "brand",
   },
+  job_cancelled: {
+    title: "קריאה בוטלה",
+    body: "הפרטים, ומה קורה הלאה, במסך הקריאה.",
+    tone: "alert",
+  },
   visit_reminder: {
     title: "תזכורת: ביקור היום",
     body: "חלון ההגעה שסוכם מתחיל היום. הפרטים במסך העבודה.",
@@ -196,6 +201,8 @@ function hrefFor({ kind, jobId, payload, role }: Input): string {
       case "job_in_radius":
       case "job_requested":
         return PRO_ROUTES.quote(jobId);
+      case "job_cancelled":
+        return PRO_ROUTES.offers;
       case "bid_selected":
       case "selection_expiring":
       case "selection_moved":

@@ -39,6 +39,7 @@ export const NOTIFICATION_KINDS = [
   // Both.
   "message_received",
   "visit_reminder",
+  "job_cancelled",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -84,6 +85,7 @@ export const KIND_AUDIENCE: Record<
   review_reminder: "customer",
   message_received: "both",
   visit_reminder: "both",
+  job_cancelled: "both",
 };
 
 /**
@@ -133,4 +135,7 @@ export const PUSH_ELIGIBLE_KINDS: readonly NotificationKind[] = [
   // opens the call to everyone else is their answer.
   "job_requested",
   "requested_pro_passed",
+  // Phase 15. A job somebody was counting on is off — either a pro's offer
+  // closed, or a customer's pro is not coming.
+  "job_cancelled",
 ];

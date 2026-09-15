@@ -13,6 +13,8 @@ import {
   SECTION_TITLE,
 } from "@/components/ui/primitives";
 import { DisputeOpener } from "@/components/ui/DisputeOpener";
+import { RateCustomerForm } from "@/components/pro/RateCustomerForm";
+import { countMyFeeCredits, listMyRatedJobIds } from "@/lib/supabase/bids";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { PRO_ROUTES, receiptPath } from "@/lib/routes";
 import {
@@ -52,14 +54,19 @@ export default async function ProMyJobsPage({
 }: PageProps<"/pro/my-jobs">) {
   const user = await requireRole("pro");
 
-  const { tab } = await searchParams;
+  const { tab, cancelled } = await searchParams;
   const showingHistory = tab === "history";
 
-  const [active, completed, stats] = await Promise.all([
+  const [active, completed, stats, credits] = await Promise.all([
     listMyActiveJobs(),
     listMyCompletedJobs(),
     getMyEarningsStats(),
+    countMyFeeCredits(),
   ]);
+
+  // Which finished jobs this pro already rated the customer on (Phase 15).
+  // Their own rows, under "customer_ratings: pro reads own".
+  const rated = showingHistory ? await listMyRatedJobIds() : new Set<string>();
 
   // Read only for the tab that shows it. `disputes: participants read` is what
   // scopes these rows — a pro sees the cases on jobs they bid on, and nothing
@@ -92,6 +99,25 @@ export default async function ProMyJobsPage({
         filter={`pro_id=eq.${user.id}`}
         label="המסך מתעדכן מעצמו"
       />
+
+      {cancelled === "1" && (
+        <p
+          role="status"
+          className="rounded-2xl border border-cta bg-cta/10 p-4 text-sm font-semibold text-cta-strong"
+        >
+          ✓ העבודה בוטלה והלקוח קיבל הודעה.
+        </p>
+      )}
+
+      {/* Phase 15: a credit is money the pro is owed, so it is said on the
+          screen they return to, not only in a ledger. */}
+      {credits > 0 && (
+        <p className={`${CARD_BASE} p-4 text-sm text-ink`}>
+          {credits === 1
+            ? "יש לך זיכוי אחד: העבודה הבאה שתאשר לא תחויב בדמי קבלת עבודה."
+            : `יש לך ${credits} זיכויים: ${credits} העבודות הבאות שתאשר לא יחויבו בדמי קבלת עבודה.`}
+        </p>
+      )}
 
       <header>
         <h1 className={PAGE_TITLE}>העבודות שלי</h1>
@@ -160,7 +186,7 @@ export default async function ProMyJobsPage({
         </aside>
 
         {showingHistory ? (
-          <HistoryList jobs={completed} disputes={disputes} />
+          <HistoryList jobs={completed} disputes={disputes} rated={rated} />
         ) : (
           <ActiveList jobs={active} />
         )}
@@ -315,10 +341,13 @@ function ActiveList({
 function HistoryList({
   jobs,
   disputes,
+  rated,
 }: {
   jobs: Awaited<ReturnType<typeof listMyCompletedJobs>>;
   /** Any case already open on a job, keyed by job id — at most one per job. */
   disputes: Map<string, DisputeStatus>;
+  /** Jobs whose customer this pro already rated. */
+  rated: Set<string>;
 }) {
   if (jobs.length === 0) {
     return (
@@ -396,6 +425,13 @@ function HistoryList({
             pro's is usually "הלקוח לא שילם" — which is exactly the second
             dispute on design/screens/admin-7.4-disputes-control.png.
           */}
+          <div className="mt-4 border-t border-line pt-4">
+            <RateCustomerForm
+              jobId={job.jobId}
+              alreadyRated={rated.has(job.jobId)}
+            />
+          </div>
+
           <div className="mt-4">
             <DisputeOpener
               jobId={job.jobId}

@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(484);
+select plan(523);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -4962,6 +4962,360 @@ select is(
       and job_id = 'd0000000-0000-4000-8000-000000000006'),
   0::bigint,
   'a job that closed twelve days ago is not reminded weeks late'
+);
+
+-- ===========================================================================
+-- Phase 15 — cancelling, the fee credit, and the pro's private rating
+-- ===========================================================================
+
+reset role;
+delete from public.notifications;
+
+-- P: open, two live offers. Q: taken by pro_verified at 35 ₪. R, S: open calls
+-- pro_verified will bid on. W: taken under the new-customer waiver, at 0 ₪.
+insert into public.jobs (id, customer_id, category_id, description, location,
+                         address_text, preferred_time, status, created_at)
+values
+  ('f1500000-0000-4000-8000-0000000000a1', :customer_a, 'c0000000-0000-4000-8000-000000000001',
+   'ביטול לפני שמישהו לקח', extensions.st_point(34.7818, 32.0853)::extensions.geography,
+   'ויצמן 30, תל אביב', 'asap', 'bidding', now() - interval '1 hour'),
+  ('f1500000-0000-4000-8000-0000000000a2', :customer_a, 'c0000000-0000-4000-8000-000000000001',
+   'ביטול אחרי שבעל המקצוע אישר', extensions.st_point(34.7818, 32.0853)::extensions.geography,
+   'ויצמן 32, תל אביב', 'asap', 'bidding', now() - interval '3 hours'),
+  ('f1500000-0000-4000-8000-0000000000a3', :customer_b, 'c0000000-0000-4000-8000-000000000001',
+   'העבודה שהזיכוי מכסה', extensions.st_point(34.7818, 32.0853)::extensions.geography,
+   'ויצמן 34, תל אביב', 'asap', 'bidding', now() - interval '1 hour'),
+  ('f1500000-0000-4000-8000-0000000000a4', :customer_b, 'c0000000-0000-4000-8000-000000000001',
+   'העבודה שאחרי', extensions.st_point(34.7818, 32.0853)::extensions.geography,
+   'ויצמן 36, תל אביב', 'asap', 'open', now() - interval '1 hour'),
+  ('f1500000-0000-4000-8000-0000000000a5', :customer_b, 'c0000000-0000-4000-8000-000000000001',
+   'עבודה שלא חויבה', extensions.st_point(34.7818, 32.0853)::extensions.geography,
+   'ויצמן 38, תל אביב', 'asap', 'bidding', now() - interval '3 hours');
+
+insert into public.bids (id, job_id, pro_id, price, eta_minutes, status, created_at)
+values
+  ('f1500000-0000-4000-8000-0000000000b1', 'f1500000-0000-4000-8000-0000000000a1', :pro_verified, 300, 30, 'pending', now() - interval '30 minutes'),
+  ('f1500000-0000-4000-8000-0000000000b2', 'f1500000-0000-4000-8000-0000000000a1', :pro_second, 320, 30, 'pending', now() - interval '20 minutes'),
+  ('f1500000-0000-4000-8000-0000000000b3', 'f1500000-0000-4000-8000-0000000000a2', :pro_verified, 400, 30, 'accepted', now() - interval '2 hours'),
+  ('f1500000-0000-4000-8000-0000000000b4', 'f1500000-0000-4000-8000-0000000000a3', :pro_verified, 350, 30, 'pending', now() - interval '10 minutes'),
+  ('f1500000-0000-4000-8000-0000000000b5', 'f1500000-0000-4000-8000-0000000000a5', :pro_verified, 280, 30, 'accepted', now() - interval '2 hours');
+
+update public.jobs set status = 'assigned', selected_bid_id = 'f1500000-0000-4000-8000-0000000000b3'
+ where id = 'f1500000-0000-4000-8000-0000000000a2';
+update public.jobs set status = 'assigned', selected_bid_id = 'f1500000-0000-4000-8000-0000000000b5'
+ where id = 'f1500000-0000-4000-8000-0000000000a5';
+
+insert into public.job_fees (job_id, pro_id, base_price, fee_amount)
+values ('f1500000-0000-4000-8000-0000000000a2', :pro_verified, 400, 35),
+       ('f1500000-0000-4000-8000-0000000000a5', :pro_verified, 280, 0);
+
+-- ---------------------------------------------------------------------------
+-- The customer cancels, until a pro accepts
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.cancel_job('f1500000-0000-4000-8000-0000000000a1', 'not_needed') $$,
+  '42501', null,
+  'a customer cannot cancel somebody else''s call'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.cancel_job('f1500000-0000-4000-8000-0000000000a1', 'because') $$,
+  '22023', null,
+  'the reason is a closed vocabulary'
+);
+
+select throws_ok(
+  $$ select public.cancel_job('f1500000-0000-4000-8000-0000000000a2', 'not_needed') $$,
+  '22023', null,
+  'a customer cannot cancel on their own once a pro has taken the job'
+);
+
+select lives_ok(
+  $$ select public.cancel_job('f1500000-0000-4000-8000-0000000000a1', 'found_elsewhere') $$,
+  'the owner cancels a call nobody has taken'
+);
+
+select throws_ok(
+  $$ update public.jobs set status = 'cancelled' where id = 'f1500000-0000-4000-8000-0000000000a3' $$,
+  '42501', null,
+  'and there is no other way into cancelled: the column has no client grant'
+);
+
+reset role;
+
+select results_eq(
+  $$ select status, cancelled_by, cancel_reason from public.jobs
+      where id = 'f1500000-0000-4000-8000-0000000000a1' $$,
+  $$ values ('cancelled'::text, 'customer'::text, 'found_elsewhere'::text) $$,
+  'the call records who cancelled and why'
+);
+
+select is(
+  (select count(*) from public.bids
+    where job_id = 'f1500000-0000-4000-8000-0000000000a1' and status = 'rejected'),
+  2::bigint,
+  'every live offer on it closes'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where job_id = 'f1500000-0000-4000-8000-0000000000a1' and kind = 'job_cancelled'),
+  2::bigint,
+  'and both pros who offered are told, once each'
+);
+
+select is(
+  (select count(*) from public.fee_credits
+    where source_job_id = 'f1500000-0000-4000-8000-0000000000a1'),
+  0::bigint,
+  'nobody paid, so nobody is credited'
+);
+
+-- ---------------------------------------------------------------------------
+-- After acceptance: the pro or an admin, and the credit
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.cancel_assigned_job('f1500000-0000-4000-8000-0000000000a2') $$,
+  '42501', null,
+  'a pro who did not take the job cannot cancel it'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.cancel_assigned_job('f1500000-0000-4000-8000-0000000000a2') $$,
+  '42501', null,
+  'nor can the customer, through this door — it goes through the pro or an admin'
+);
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  public.my_fee_for_job('f1500000-0000-4000-8000-0000000000a3'),
+  35::numeric,
+  'before any cancellation, the pro''s next job costs the flat fee'
+);
+
+select lives_ok(
+  $$ select public.cancel_assigned_job('f1500000-0000-4000-8000-0000000000a2') $$,
+  'the pro who took the job reports that the customer cancelled'
+);
+
+select is(
+  (select count(*) from public.fee_credits
+    where source_job_id = 'f1500000-0000-4000-8000-0000000000a2' and amount = 35),
+  1::bigint,
+  'the pro can read the 35 ₪ credit they were given'
+);
+
+select is(
+  public.my_fee_for_job('f1500000-0000-4000-8000-0000000000a3'),
+  0::numeric,
+  'and their next job now shows no fee'
+);
+
+select throws_ok(
+  $$ select public.cancel_assigned_job('f1500000-0000-4000-8000-0000000000a2') $$,
+  '22023', null,
+  'a job cannot be cancelled twice, so a credit cannot be minted twice'
+);
+
+select throws_ok(
+  $$ select public.complete_job('f1500000-0000-4000-8000-0000000000a2', 'cash') $$,
+  '22023', null,
+  'a cancelled job cannot be closed as done'
+);
+
+select lives_ok(
+  $$ select public.cancel_assigned_job('f1500000-0000-4000-8000-0000000000a5') $$,
+  'a job taken under the waiver can be cancelled too'
+);
+
+reset role;
+
+select is(
+  (select count(*) from public.notifications
+    where job_id = 'f1500000-0000-4000-8000-0000000000a2' and kind = 'job_cancelled'
+      and user_id = :customer_a),
+  1::bigint,
+  'the customer is told the pro cancelled — which is what lets them dispute it'
+);
+
+select is(
+  (select count(*) from public.fee_credits
+    where source_job_id = 'f1500000-0000-4000-8000-0000000000a5'),
+  0::bigint,
+  'a job that charged nothing credits nothing'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.fee_credits),
+  0::bigint,
+  'a customer reads no credits at all'
+);
+
+-- Spending the credit: pro_verified is chosen on R and accepts.
+reset role;
+
+update public.bids set status = 'selected', accept_deadline = now() + interval '1 hour'
+ where id = 'f1500000-0000-4000-8000-0000000000b4';
+update public.jobs set status = 'awaiting_pro'
+ where id = 'f1500000-0000-4000-8000-0000000000a3';
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.accept_job('f1500000-0000-4000-8000-0000000000b4') $$,
+  'the pro accepts their next job'
+);
+
+reset role;
+
+select is(
+  (select fee_amount from public.job_fees where job_id = 'f1500000-0000-4000-8000-0000000000a3'),
+  0::numeric(10,2),
+  'the credit covers it: the ledger row is at zero'
+);
+
+select is(
+  (select used_on_job_id from public.fee_credits
+    where source_job_id = 'f1500000-0000-4000-8000-0000000000a2'),
+  'f1500000-0000-4000-8000-0000000000a3'::uuid,
+  'and the credit records the job it was spent on'
+);
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select is(
+  public.my_fee_for_job('f1500000-0000-4000-8000-0000000000a4'),
+  35::numeric,
+  'one credit, one job: the one after is charged again'
+);
+
+-- An admin cancels.
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.cancel_assigned_job('f1500000-0000-4000-8000-0000000000a3') $$,
+  'an admin can cancel a job a pro has taken'
+);
+
+reset role;
+
+select results_eq(
+  $$ select cancelled_by from public.jobs where id = 'f1500000-0000-4000-8000-0000000000a3' $$,
+  $$ values ('admin'::text) $$,
+  'recorded as the admin''s'
+);
+
+select is(
+  (select count(*) from public.fee_credits
+    where source_job_id = 'f1500000-0000-4000-8000-0000000000a3'),
+  0::bigint,
+  'and a job the credit had already made free leaves no second credit behind'
+);
+
+-- ---------------------------------------------------------------------------
+-- The pro rates the customer, privately
+-- ---------------------------------------------------------------------------
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.rate_customer('f1500000-0000-4000-8000-0000000000a2', 2) $$,
+  '22023', null,
+  'a customer is rated on a finished job, not a cancelled one'
+);
+
+select lives_ok(
+  $$ select public.rate_customer('d0000000-0000-4000-8000-000000000004', 5, 'לקוחה מעולה, הכל היה מוכן') $$,
+  'the pro who did a finished job rates its customer'
+);
+
+select throws_ok(
+  $$ select public.rate_customer('d0000000-0000-4000-8000-000000000004', 1) $$,
+  '23505', null,
+  'once'
+);
+
+select throws_ok(
+  $$ insert into public.customer_ratings (job_id, pro_id, customer_id, rating)
+     values ('d0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000003',
+             'a0000000-0000-4000-8000-000000000001', 1) $$,
+  '42501', null,
+  'there is no insert grant: only rate_customer() writes a rating'
+);
+
+select is(
+  (select count(*) from public.customer_ratings),
+  1::bigint,
+  'the pro reads back the rating they wrote'
+);
+
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.rate_customer('d0000000-0000-4000-8000-000000000004', 1) $$,
+  '42501', null,
+  'a pro who did not do the job cannot rate its customer'
+);
+
+select is(
+  (select count(*) from public.customer_ratings),
+  0::bigint,
+  'and reads nobody else''s ratings'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.customer_ratings),
+  0::bigint,
+  'the customer never reads how they were rated'
+);
+
+select throws_ok(
+  $$ select * from public.admin_cancellation_stats() $$,
+  '42501', null,
+  'cancellation statistics are for admins'
+);
+
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.customer_ratings),
+  1::bigint,
+  'an admin reads every rating'
+);
+
+select results_eq(
+  $$ select by_customer >= 1, by_pro >= 1, by_admin >= 1, top_pro_id
+       from public.admin_cancellation_stats() $$,
+  $$ values (true, true, true, 'a0000000-0000-4000-8000-000000000003'::uuid) $$,
+  'the console counts each kind of cancellation, and names the pro who reports them most'
 );
 
 reset role;

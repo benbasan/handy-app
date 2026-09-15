@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JobProgressPanel } from "@/components/pro/JobProgressPanel";
 import { LocationReporter } from "@/components/pro/LocationReporter";
+import { CancelAssignedJobForm } from "@/components/pro/CancelAssignedJobForm";
 import { CompleteJobForm } from "@/components/pro/CompleteJobForm";
 import { PriceUpdateForm } from "@/components/pro/PriceUpdateForm";
 import { ChatDock } from "@/components/ui/ChatDock";
@@ -40,7 +41,7 @@ import {
   PRICE_UPDATE_STATUS_LABEL_PRO,
 } from "@/lib/validation/priceUpdates";
 import { AddToCalendar } from "@/components/ui/AddToCalendar";
-import { getAgreedArrivalWindow } from "@/lib/supabase/bids";
+import { getAgreedArrivalWindow, getMyFeeOnJob } from "@/lib/supabase/bids";
 import { describeWindow, windowHours } from "@/lib/validation/arrivalWindow";
 
 export const metadata = { title: "ניהול עבודה — Handy Pro" };
@@ -83,6 +84,10 @@ export default async function ProManageJobPage({
     ],
   );
   if (!job) notFound();
+
+  // What this pro paid to take the job — the size of the credit a cancellation
+  // would give back (Phase 15). Their own row, under "job_fees: pro reads own".
+  const feeAmount = await getMyFeeOnJob(jobId);
 
   // The hours this pro committed to in their offer (Phase 13.7), if any.
   const agreedWindow = await getAgreedArrivalWindow(job.selectedBidId);
@@ -224,6 +229,13 @@ export default async function ProManageJobPage({
               totalPrice={active.currentPrice}
               acceptedMethods={acceptedMethods}
             />
+
+            {/* Phase 15: the customer asked to cancel after this pro took
+                the job. Below the close button and quieter than it, because
+                it is the exception. */}
+            <div className="mt-4 border-t border-line pt-4">
+              <CancelAssignedJobForm jobId={jobId} feeAmount={feeAmount} />
+            </div>
           </div>
 
           {settled.length > 0 && (
