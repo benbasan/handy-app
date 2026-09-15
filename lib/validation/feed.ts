@@ -103,6 +103,37 @@ export function lastOfferByTrade(
   );
 }
 
+/** How many of a pro's own past notes the bid form offers as one-tap chips. */
+export const RECENT_NOTES_LIMIT = 4;
+
+/**
+ * "הערות שמורות" (Phase 18): the notes this pro actually wrote on their latest
+ * offers, newest first, each once. Derived from `my_bids` rather than kept in a
+ * table of templates — the notes a pro reuses are the ones they already wrote,
+ * and a second place to maintain them would drift from the first.
+ *
+ * Whitespace-only notes are skipped, and two notes that differ only in spacing
+ * count as one.
+ */
+export function recentNotes(
+  offers: readonly { note: string | null; createdAt: string }[],
+  limit = RECENT_NOTES_LIMIT,
+): string[] {
+  const seen = new Set<string>();
+  const notes: string[] = [];
+  const newestFirst = [...offers].sort(
+    (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
+  );
+  for (const offer of newestFirst) {
+    const note = offer.note?.trim().replace(/\s+/g, " ");
+    if (!note || seen.has(note)) continue;
+    seen.add(note);
+    notes.push(note);
+    if (notes.length === limit) break;
+  }
+  return notes;
+}
+
 /** The fewest lost offers a trade needs before the coach says anything about it. */
 export const COACH_MIN_SAMPLE = 3;
 

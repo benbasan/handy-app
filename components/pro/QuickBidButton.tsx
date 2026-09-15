@@ -21,10 +21,17 @@ export function QuickBidButton({
   jobId,
   price,
   etaMinutes,
+  stayOnPage = true,
 }: {
   jobId: string;
   price: number;
   etaMinutes: number;
+  /**
+   * The feed stays put so the pro can answer the next call (Phase 16). The
+   * quote page (Phase 18) does not: with the offer sent, the form under the
+   * button has nothing left to do, so `submitBid` moves on to "ההצעות שלי".
+   */
+  stayOnPage?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(
     submitBid,
@@ -48,7 +55,7 @@ export function QuickBidButton({
       <input type="hidden" name="price" value={price} />
       <input type="hidden" name="etaMinutes" value={etaMinutes} />
       <input type="hidden" name="note" value="" />
-      <input type="hidden" name="quick" value="1" />
+      {stayOnPage && <input type="hidden" name="quick" value="1" />}
       <button
         type="submit"
         disabled={pending}

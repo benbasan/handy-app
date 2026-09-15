@@ -168,6 +168,9 @@ The product is Hebrew-facing, but all code (tables, variables, routes, types) is
 | תמונת פרופיל וגלריה | `pro-media` | The **public** Storage bucket, `<pro_id>/<filename>`. Only what a pro publishes on purpose |
 | מענה לביקורת | `reply_to_review()` | The pro's half of a review. No client role holds a grant on `reviews.pro_reply` |
 | מדריך עלויות | `pricing_guide()` | Per-category price statistics from `job_fees`, counting **completed** rows only. A category with no closed job says so |
+| עד שמגיעים / להתכונן לביקור | `UNTIL_THEY_ARRIVE` · `VISIT_PREP` · `lib/content/visitPrep.ts` · `PrepCard` | Per-trade checklists (Phase 18). The urgent one only for `asap` calls in trades where waiting makes things worse, until a pro accepts; the visit one on the tracking screen while the pro is on the way. Emergency numbers 101/102/103 only, and never on a visit list — a Vitest assertion holds both |
+| הערות מהצעות קודמות | `recentNotes()` | Up to four of the pro's own latest notes, as chips on the bid form. Derived from `my_bids`; there is no templates table |
+| הוספה למסך הבית | `InstallPrompt` | Where `PushPermissionCard` renders nothing on an iPhone tab: says a push needs the home screen, and how. Chrome's own install dialog where it is offered; nothing once installed |
 | פנייה לתמיכה | `support_tickets` | The contact form. The one table `anon` may INSERT into; no client role may UPDATE one |
 | טיפול בפנייה | `set_support_ticket_status()` · `/admin/support` | `open` / `answered` / `closed`, by an admin, with `handled_at`. Phase 17 |
 | שליחת הקבלה | `receipt_share_links` · `create_receipt_share_link()` · `shared_receipt()` · `/r/[token]` | A seven-day, revocable link to the customer's version of a receipt. Only the token's hash is stored |

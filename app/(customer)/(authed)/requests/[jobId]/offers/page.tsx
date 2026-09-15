@@ -10,6 +10,9 @@ import { OpenToAllButton } from "@/components/customer/OpenToAllButton";
 import { NoProsNearby } from "@/components/customer/NoProsNearby";
 import { WaitingForProCard } from "@/components/customer/WaitingForProCard";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
+import { PrepCard } from "@/components/customer/PrepCard";
+import { InstallPrompt } from "@/components/ui/InstallPrompt";
+import { DANGER_LINE, untilTheyArrive } from "@/lib/content/visitPrep";
 import {
   BUTTON_COMPACT,
   BUTTON_CTA,
@@ -136,6 +139,11 @@ export default async function JobOffersPage({
 
   // Adding to a call is possible until a pro takes it (add_job_details()).
   const collecting = job.status === "open" || job.status === "bidding";
+  const urgentPrep =
+    job.preferredTime === "asap" &&
+    (collecting || job.status === "awaiting_pro")
+      ? untilTheyArrive(job.categorySlug)
+      : null;
 
   const requestedSort = Array.isArray(query.sort) ? query.sort[0] : query.sort;
   const sort: BidSort = isBidSort(requestedSort)
@@ -228,6 +236,12 @@ export default async function JobOffersPage({
             </p>
           </Card>
 
+          {/* Phase 18: on an iPhone, a push arrives only from the home
+              screen — and a customer waiting for offers is who it is for. */}
+          {collecting && (
+            <InstallPrompt reason="כך תדעו על הצעה חדשה גם כשהדף סגור." />
+          )}
+
           <Card>
             <h2 className="font-bold text-ink">איך לבחור נכון</h2>
             <ul className="mt-3 space-y-2 text-sm text-muted">
@@ -271,6 +285,17 @@ export default async function JobOffersPage({
         </aside>
 
         <div className="order-1 space-y-4">
+          {/* Phase 18: "עד שמגיעים". Only on a call posted as urgent, only in
+              a trade where waiting can make things worse, and only until a
+              pro has taken it — after that the tracking screen takes over. */}
+          {urgentPrep && (
+            <PrepCard
+              list={urgentPrep}
+              danger={DANGER_LINE}
+              id="until-they-arrive"
+            />
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-bold text-ink">
               {bids.length === 0

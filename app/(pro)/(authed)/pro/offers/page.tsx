@@ -9,6 +9,7 @@ import {
   PAGE_TITLE,
 } from "@/components/ui/primitives";
 import { PushPermissionCard } from "@/components/ui/PushPermissionCard";
+import { InstallPrompt } from "@/components/ui/InstallPrompt";
 import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
 import { PRO_ROUTES } from "@/lib/routes";
 import {
@@ -163,6 +164,7 @@ export default async function ProOffersPage({
             hours to answer it — which is the whole reason this feature exists.
           */}
           <PushPermissionCard reason="אם הלקוח יבחר בכם, יש שעתיים לאשר. התראה מגיעה גם כשהדפדפן סגור." />
+          <InstallPrompt reason="אם הלקוח יבחר בכם, יש שעתיים לאשר — ובאייפון ההתראה מגיעה רק ממסך הבית." />
         </>
       )}
 
