@@ -113,7 +113,7 @@ export default async function ProWalletPage({
           <p className="text-sm text-white/70">
             {EARNINGS_RANGE_HEADING[range]}
           </p>
-          <p className="mt-2 text-4xl font-bold text-cta">
+          <p className="mt-2 text-4xl font-bold text-cta-bright">
             <span className="ltr-nums">{formatIls(stats.net)}</span> ₪
           </p>
           <p className="mt-1 text-sm text-white/70">

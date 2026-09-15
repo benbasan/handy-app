@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/AppShell";
-import { BUTTON_CTA, CARD_BASE, PAGE_TITLE } from "@/components/ui/primitives";
+import {
+  BUTTON_BRIGHT,
+  CARD_BASE,
+  PAGE_TITLE,
+} from "@/components/ui/primitives";
 import { GUIDES, findGuide } from "@/lib/content/guides";
 import { MARKETING_ROUTES } from "@/lib/routes";
 import { JsonLd, absoluteUrl, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
@@ -138,7 +142,7 @@ export default async function GuidePage({
         <p className="mt-2 text-white/75">
           פרסום קריאה הוא בחינם, וההצעות הראשונות מגיעות תוך דקות.
         </p>
-        <Link href="/new-request" className={`${BUTTON_CTA} mt-5`}>
+        <Link href="/new-request" className={`${BUTTON_BRIGHT} mt-5`}>
           פרסם קריאה
         </Link>
       </section>

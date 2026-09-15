@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ProLogo } from "@/components/pro/ProLogo";
 import {
-  BUTTON_BASE,
+  BUTTON_BRIGHT,
   BUTTON_COMPACT,
   BUTTON_PRO,
   CARD_BASE,
@@ -84,7 +84,7 @@ export default async function ProLandingPage() {
       <main className="flex-1">
         {/* The pro side's own dark petrol since Phase 19. On this ground the
             pro button (the same petrol) would vanish, so the hero's primary
-            action is mint — 7.1:1 against the ground, pro text on it 7.1:1. */}
+            action is BUTTON_BRIGHT. */}
         <section className="bg-pro text-white">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-2">
             <div>
@@ -106,7 +106,7 @@ export default async function ProLandingPage() {
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link
                   href={primaryHref}
-                  className={`${BUTTON_BASE} bg-cta-bright text-pro hover:bg-white focus-visible:ring-cta-bright focus-visible:ring-offset-pro`}
+                  className={`${BUTTON_BRIGHT} focus-visible:ring-offset-pro`}
                 >
                   {primaryLabel}
                 </Link>

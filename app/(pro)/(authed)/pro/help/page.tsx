@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  BUTTON_PRO,
+  BUTTON_BRIGHT,
   CARD_BASE,
   CARD_CLASS,
   PAGE_LEAD,
@@ -40,7 +40,7 @@ export default async function ProHelpPage() {
             </p>
             <Link
               href={MARKETING_ROUTES.contact}
-              className={`${BUTTON_PRO} mt-4 w-full`}
+              className={`${BUTTON_BRIGHT} mt-4 w-full`}
             >
               פתח פנייה
             </Link>

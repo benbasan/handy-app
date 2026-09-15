@@ -107,6 +107,14 @@ export const BUTTON_BRAND = `${BUTTON_BASE} bg-brand text-white hover:bg-brand-s
 /** The pro side's primary weight — the brand petrol taken dark (Phase 19). */
 export const BUTTON_PRO = `${BUTTON_BASE} bg-pro text-white hover:bg-pro-strong focus-visible:ring-pro`;
 
+/**
+ * The primary weight on a dark panel (Phase 19). The petrol buttons above are
+ * the brand's own colour, and on `bg-ink` or `bg-pro` their shape all but
+ * disappears — the pro button on the pro hero measured 1.3:1 against it. Mint
+ * with pro-dark text is 7.1:1 either way round.
+ */
+export const BUTTON_BRIGHT = `${BUTTON_BASE} bg-cta-bright text-pro hover:bg-white focus-visible:ring-cta-bright`;
+
 export const BUTTON_QUIET = `${BUTTON_BASE} border border-line bg-surface text-ink hover:bg-canvas focus-visible:ring-ink`;
 
 export const INPUT_CLASS =

@@ -64,7 +64,7 @@ export default async function ProPublicProfilePage() {
 
           <div className="rounded-2xl bg-ink p-5 text-white sm:p-6">
             <h2 className="text-base font-bold">חוזק הפרופיל</h2>
-            <p className="ltr-nums mt-1 text-4xl font-bold text-cta">
+            <p className="ltr-nums mt-1 text-4xl font-bold text-cta-bright">
               {strength.pct}%
             </p>
             <div
