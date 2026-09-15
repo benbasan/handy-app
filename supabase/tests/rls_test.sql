@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(524);
+select plan(526);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -5322,6 +5322,51 @@ select results_eq(
        from public.admin_cancellation_stats() $$,
   $$ values (true, true, true, 'a0000000-0000-4000-8000-000000000003'::uuid) $$,
   'the console counts each kind of cancellation, and names the pro who reports them most'
+);
+
+-- ===========================================================================
+-- The feed policy is pro_reaches_job(), written out for speed
+-- (20260922120000_feed_policy_performance.sql). It must give the same answer
+-- as the function, for every open call and for more than one pro — the
+-- directed calls from the Phase 13.8 section are still in the table.
+--
+-- A pro reads a job through three policies: this one, "assigned pro reads own
+-- job" and "bidding pro reads a job they bid on". So what RLS returns must be
+-- exactly the function's set joined with those two.
+-- ===========================================================================
+
+select pg_temp.act_as(:pro_verified);
+set local role authenticated;
+select coalesce(string_agg(id::text, ',' order by id), '') as rls_ids_verified
+  from public.jobs where status in ('open', 'bidding', 'awaiting_pro') \gset
+reset role;
+
+select is(
+  (select coalesce(string_agg(j.id::text, ',' order by j.id), '')
+     from public.jobs j
+    where j.status in ('open', 'bidding', 'awaiting_pro')
+      and (public.pro_reaches_job(j.location, j.requested_pro_id, j.opened_to_all_at)
+           or public.is_assigned_pro(j.id)
+           or public.is_bidding_pro(j.id))),
+  :'rls_ids_verified',
+  'the feed policy and pro_reaches_job() agree on every open call, for a pro who was asked for by name'
+);
+
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+select coalesce(string_agg(id::text, ',' order by id), '') as rls_ids_second
+  from public.jobs where status in ('open', 'bidding', 'awaiting_pro') \gset
+reset role;
+
+select is(
+  (select coalesce(string_agg(j.id::text, ',' order by j.id), '')
+     from public.jobs j
+    where j.status in ('open', 'bidding', 'awaiting_pro')
+      and (public.pro_reaches_job(j.location, j.requested_pro_id, j.opened_to_all_at)
+           or public.is_assigned_pro(j.id)
+           or public.is_bidding_pro(j.id))),
+  :'rls_ids_second',
+  'and for a pro who was not'
 );
 
 reset role;
