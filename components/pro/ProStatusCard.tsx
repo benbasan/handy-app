@@ -70,12 +70,31 @@ export function ProStatusCard({ profile }: { profile: ProProfile }) {
         </>
       )}
 
-      {profile.verificationStatus === "pending" && (
-        <p className="mt-3 text-sm text-muted">
-          הפרופיל נשלח לאישור. צוות Handy בודק את המסמכים ידנית — יעד מענה 24
-          שעות. תגיע התראה ברגע שתהיה החלטה.
+      {/* Phase 16: every enforcement state is on the pro's own screen. Until
+          now a pro learned they were blocked by failing to send something. */}
+      {profile.documentsRequiredAt && (
+        <p className="mt-3 rounded-xl border border-alert bg-alert-soft p-3 text-sm font-semibold text-alert">
+          צוות Handy ביקש מסמכים מעודכנים. עד שיועלו וייבדקו, לא ניתן לקחת
+          עבודות חדשות.{" "}
+          <Link href={`${PRO_ROUTES.onboarding}?step=3`} className="underline">
+            העלאת מסמכים
+          </Link>
         </p>
       )}
+      {profile.priceUpdatesBlocked && (
+        <p className="mt-3 rounded-xl border border-alert bg-alert-soft p-3 text-sm font-semibold text-alert">
+          בקשות עדכון מחיר בשטח חסומות בחשבון שלך על ידי צוות Handy. עבודות
+          ממשיכות במחיר שסוכם; לבירור, פנו לתמיכה.
+        </p>
+      )}
+
+      {profile.verificationStatus === "pending" &&
+        !profile.documentsRequiredAt && (
+          <p className="mt-3 text-sm text-muted">
+            הפרופיל נשלח לאישור. צוות Handy בודק את המסמכים ידנית — יעד מענה 24
+            שעות. תגיע התראה ברגע שתהיה החלטה.
+          </p>
+        )}
 
       {profile.verificationStatus === "verified" && (
         <>
@@ -98,9 +117,9 @@ export function ProStatusCard({ profile }: { profile: ProProfile }) {
       {profile.verificationStatus === "rejected" && (
         <>
           <p className="mt-3 text-sm text-muted">
-            הבקשה נדחתה. לרוב מדובר במסמך לא קריא או חסר — אפשר להעלות מסמכים
-            מעודכנים ולשלוח שוב לאישור.
+            הבקשה נדחתה. אפשר לתקן ולשלוח שוב לאישור.
           </p>
+          <Reason text={profile.verificationReason} />
           <Link
             href={`${PRO_ROUTES.onboarding}?step=3`}
             className={`${BUTTON_PRO} mt-4`}
@@ -111,10 +130,15 @@ export function ProStatusCard({ profile }: { profile: ProProfile }) {
       )}
 
       {profile.verificationStatus === "suspended" && (
-        <p className="mt-3 text-sm text-muted">
-          הפרופיל מושהה על ידי צוות Handy. פנו לתמיכה כדי לברר את הסיבה ואת מה
-          שנדרש כדי לחזור לפעילות.
-        </p>
+        <>
+          <p className="mt-3 text-sm text-muted">
+            הפרופיל מושהה על ידי צוות Handy, ובזמן ההשהיה לא מגיעות קריאות.
+          </p>
+          <Reason text={profile.verificationReason} />
+          <p className="mt-2 text-sm text-muted">
+            לשאלות, או כדי לחזור לפעילות, פנו לתמיכה.
+          </p>
+        </>
       )}
     </Card>
   );
@@ -139,5 +163,15 @@ function Progress({ step }: { step: number }) {
         style={{ width: `${pct}%` }}
       />
     </div>
+  );
+}
+
+/** The admin's own words, when there are any — never a guess. */
+function Reason({ text }: { text: string | null }) {
+  if (!text) return null;
+  return (
+    <p className="mt-3 rounded-xl bg-canvas p-3 text-sm text-ink">
+      <span className="font-semibold">הסיבה שצוות Handy ציין:</span> {text}
+    </p>
   );
 }

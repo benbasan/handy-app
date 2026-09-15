@@ -238,3 +238,14 @@ export async function hasSavedPro(proId: string): Promise<boolean> {
 
   return (count ?? 0) > 0;
 }
+
+/**
+ * The last `days` days, not a calendar week — a Sunday morning would otherwise
+ * always read zero. The clock is read here, in the loader, because a component
+ * must not read it during render.
+ */
+export async function getMyEarningsStatsForDays(
+  days: number,
+): Promise<EarningsStats> {
+  return getMyEarningsStats(new Date(Date.now() - days * 24 * 3_600_000));
+}

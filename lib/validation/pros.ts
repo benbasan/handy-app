@@ -293,15 +293,62 @@ export const availabilitySchema = z.object({
   categoryIds,
 });
 
+/**
+ * Why a pro passed on a call — "לא מתאים לי" in the feed, or declining an
+ * offer (Phase 16). Optional, a closed vocabulary, mirrored in the
+ * `job_dismissals_reason_check` and `decline_reasons` constraints, which a
+ * Vitest assertion reads. Nobody but the pro and Handy's team ever sees it.
+ */
+export const PASS_REASONS = [
+  "too_far",
+  "not_my_trade",
+  "too_busy",
+  "price_too_low",
+  "unclear",
+  "other",
+] as const;
+
+export type PassReason = (typeof PASS_REASONS)[number];
+
+export const PASS_REASON_LABEL: Record<PassReason, string> = {
+  too_far: "רחוק מדי",
+  not_my_trade: "לא בתחום שלי",
+  too_busy: "אין לי זמן כרגע",
+  price_too_low: "לא משתלם לי",
+  unclear: "התיאור לא ברור",
+  other: "סיבה אחרת",
+};
+
+const passReason = z
+  .string()
+  .optional()
+  .transform((value) => (value ? value : undefined))
+  .pipe(z.enum(PASS_REASONS, { error: "סיבה לא חוקית" }).optional());
+
 export const dismissJobSchema = z.object({
   jobId: z.uuid({ error: "מזהה קריאה לא תקין" }),
+  reason: passReason,
 });
+
+export const declineOfferSchema = z.object({
+  bidId: z.uuid({ error: "מזהה הצעה לא תקין" }),
+  reason: passReason,
+});
+
+export const VERIFICATION_REASON_MAX = 300;
 
 export const setVerificationSchema = z.object({
   proId: z.uuid({ error: "מזהה בעל מקצוע לא תקין" }),
   status: z.enum(["verified", "rejected", "suspended"], {
     error: "החלטה לא חוקית",
   }),
+  /** What the pro will read on a rejection or suspension. Ignored on approval. */
+  reason: z
+    .string()
+    .trim()
+    .max(VERIFICATION_REASON_MAX, { error: "הסיבה ארוכה מדי" })
+    .optional()
+    .transform((value) => (value ? value : undefined)),
 });
 
 /**

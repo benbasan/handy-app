@@ -7,7 +7,7 @@ import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
-import { answerOfferSchema } from "@/lib/validation/bids";
+import { declineOfferSchema } from "@/lib/validation/pros";
 
 /**
  * The pro's answer — Phase 10, and the only place in the product where a click
@@ -30,13 +30,24 @@ async function answer(
 ): Promise<{ error: string } | { bidId: string }> {
   await requireRole("pro");
 
-  const parsed = answerOfferSchema.safeParse({ bidId: formData.get("bidId") });
+  const parsed = declineOfferSchema.safeParse({
+    bidId: formData.get("bidId"),
+    // Only a decline carries a reason (Phase 16); an acceptance never sends one.
+    reason:
+      rpc === "decline_job" ? (formData.get("reason") ?? undefined) : undefined,
+  });
   if (!parsed.success) {
     return { error: fieldErrorsOf(parsed.error).bidId ?? "מזהה הצעה לא תקין." };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc(rpc, { p_bid_id: parsed.data.bidId });
+  const { error } =
+    rpc === "decline_job"
+      ? await supabase.rpc("decline_job", {
+          p_bid_id: parsed.data.bidId,
+          p_reason: parsed.data.reason,
+        })
+      : await supabase.rpc("accept_job", { p_bid_id: parsed.data.bidId });
 
   if (error) {
     // 22023 is the product answering rather than failing: the window closed,

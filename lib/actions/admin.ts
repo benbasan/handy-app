@@ -35,6 +35,7 @@ export async function decideProVerification(
   const parsed = setVerificationSchema.safeParse({
     proId: formData.get("proId"),
     status: formData.get("status"),
+    reason: formData.get("reason") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -46,6 +47,7 @@ export async function decideProVerification(
   const { data, error } = await supabase.rpc("set_pro_verification", {
     p_pro_id: parsed.data.proId,
     p_status: parsed.data.status,
+    p_reason: parsed.data.reason,
   });
 
   if (error) {
