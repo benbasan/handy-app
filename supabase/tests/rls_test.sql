@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(552);
+select plan(555);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -5486,12 +5486,53 @@ select ok(
 -- Phase 17 — demand counts, receipt share links, answering the contact form
 -- ===========================================================================
 
+-- Phase 19: three calls in one town, two in another, and three whose address
+-- was stored before addressToStore() learned to put a comma before the town —
+-- so job_city() reads the street and the flat number.
 reset role;
+
+insert into public.jobs (
+  customer_id, category_id, description, location, address_text,
+  preferred_time, status
+)
+select :customer_a, 'c0000000-0000-4000-8000-000000000001',
+       'ביקוש לפי עיר — ' || t.label,
+       extensions.st_point(t.lng, t.lat)::extensions.geography,
+       t.address, 'flexible', 'open'
+  from (values
+    ('מצפה רמון 1', 'נחל ציחור 1, מצפה רמון', 34.8016, 30.6103),
+    ('מצפה רמון 2', 'נחל ציחור 2, מצפה רמון', 34.8016, 30.6103),
+    ('מצפה רמון 3', 'נחל ציחור 3, מצפה רמון', 34.8016, 30.6103),
+    ('קצרין 1', 'הגפן 1, קצרין', 35.6897, 32.9925),
+    ('קצרין 2', 'הגפן 2, קצרין', 35.6897, 32.9925),
+    ('חריש 1', 'תנופה 7ב דירה 37 חריש', 35.0433, 32.4631),
+    ('חריש 2', 'תנופה 7ב דירה 37 חריש', 35.0433, 32.4631),
+    ('חריש 3', 'תנופה 7ב דירה 37 חריש', 35.0433, 32.4631)
+  ) as t(label, address, lng, lat);
+
 set local role anon;
 
+select is(
+  (select open_calls from public.open_calls_by_city() where city = 'מצפה רמון'),
+  3,
+  'a visitor sees how many open calls there are in a city'
+);
+
+select is(
+  (select count(*) from public.open_calls_by_city() where city = 'קצרין'),
+  0::bigint,
+  'but not a city with fewer than three — a figure beside a count has a floor'
+);
+
+select is(
+  (select count(*) from public.open_calls_by_city() where city ~ '[0-9]'),
+  0::bigint,
+  'and never an address that job_city() misread as a city, however many share it'
+);
+
 select ok(
-  (select count(*) from public.open_calls_by_city()) >= 1,
-  'a visitor sees how many open calls there are per city'
+  (select coalesce(bool_and(open_calls >= 3), true) from public.open_calls_by_city()),
+  'every city on the public list clears the floor'
 );
 
 select is(

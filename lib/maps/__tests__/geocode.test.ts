@@ -78,6 +78,26 @@ describe("addressToStore", () => {
     );
   });
 
+  it("separates a town typed at the end without a comma", () => {
+    // Kept whole, job_city() read the flat number as the city, and
+    // open_calls_by_city() printed it on the public /pro page.
+    expect(addressToStore("תנופה 7ב דירה 37 חריש", gazetteerHit("חריש"))).toBe(
+      "תנופה 7ב דירה 37, חריש",
+    );
+    expect(addressToStore("הרצל 12 קרית גת", gazetteerHit("קריית גת"))).toBe(
+      "הרצל 12, קרית גת",
+    );
+  });
+
+  it("never keeps a last part that carries more than the town", () => {
+    expect(addressToStore("דירה 4, תנופה 7 חריש", gazetteerHit("חריש"))).toBe(
+      "דירה 4, תנופה 7, חריש",
+    );
+    expect(addressToStore("הרצל חריש", gazetteerHit("חריש"))).toBe(
+      "הרצל, חריש",
+    );
+  });
+
   it("keeps Google's own formatted address untouched", () => {
     expect(
       addressToStore("הרצל 12", {
