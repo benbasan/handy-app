@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ClearJobDraft } from "@/components/customer/ClearJobDraft";
 import { JobMediaGallery } from "@/components/customer/JobMediaGallery";
 import { PushPermissionCard } from "@/components/ui/PushPermissionCard";
+import { InstallPrompt } from "@/components/ui/InstallPrompt";
 import { CheckIcon } from "@/components/ui/icons";
 import {
   BUTTON_BRAND,
@@ -119,6 +120,7 @@ export default async function JobPublishedPage({
         situation a notification is for.
       */}
       <PushPermissionCard reason="נודיע לכם ברגע שתגיע ההצעה הראשונה, גם אם תסגרו את הדף." />
+      <InstallPrompt reason="כך נוכל להודיע לכם ברגע שתגיע ההצעה הראשונה." />
 
       <div className="flex flex-wrap gap-3">
         <Link href={CUSTOMER_ROUTES.offers(job.id)} className={BUTTON_BRAND}>
