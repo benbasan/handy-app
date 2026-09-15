@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { VERIFICATION_DOCS_BUCKET } from "./buckets";
 import { createClient } from "./server";
+import { relativeTime } from "@/lib/validation/bids";
 import type { VerificationDocType } from "@/lib/validation/pros";
 
 /**
@@ -36,10 +37,15 @@ export type ProProfile = {
   avatarPath: string | null;
   galleryPaths: string[];
   yearsExperience: number | null;
+  /** Phase 16: what the admin said on a rejection or suspension. */
+  verificationReason: string | null;
+  /** Enforcement the pro must be able to see on their own screen (Phase 16). */
+  priceUpdatesBlocked: boolean;
+  documentsRequiredAt: string | null;
 };
 
 const PRO_COLUMNS =
-  "user_id, bio, radius_km, service_address_text, service_point, verification_status, rating_avg, jobs_completed_count, accepting_jobs, profile_strength_pct, work_days, work_start_time, work_end_time, onboarding_step, submitted_at, payment_methods, payout_bank_name, payout_bank_branch, payout_account_last4, public_slug, avatar_path, gallery_paths, years_experience";
+  "user_id, bio, radius_km, service_address_text, service_point, verification_status, rating_avg, jobs_completed_count, accepting_jobs, profile_strength_pct, work_days, work_start_time, work_end_time, onboarding_step, submitted_at, payment_methods, payout_bank_name, payout_bank_branch, payout_account_last4, public_slug, avatar_path, gallery_paths, years_experience, verification_reason, price_updates_blocked, documents_required_at";
 
 /**
  * The signed-in pro's own profile plus their chosen trades.
@@ -87,6 +93,9 @@ export const getMyProProfile = cache(async (): Promise<ProProfile | null> => {
     avatarPath: data.avatar_path,
     galleryPaths: data.gallery_paths ?? [],
     yearsExperience: data.years_experience,
+    verificationReason: data.verification_reason,
+    priceUpdatesBlocked: data.price_updates_blocked,
+    documentsRequiredAt: data.documents_required_at,
   };
 });
 
@@ -161,6 +170,8 @@ export type FeedJob = {
    * a pure value, and a component must not read it during render.
    */
   justArrived: boolean;
+  /** "לפני 12 דק׳" — read from one clock per query, for the same reason. */
+  postedAgo: string;
 };
 
 /** How long a job wears the "just arrived" ribbon. */
@@ -183,7 +194,8 @@ export async function listFeedJobs(maxKm: number | null): Promise<FeedJob[]> {
     p_max_km: maxKm ?? undefined,
   });
 
-  const freshBefore = Date.now() - JUST_ARRIVED_MS;
+  const now = Date.now();
+  const freshBefore = now - JUST_ARRIVED_MS;
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -203,6 +215,7 @@ export async function listFeedJobs(maxKm: number | null): Promise<FeedJob[]> {
     awaitingAnswer: row.awaiting_answer,
     requestedForMe: row.requested_for_me,
     justArrived: new Date(row.created_at).getTime() > freshBefore,
+    postedAgo: relativeTime(row.created_at, now),
   }));
 }
 

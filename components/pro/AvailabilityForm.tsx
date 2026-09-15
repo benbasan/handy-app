@@ -199,8 +199,8 @@ export function AvailabilityForm({
         <p className="mt-1 text-sm text-muted">
           הרדיוס נמדד מכתובת הבסיס שלכם
           {profile.serviceAddressText ? ` — ${profile.serviceAddressText}` : ""}
-          . קריאה מוצגת רק אם היא בתוך הרדיוס שלכם וגם בתוך הרדיוס שהלקוח ביקש
-          לשדר אליו.
+          . קריאה מוצגת אם היא בתוך הרדיוס שלכם — או אם לקוח ביקש אתכם ישירות,
+          דרך הקישור האישי שלכם.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">

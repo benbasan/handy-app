@@ -162,6 +162,23 @@ describe("payoutSchema", () => {
     const result = payoutSchema.safeParse({ ...valid, paymentMethods: [] });
     expect(result.success).toBe(false);
   });
+  it("accepts no bank account at all — it no longer blocks the approval", () => {
+    const result = payoutSchema.safeParse({
+      ...valid,
+      bankName: "",
+      bankBranch: "",
+      accountLast4: "",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("refuses half an account, and says which field is missing", () => {
+    const result = payoutSchema.safeParse({ ...valid, accountLast4: "" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.path[0])).toContain(
+      "accountLast4",
+    );
+  });
 });
 
 describe("availabilitySchema", () => {
@@ -239,5 +256,41 @@ describe("trimSeconds", () => {
 
   it("survives a null column", () => {
     expect(trimSeconds(null)).toBe("");
+  });
+});
+
+describe("pass reasons (Phase 16)", () => {
+  it("match both check constraints in the migration, word for word", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { PASS_REASONS } = await import("../pros");
+    const sql = readFileSync(
+      "supabase/migrations/20260923120000_pro_retention.sql",
+      "utf8",
+    );
+    for (const marker of [
+      "job_dismissals_reason_check",
+      "create table public.decline_reasons",
+    ]) {
+      const start = sql.indexOf(marker);
+      const listStart = sql.indexOf("reason in (", start);
+      const block = sql.slice(listStart, sql.indexOf(")", listStart));
+      const words = [...block.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+      expect(new Set(words), marker).toEqual(new Set(PASS_REASONS));
+    }
+  });
+
+  it("accept an absent reason and refuse an invented one", async () => {
+    const { dismissJobSchema } = await import("../pros");
+    const job = "d0000000-0000-4000-8000-000000000001";
+    expect(dismissJobSchema.parse({ jobId: job, reason: "" })).toEqual({
+      jobId: job,
+      reason: undefined,
+    });
+    expect(
+      dismissJobSchema.parse({ jobId: job, reason: "too_far" }).reason,
+    ).toBe("too_far");
+    expect(
+      dismissJobSchema.safeParse({ jobId: job, reason: "boring" }).success,
+    ).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ import { PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
 import {
+  hasBankAccount,
   payoutSchema,
   practiceBidSchema,
   proDocumentsSchema,
@@ -19,6 +20,7 @@ import {
   type VerificationDocType,
 } from "@/lib/validation/pros";
 import type { z } from "zod";
+import { getMyProProfile } from "@/lib/supabase/pros";
 
 /**
  * The five-step wizard a pro passes through once — product-spec.md 4.2,
@@ -349,13 +351,19 @@ export async function submitProProfile(
 
   const supabase = await createClient();
 
+  // The bank account is optional since Phase 16: saved when given, and a
+  // missing one never overwrites an account already on file.
   const { error: payoutError } = await supabase
     .from("pro_profiles")
     .update({
       payment_methods: parsed.data.paymentMethods,
-      payout_bank_name: parsed.data.bankName,
-      payout_bank_branch: parsed.data.bankBranch,
-      payout_account_last4: parsed.data.accountLast4,
+      ...(hasBankAccount(parsed.data)
+        ? {
+            payout_bank_name: parsed.data.bankName,
+            payout_bank_branch: parsed.data.bankBranch,
+            payout_account_last4: parsed.data.accountLast4,
+          }
+        : {}),
     })
     .eq("user_id", user.id);
 
@@ -364,6 +372,19 @@ export async function submitProProfile(
     // this is the one write in the app whose payload is a payout account.
     logServerError("pros.savePayout", payoutError, { proId: user.id });
     return { error: "שמירת פרטי הגבייה נכשלה. נסו שוב בעוד רגע." };
+  }
+
+  // A pro already submitted — or already verified, coming back from the
+  // dashboard's "חסר חשבון בנק" — is editing details, not asking for review.
+  const profile = await getMyProProfile();
+  if (
+    profile &&
+    profile.verificationStatus !== "draft" &&
+    profile.verificationStatus !== "rejected"
+  ) {
+    revalidatePath(PRO_ROUTES.dashboard);
+    revalidatePath(PRO_ROUTES.settings);
+    redirect(`${PRO_ROUTES.settings}?saved=1`);
   }
 
   const { error } = await supabase.rpc("submit_pro_for_approval");

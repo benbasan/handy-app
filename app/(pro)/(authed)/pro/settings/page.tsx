@@ -51,7 +51,7 @@ export default async function ProSettingsPage() {
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <aside className="order-2 space-y-4 lg:order-2">
           <div className="rounded-2xl bg-ink p-5 text-sm text-white/80">
             <h2 className="text-base font-bold text-white">
@@ -67,11 +67,12 @@ export default async function ProSettingsPage() {
                 <span dir="ltr" className="ltr-nums">
                   {profile.payoutAccountLast4}
                 </span>
-                . הגבייה מתבצעת כל שני וחמישי.
+                .
               </p>
             ) : (
               <p className="mt-2">
-                עוד לא הוגדר חשבון לגבייה. הוא נקבע בשלב 5 של ההרשמה.
+                עוד לא הוגדר חשבון. לא חובה כדי לקבל עבודות, ואפשר להוסיף אותו
+                כאן.
               </p>
             )}
             <Link

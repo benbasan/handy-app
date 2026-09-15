@@ -110,7 +110,7 @@ export default async function ProOnboardingPage({
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <aside className="order-2 space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
           <nav aria-label="שלבי ההרשמה" className="space-y-2">
             {STEPS.map((item) => {
@@ -204,6 +204,11 @@ export default async function ProOnboardingPage({
                 }}
                 canSubmit={missing.length === 0}
                 missing={missing}
+                alreadySubmitted={
+                  profile !== null &&
+                  profile.verificationStatus !== "draft" &&
+                  profile.verificationStatus !== "rejected"
+                }
               />
             )}
           </div>

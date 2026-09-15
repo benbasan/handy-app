@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
   BUTTON_PRO,
@@ -13,6 +14,7 @@ import { savePracticeBid } from "@/lib/actions/proOnboarding";
 import { EMPTY_PRO_FORM_STATE } from "@/lib/actions/state";
 import { ACCEPTANCE_FEE, feeBreakdown } from "@/lib/validation/pros";
 import { BID_SPEED_NOTE } from "@/lib/validation/bids";
+import { PRO_ROUTES } from "@/lib/routes";
 
 /**
  * Onboarding step 4 — תרגול הגשת הצעה (product-spec.md 4.2).
@@ -172,9 +174,19 @@ export function OnboardingPracticeStep() {
 
       {state.error && <ErrorText>{state.error}</ErrorText>}
 
-      <button type="submit" disabled={pending} className={BUTTON_PRO}>
-        {pending ? "שומר…" : "סיימתי את התרגול"}
-      </button>
+      <div className="flex flex-wrap items-center gap-4">
+        <button type="submit" disabled={pending} className={BUTTON_PRO}>
+          {pending ? "שומר…" : "סיימתי את התרגול"}
+        </button>
+        {/* Phase 16: the practice is a help, not a gate. A pro who already
+            knows how to price should reach real calls sooner. */}
+        <Link
+          href={`${PRO_ROUTES.onboarding}?step=5`}
+          className="text-sm font-semibold text-muted underline underline-offset-2"
+        >
+          דלגו על התרגול
+        </Link>
+      </div>
     </form>
   );
 }

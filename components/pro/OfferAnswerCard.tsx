@@ -12,6 +12,7 @@ import { EMPTY_ANSWER_OFFER_STATE } from "@/lib/actions/state";
 import type { PendingAcceptance } from "@/lib/supabase/bids";
 import { Countdown } from "@/components/ui/Countdown";
 import { formatIls } from "@/lib/validation/priceUpdates";
+import { PASS_REASONS, PASS_REASON_LABEL } from "@/lib/validation/pros";
 
 /**
  * "נבחרת" — the card a pro answers, and the one place in the product where
@@ -93,8 +94,28 @@ export function OfferAnswerCard({ offer }: { offer: PendingAcceptance }) {
           </button>
         </form>
 
-        <form action={declineAction}>
+        <form
+          action={declineAction}
+          className="flex flex-wrap items-center gap-2"
+        >
           <input type="hidden" name="bidId" value={offer.bidId} />
+          {/* Phase 16: why, optionally — for Handy, never shown to the customer. */}
+          <label className="sr-only" htmlFor={`decline-reason-${offer.bidId}`}>
+            סיבת הוויתור
+          </label>
+          <select
+            id={`decline-reason-${offer.bidId}`}
+            name="reason"
+            defaultValue=""
+            className="min-h-11 rounded-xl border border-line bg-surface px-3 text-sm text-ink"
+          >
+            <option value="">סיבה (לא חובה)</option>
+            {PASS_REASONS.map((reason) => (
+              <option key={reason} value={reason}>
+                {PASS_REASON_LABEL[reason]}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             disabled={busy}

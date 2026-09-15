@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { fieldErrorsOf } from "@/lib/actions/formData";
 import { INVALID_PRO_FORM } from "@/lib/actions/state";
 import type { ProFormState } from "@/lib/actions/state";
-import { logServerError } from "@/lib/observability";
+import { logExpectedRefusal, logServerError } from "@/lib/observability";
 import { PRO_ROUTES } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/supabase/session";
@@ -122,13 +122,24 @@ export async function setAcceptingJobs(formData: FormData): Promise<void> {
 export async function dismissJob(formData: FormData): Promise<void> {
   const user = await requireRole("pro");
 
-  const parsed = dismissJobSchema.safeParse({ jobId: formData.get("jobId") });
-  if (!parsed.success) return;
+  const parsed = dismissJobSchema.safeParse({
+    jobId: formData.get("jobId"),
+    reason: formData.get("reason") ?? undefined,
+  });
+  if (!parsed.success) {
+    logExpectedRefusal("pros.dismissJob.invalid", parsed.error, {});
+    return;
+  }
 
   const supabase = await createClient();
-  await supabase
-    .from("job_dismissals")
-    .insert({ pro_id: user.id, job_id: parsed.data.jobId });
+  const { error } = await supabase.from("job_dismissals").insert({
+    pro_id: user.id,
+    job_id: parsed.data.jobId,
+    reason: parsed.data.reason ?? null,
+  });
+  if (error && error.code !== "23505") {
+    logServerError("pros.dismissJob", error, { jobId: parsed.data.jobId });
+  }
 
   revalidatePath(PRO_ROUTES.jobs);
 }

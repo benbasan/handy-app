@@ -258,24 +258,69 @@ export const practiceBidSchema = z.object({
 });
 
 /** Step 5 — how money moves, on both sides of the fee. */
-export const payoutSchema = z.object({
-  paymentMethods: z
-    .array(z.enum(PAYMENT_METHODS))
-    .min(1, { error: "יש לבחור לפחות אמצעי גבייה אחד" }),
-  bankName: z
-    .string()
-    .trim()
-    .min(2, { error: "יש להזין שם בנק" })
-    .max(60, { error: "שם הבנק ארוך מדי" }),
-  bankBranch: z
-    .string()
-    .trim()
-    .regex(/^\d{1,4}$/, { error: "מספר סניף מורכב מעד 4 ספרות" }),
-  accountLast4: z
-    .string()
-    .trim()
-    .regex(/^\d{4}$/, { error: "יש להזין את 4 הספרות האחרונות של החשבון" }),
-});
+/**
+ * Step 5 — how the pro collects from customers, and optionally the account the
+ * fee is settled against.
+ *
+ * Since Phase 16 the bank account does not block the approval: nothing settles
+ * the fee yet (CLAUDE.md section 9), `submit_pro_for_approval()` never required
+ * it, and a pro should see real calls as early as possible. So the three bank
+ * fields are all or nothing — empty is fine, half an account is not.
+ */
+export const payoutSchema = z
+  .object({
+    paymentMethods: z
+      .array(z.enum(PAYMENT_METHODS))
+      .min(1, { error: "יש לבחור לפחות אמצעי גבייה אחד" }),
+    bankName: z
+      .string()
+      .trim()
+      .max(60, { error: "שם הבנק ארוך מדי" })
+      .refine((value) => value === "" || value.length >= 2, {
+        error: "יש להזין שם בנק",
+      }),
+    bankBranch: z
+      .string()
+      .trim()
+      .regex(/^(\d{1,4})?$/, { error: "מספר סניף מורכב מעד 4 ספרות" }),
+    accountLast4: z
+      .string()
+      .trim()
+      .regex(/^(\d{4})?$/, {
+        error: "יש להזין את 4 הספרות האחרונות של החשבון",
+      }),
+  })
+  .superRefine((value, ctx) => {
+    const given = [value.bankName, value.bankBranch, value.accountLast4];
+    if (
+      given.every((field) => field === "") ||
+      given.every((field) => field !== "")
+    ) {
+      return;
+    }
+    for (const [key, field] of [
+      ["bankName", value.bankName],
+      ["bankBranch", value.bankBranch],
+      ["accountLast4", value.accountLast4],
+    ] as const) {
+      if (field === "") {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: "השלימו את פרטי החשבון, או השאירו את שלושת השדות ריקים",
+        });
+      }
+    }
+  });
+
+/** Whether a parsed payout form carries a bank account at all. */
+export function hasBankAccount(value: {
+  bankName: string;
+  bankBranch: string;
+  accountLast4: string;
+}): boolean {
+  return value.accountLast4 !== "";
+}
 
 /** The availability screen — design/screens/pro-5.2-availability-settings.png. */
 export const availabilitySchema = z.object({
@@ -293,15 +338,62 @@ export const availabilitySchema = z.object({
   categoryIds,
 });
 
+/**
+ * Why a pro passed on a call — "לא מתאים לי" in the feed, or declining an
+ * offer (Phase 16). Optional, a closed vocabulary, mirrored in the
+ * `job_dismissals_reason_check` and `decline_reasons` constraints, which a
+ * Vitest assertion reads. Nobody but the pro and Handy's team ever sees it.
+ */
+export const PASS_REASONS = [
+  "too_far",
+  "not_my_trade",
+  "too_busy",
+  "price_too_low",
+  "unclear",
+  "other",
+] as const;
+
+export type PassReason = (typeof PASS_REASONS)[number];
+
+export const PASS_REASON_LABEL: Record<PassReason, string> = {
+  too_far: "רחוק מדי",
+  not_my_trade: "לא בתחום שלי",
+  too_busy: "אין לי זמן כרגע",
+  price_too_low: "לא משתלם לי",
+  unclear: "התיאור לא ברור",
+  other: "סיבה אחרת",
+};
+
+const passReason = z
+  .string()
+  .optional()
+  .transform((value) => (value ? value : undefined))
+  .pipe(z.enum(PASS_REASONS, { error: "סיבה לא חוקית" }).optional());
+
 export const dismissJobSchema = z.object({
   jobId: z.uuid({ error: "מזהה קריאה לא תקין" }),
+  reason: passReason,
 });
+
+export const declineOfferSchema = z.object({
+  bidId: z.uuid({ error: "מזהה הצעה לא תקין" }),
+  reason: passReason,
+});
+
+export const VERIFICATION_REASON_MAX = 300;
 
 export const setVerificationSchema = z.object({
   proId: z.uuid({ error: "מזהה בעל מקצוע לא תקין" }),
   status: z.enum(["verified", "rejected", "suspended"], {
     error: "החלטה לא חוקית",
   }),
+  /** What the pro will read on a rejection or suspension. Ignored on approval. */
+  reason: z
+    .string()
+    .trim()
+    .max(VERIFICATION_REASON_MAX, { error: "הסיבה ארוכה מדי" })
+    .optional()
+    .transform((value) => (value ? value : undefined)),
 });
 
 /**

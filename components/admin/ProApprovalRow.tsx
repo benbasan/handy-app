@@ -7,11 +7,15 @@ import {
   Badge,
   CARD_BASE,
   ErrorText,
+  INPUT_CLASS,
 } from "@/components/ui/primitives";
 import { decideProVerification } from "@/lib/actions/admin";
 import { EMPTY_ADMIN_DECISION_STATE } from "@/lib/actions/state";
 import { formatIsraeliMobile } from "@/lib/validation/auth";
-import { VERIFICATION_DOC_LABEL } from "@/lib/validation/pros";
+import {
+  VERIFICATION_DOC_LABEL,
+  VERIFICATION_REASON_MAX,
+} from "@/lib/validation/pros";
 import type { ProApplication } from "@/lib/supabase/pros";
 
 /**
@@ -171,6 +175,20 @@ export function ProApprovalRow({
 
       <form action={formAction} className="mt-4 flex flex-wrap gap-2">
         <input type="hidden" name="proId" value={application.userId} />
+
+        {/* Phase 16: what the pro will read if this is a refusal. Until now
+            the pro's status card guessed ("לרוב מדובר במסמך לא קריא"). */}
+        <label className="block w-full">
+          <span className="mb-1 block text-xs font-semibold text-muted">
+            סיבה לדחייה או להשהיה — בעל המקצוע יראה אותה
+          </span>
+          <input
+            name="reason"
+            maxLength={VERIFICATION_REASON_MAX}
+            placeholder="לדוגמה: צילום תעודת הזהות לא קריא"
+            className={INPUT_CLASS}
+          />
+        </label>
 
         <button
           type="submit"

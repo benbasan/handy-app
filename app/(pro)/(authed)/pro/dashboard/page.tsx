@@ -14,7 +14,14 @@ import {
 } from "@/components/ui/primitives";
 import { PRO_ROUTES } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
-import { listMyBids, listMyPendingAcceptances } from "@/lib/supabase/bids";
+import {
+  getMyBidStats,
+  listMyBids,
+  listMyPendingAcceptances,
+} from "@/lib/supabase/bids";
+import { getMyEarningsStatsForDays } from "@/lib/supabase/completion";
+import { RealtimeRefresh } from "@/components/ui/RealtimeRefresh";
+import { formatIls } from "@/lib/validation/priceUpdates";
 import { listMyThreads, totalUnread } from "@/lib/supabase/messages";
 import { getMyProProfile, listFeedJobs } from "@/lib/supabase/pros";
 import { requireRole } from "@/lib/supabase/session";
@@ -48,16 +55,19 @@ export default async function ProDashboardPage({
   // Failing to the sign-up screen is the only honest reading.
   if (!profile) redirect(PRO_ROUTES.join);
 
-  const [categories, feed, bids, offers, threads, params] = await Promise.all([
-    listCategories(),
-    // Cheap for an unverified pro: the RLS policy returns nothing before the
-    // query does any work.
-    listFeedJobs(null),
-    listMyBids(),
-    listMyPendingAcceptances(),
-    listMyThreads(),
-    searchParams,
-  ]);
+  const [categories, feed, bids, offers, threads, params, week, bidStats] =
+    await Promise.all([
+      listCategories(),
+      // Cheap for an unverified pro: the RLS policy returns nothing before the
+      // query does any work.
+      listFeedJobs(null),
+      listMyBids(),
+      listMyPendingAcceptances(),
+      listMyThreads(),
+      searchParams,
+      getMyEarningsStatsForDays(7),
+      getMyBidStats(),
+    ]);
 
   // "דורש טיפול" — offers still waiting on a customer, and conversations with
   // something unread in them. Both counts are the caller's own rows.
@@ -72,6 +82,10 @@ export default async function ProDashboardPage({
 
   return (
     <div className="space-y-6">
+      {/* Phase 16: the acceptance card that expires in two hours sits on this
+          screen, and until now nothing refreshed it. A new notification is
+          the signal that something here changed. */}
+      <RealtimeRefresh table="notifications" filter={`user_id=eq.${user.id}`} />
       <header>
         <h1 className={PAGE_TITLE}>
           {greeting()}
@@ -140,6 +154,62 @@ export default async function ProDashboardPage({
           }
         />
       </div>
+
+      {/*
+        Phase 16: the half of the dashboard Phase 6 deferred. Every number is
+        the pro's own, counted by my_earnings_stats() and my_bid_stats() — the
+        same functions the wallet reads — so the two screens cannot disagree.
+      */}
+      {profile.verificationStatus === "verified" && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Stat
+            value={`${formatIls(week.net)} ₪`}
+            label="נטו ב-7 הימים האחרונים"
+            hint={
+              week.jobsCount === 0
+                ? "עוד לא נסגרה עבודה השבוע"
+                : `${week.jobsCount} עבודות · ${formatIls(week.fees)} ₪ דמי קבלה`
+            }
+          />
+          <Stat
+            value={
+              bidStats.acceptancePct === null
+                ? "—"
+                : `${bidStats.acceptancePct}%`
+            }
+            label="מההצעות שלך הפכו לעבודה"
+            hint={`${bidStats.accepted} עבודות מתוך ההצעות שכבר הוכרעו`}
+          />
+          <Stat
+            value={
+              bidStats.avgResponseMinutes === null
+                ? "—"
+                : `${bidStats.avgResponseMinutes} דק׳`
+            }
+            label="זמן ממוצע עד הצעה"
+            hint="מרגע פרסום הקריאה"
+          />
+        </div>
+      )}
+
+      {/* Phase 16: bank details stopped blocking the approval — so the
+          reminder has to live where the pro returns every day. */}
+      {profile.verificationStatus === "verified" &&
+        !profile.payoutAccountLast4 && (
+          <Card>
+            <h2 className={SECTION_TITLE}>חסר חשבון בנק</h2>
+            <p className="mt-2 text-sm text-muted">
+              לא חובה כדי לקבל עבודות, אבל כדאי להשלים — כך נוכל לתאם מולך את
+              דמי קבלת העבודה.
+            </p>
+            <Link
+              href={`${PRO_ROUTES.onboarding}?step=5`}
+              className={`${BUTTON_QUIET} ${BUTTON_COMPACT} mt-3`}
+            >
+              הוספת פרטי חשבון
+            </Link>
+          </Card>
+        )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <div className="space-y-6">
