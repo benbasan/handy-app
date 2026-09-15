@@ -61,7 +61,7 @@ export default async function LandingPage() {
       <section className="grid items-center gap-10 lg:grid-cols-2">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full bg-cta/15 px-4 py-2 text-sm font-semibold text-cta-strong">
-            ✓ כל בעל מקצוע עובר אימות זהות וביטוח
+            ✓ כל בעל מקצוע עובר אימות זהות לפני הקריאה הראשונה
           </p>
 
           <h1 className={`mt-5 ${HERO_TITLE}`}>
@@ -84,9 +84,8 @@ export default async function LandingPage() {
             </Link>
           </div>
 
-          <dl className="mt-8 grid max-w-lg grid-cols-3 gap-4 text-center">
+          <dl className="mt-8 grid max-w-sm grid-cols-2 gap-4 text-center">
             <Stat value="0 ₪" label="עלות פרסום קריאה" />
-            <Stat value="35 ₪" label="לעבודה — מבעל המקצוע בלבד" />
             <Stat value="100%" label="בעלי מקצוע מאומתים" />
           </dl>
         </div>

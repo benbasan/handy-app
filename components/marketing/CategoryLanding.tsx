@@ -14,6 +14,7 @@ import { JsonLd, breadcrumbJsonLd, faqJsonLd } from "@/lib/seo";
 import type { Category } from "@/lib/supabase/jobs";
 import type { CategoryPro, CategoryStats } from "@/lib/supabase/publicProfiles";
 import type { CurrentUser } from "@/lib/supabase/session";
+import { MIN_PRICE_SAMPLE } from "@/lib/validation/jobs";
 
 /**
  * design/screens/customer-5.3-category-page.png — "אינסטלטור בתל אביב".
@@ -145,7 +146,7 @@ export function CategoryLanding({
           </Link>
         </div>
 
-        {stats.jobsClosed > 0 &&
+        {stats.jobsClosed >= MIN_PRICE_SAMPLE &&
           stats.priceLow !== null &&
           stats.priceHigh !== null && (
             <p className="mt-4 text-sm text-muted">

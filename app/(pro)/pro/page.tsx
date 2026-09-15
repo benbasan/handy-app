@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/primitives";
 import { PRO_ROUTES, ROLE_LOGIN } from "@/lib/routes";
 import { getCurrentUser } from "@/lib/supabase/session";
+import { matchLocality } from "@/lib/maps/gazetteer";
 import { listOpenCallsByCity } from "@/lib/supabase/publicProfiles";
 import { ACCEPTANCE_FEE } from "@/lib/validation/pros";
 
@@ -36,10 +37,18 @@ export const metadata = {
  * commercial terms instead, which are facts.
  */
 export default async function ProLandingPage() {
-  const [user, demand] = await Promise.all([
+  const [user, openCalls] = await Promise.all([
     getCurrentUser(),
     listOpenCallsByCity(),
   ]);
+
+  // Only a place the gazetteer recognises, under its own name. The database
+  // already refuses anything with a digit and anything under three calls; this
+  // is the half that does not trust a free-text column to be a city at all.
+  const demand = openCalls.flatMap((row) => {
+    const locality = matchLocality(row.city);
+    return locality ? [{ city: locality.name, openCalls: row.openCalls }] : [];
+  });
 
   // A signed-in pro gets "לדשבורד"; anyone else gets the sign-up path. A
   // customer who lands here is not bounced — this page is public, and the

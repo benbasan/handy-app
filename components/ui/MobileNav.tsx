@@ -12,6 +12,7 @@ import {
   MapPinIcon,
   MenuIcon,
   MessageIcon,
+  ToolsIcon,
   UserIcon,
   WalletIcon,
   type IconComponent,
@@ -40,7 +41,13 @@ import { ADMIN_ROUTES, MARKETING_ROUTES, PRO_ROUTES } from "@/lib/routes";
  * unchanged.
  */
 
-export type NavRole = "customer" | "pro" | "admin";
+/**
+ * `visitor` is the customer shell with nobody signed in. It used to get the
+ * customer's bar, so the first thing a stranger's phone offered was "הקריאות
+ * שלי" and "התראות" — two doors to a login screen, on the page meant to explain
+ * what Handy is.
+ */
+export type NavRole = "visitor" | "customer" | "pro" | "admin";
 
 type Item = {
   href: string;
@@ -106,6 +113,36 @@ function itemsFor(
     };
   }
 
+  if (role === "visitor") {
+    return {
+      primary: [
+        { href: "/new-request", label: "פרסם קריאה", icon: MapPinIcon },
+        { href: MARKETING_ROUTES.services, label: "תחומים", icon: ToolsIcon },
+        {
+          href: MARKETING_ROUTES.howItWorks,
+          label: "איך זה עובד",
+          icon: MessageIcon,
+        },
+      ],
+      more: [
+        { href: MARKETING_ROUTES.pricing, label: "מחירים", icon: WalletIcon },
+        {
+          href: MARKETING_ROUTES.guides,
+          label: "מדריכים",
+          icon: ClipboardIcon,
+        },
+        { href: MARKETING_ROUTES.help, label: "עזרה", icon: MessageIcon },
+        {
+          href: PRO_ROUTES.landing,
+          label: "לבעלי מקצוע",
+          icon: UserIcon,
+          exact: true,
+        },
+        { href: "/login", label: "התחברות", icon: UserIcon, exact: true },
+      ],
+    };
+  }
+
   return {
     primary: [
       // `exact`, now that two more screens live under /account and would
@@ -146,6 +183,7 @@ function itemsFor(
 }
 
 const ACCENT: Record<NavRole, string> = {
+  visitor: "text-brand",
   customer: "text-brand",
   pro: "text-pro",
   admin: "text-admin",

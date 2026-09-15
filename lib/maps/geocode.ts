@@ -1,5 +1,5 @@
 import { getServerMapsKey, mapsFallbackAllowed } from "./config";
-import { matchLocality } from "./gazetteer";
+import { matchLocality, normalizeAddress } from "./gazetteer";
 import { coordinatesInIsrael } from "./geometry";
 
 /**
@@ -177,9 +177,39 @@ export function addressToStore(typed: string, point: GeocodeResult): string {
   if (point.formattedAddress) return point.formattedAddress;
   if (!point.locality) return typed;
 
-  const parts = typed.split(",");
-  const lastPart = parts[parts.length - 1] ?? "";
-  if (matchLocality(lastPart)?.name === point.locality) return typed;
+  const body = typed.trim().replace(/,+$/, "").trim();
+  const commaAt = body.lastIndexOf(",");
+  const head = commaAt === -1 ? "" : body.slice(0, commaAt + 1);
+  const lastPart = body.slice(commaAt + 1).trim();
 
-  return `${typed.trim().replace(/,+$/, "")}, ${point.locality}`;
+  // The last part already IS the town, and nothing else. "Nothing else" is the
+  // half that matters: "תנופה 7ב דירה 37 חריש" names חריש too, and before this
+  // check it was kept whole, so job_city() read the street, the flat number and
+  // all, and open_calls_by_city() put it on a public page as a city.
+  const lastWords = normalizeAddress(lastPart).length;
+  const nameWords = normalizeAddress(point.locality).length;
+  if (
+    matchLocality(lastPart)?.name === point.locality &&
+    lastWords <= nameWords &&
+    !/\d/.test(lastPart)
+  ) {
+    return body;
+  }
+
+  // The town was typed at the end without a comma: put the comma in, keeping
+  // the customer's own spelling, rather than printing the town twice.
+  const words = lastPart.split(/\s+/);
+  for (
+    let take = Math.min(nameWords + 1, words.length - 1);
+    take >= 1;
+    take -= 1
+  ) {
+    const tail = words.slice(-take).join(" ");
+    if (/\d/.test(tail) || matchLocality(tail)?.name !== point.locality)
+      continue;
+    if (normalizeAddress(tail).length > nameWords) continue;
+    return `${head}${head ? " " : ""}${words.slice(0, -take).join(" ")}, ${tail}`;
+  }
+
+  return `${body}, ${point.locality}`;
 }

@@ -230,7 +230,7 @@ export function MediaFields({
         <FilePickerTile
           kind="video"
           title="העלו סרטון קצר"
-          subtitle={`video · up to ${MAX_VIDEO_SECONDS}s`}
+          subtitle={`עד ${MAX_VIDEO_SECONDS} שניות`}
           disabled={hasVideo || busy !== null}
           busy={busy === "video"}
           onFiles={(files) => take(files.slice(0, 1), "video")}
@@ -240,9 +240,7 @@ export function MediaFields({
         <FilePickerTile
           kind="photo"
           title="גררו תמונה לכאן"
-          // Kept entirely Latin: a Hebrew "עד 5" inside a dir="ltr" run
-          // reorders on screen to "5 עד".
-          subtitle={`photo of issue · up to ${MAX_PHOTOS}`}
+          subtitle={`עד ${MAX_PHOTOS} תמונות`}
           multiple
           disabled={photosFull || busy !== null}
           busy={busy === "photo"}
@@ -348,9 +346,10 @@ function FilePickerTile({
         <span className="text-sm font-bold text-ink">
           {busy ? "מעלה…" : title}
         </span>
-        <span dir="ltr" className="font-mono text-xs text-muted">
-          {subtitle}
-        </span>
+        {/* Hebrew, in the page's own direction. It was Latin inside a
+            dir="ltr" run, because "עד 5" in that run reordered to "5 עד" —
+            the fix for that was the direction, not the language. */}
+        <span className="text-xs text-muted">{subtitle}</span>
       </button>
 
       <input
@@ -428,9 +427,7 @@ function VoiceNoteTile({
       <span className="text-sm font-bold text-ink">
         {busy ? "מעלה…" : "הקלטה קולית"}
       </span>
-      <span dir="ltr" className="font-mono text-xs text-muted">
-        voice note
-      </span>
+      <span className="text-xs text-muted">במקום להקליד</span>
 
       <div className="mt-1 flex items-center gap-3 text-xs font-semibold">
         {canRecord && (
