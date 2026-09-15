@@ -29,12 +29,20 @@ export type Guide = {
   publishedAt: string;
   /** One guide leads the page, in the large card on the trailing side. */
   featured?: boolean;
+  /**
+   * The trades (by `categories.slug`) whose posting form offers this guide
+   * before the call goes out (Phase 17). Sometimes it saves the call — which
+   * builds more trust than any badge — and it always makes a better
+   * description. `"*"` offers it for every trade.
+   */
+  beforeYouPost?: readonly string[];
   body: readonly GuideBlock[];
 };
 
 export const GUIDES: readonly Guide[] = [
   {
     slug: "fix-it-yourself-15-minutes",
+    beforeYouPost: ["*"],
     title: "10 תקלות בית שאפשר לפתור לבד ב-15 דקות",
     summary: "מהם הכלים שכדאי שיהיו בבית, ומתי לעצור ולהזמין מקצוען.",
     topic: "תחזוקה כללית",
@@ -81,6 +89,7 @@ export const GUIDES: readonly Guide[] = [
   },
   {
     slug: "before-you-call-a-plumber",
+    beforeYouPost: ["plumbing"],
     title: "5 בדיקות לפני שקוראים לאינסטלטור",
     summary: "מה אפשר לפתור לבד ב-10 דקות, ומה שווה לבדוק לפני שמפרסמים קריאה.",
     topic: "אינסטלציה",
@@ -110,6 +119,7 @@ export const GUIDES: readonly Guide[] = [
   },
   {
     slug: "electrical-panel-cost",
+    beforeYouPost: ["electrical"],
     title: "כמה באמת עולה החלפת לוח חשמל?",
     summary: "טווחי מחירים מתוך עבודות שנסגרו, ומה משנה את המחיר בפועל.",
     topic: "חשמל",
@@ -138,6 +148,7 @@ export const GUIDES: readonly Guide[] = [
   },
   {
     slug: "ac-summer-maintenance",
+    beforeYouPost: ["hvac"],
     title: "מדריך תחזוקת מזגן לפני הקיץ",
     summary: "ניקוי, גז, ומתי חייבים טכנאי — בעשרים דקות של עבודה בבית.",
     topic: "מיזוג",
@@ -293,4 +304,17 @@ export function findGuide(slug: string): Guide | undefined {
 
 export function featuredGuide(): Guide {
   return GUIDES.find((guide) => guide.featured) ?? GUIDES[0];
+}
+
+/** The guides the posting form offers for one trade, the trade's own first. */
+export function guidesBeforePosting(
+  categorySlug: string,
+): { slug: string; title: string }[] {
+  const own = GUIDES.filter((guide) =>
+    guide.beforeYouPost?.includes(categorySlug),
+  );
+  const general = GUIDES.filter((guide) => guide.beforeYouPost?.includes("*"));
+  return [...own, ...general]
+    .slice(0, 2)
+    .map((guide) => ({ slug: guide.slug, title: guide.title }));
 }
