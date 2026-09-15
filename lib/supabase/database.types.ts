@@ -957,6 +957,51 @@ export type Database = {
           },
         ]
       }
+      receipt_share_links: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          job_id: string
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string
+          id?: string
+          job_id: string
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          job_id?: string
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_share_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_share_links_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           comment: string | null
@@ -1075,6 +1120,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           full_name: string
+          handled_at: string | null
           id: string
           job_reference: string | null
           phone: string
@@ -1086,6 +1132,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           full_name: string
+          handled_at?: string | null
           id?: string
           job_reference?: string | null
           phone: string
@@ -1097,6 +1144,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           full_name?: string
+          handled_at?: string | null
           id?: string
           job_reference?: string | null
           phone?: string
@@ -1349,6 +1397,13 @@ export type Database = {
         Args: { p_job_id: string; p_payment_method: string }
         Returns: string
       }
+      create_receipt_share_link: {
+        Args: { p_job_id: string }
+        Returns: {
+          expires_at: string
+          token: string
+        }[]
+      }
       decide_price_update: {
         Args: { p_approve: boolean; p_id: string }
         Returns: string
@@ -1596,6 +1651,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      open_calls_by_city: {
+        Args: never
+        Returns: {
+          city: string
+          open_calls: number
+        }[]
+      }
       open_job_to_all: { Args: { p_job_id: string }; Returns: undefined }
       open_jobs_for_pro: {
         Args: { p_max_km?: number }
@@ -1745,6 +1807,10 @@ export type Database = {
         }
         Returns: string
       }
+      revoke_receipt_share_links: {
+        Args: { p_job_id: string }
+        Returns: number
+      }
       save_push_subscription: {
         Args: {
           p_auth_key: string
@@ -1762,6 +1828,27 @@ export type Database = {
       set_pro_verification: {
         Args: { p_pro_id: string; p_reason?: string; p_status: string }
         Returns: string
+      }
+      set_support_ticket_status: {
+        Args: { p_status: string; p_ticket_id: string }
+        Returns: string
+      }
+      shared_receipt: {
+        Args: { p_token: string }
+        Returns: {
+          address_text: string
+          approved_updates: Json
+          base_price: number
+          category_name_he: string
+          charged_at: string
+          completed_at: string
+          customer_name: string
+          description: string
+          job_id: string
+          payment_method: string
+          pro_name: string
+          total_price: number
+        }[]
       }
       similar_bid_range: {
         Args: { p_job_id: string }
