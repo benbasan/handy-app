@@ -5,8 +5,10 @@ import {
   BUTTON_CTA,
   BUTTON_QUIET,
   CARD_BASE,
+  EmptyState,
   HERO_TITLE,
 } from "@/components/ui/primitives";
+import { MapPinIcon } from "@/components/ui/icons";
 import { categoryCopy } from "@/lib/content/categories";
 import { CITIES, type City, inCity } from "@/lib/content/cities";
 import { CUSTOMER_ROUTES, MARKETING_ROUTES } from "@/lib/routes";
@@ -123,7 +125,10 @@ export function CategoryLanding({
               {city ? ` באזור ${city.nameHe}` : ""}.
             </>
           )}{" "}
-          {stats.avgFirstBidMinutes !== null && (
+          {/* Only where somebody covers the place. The figure is measured
+              over bids, and a city page with no pro in it promising "a first
+              offer within 19 minutes" is promising somebody else's. */}
+          {stats.prosCount > 0 && stats.avgFirstBidMinutes !== null && (
             <>
               הצעה ראשונה תוך{" "}
               <span className="ltr-nums font-semibold text-ink">
@@ -167,11 +172,27 @@ export function CategoryLanding({
         </h2>
 
         {pros.length === 0 ? (
-          <p className={`mt-4 ${CARD_BASE} p-6 text-muted`}>
-            עדיין אין {copy.professionalPlural} מאומתים שמכסים את האזור הזה.
-            אפשר לפרסם קריאה בכל מקרה — בעל מקצוע שיצטרף לאזור יראה אותה בפיד
-            שלו כל עוד היא פתוחה.
-          </p>
+          // The first thing a visitor from an ad sees on launch day, so it
+          // gets the empty-state shape with a way forward rather than a grey
+          // paragraph (Phase 19). What it says is unchanged, and still true:
+          // a pro who joins the area sees an open call in their feed.
+          <div className="mt-5">
+            <EmptyState
+              icon={MapPinIcon}
+              title={`עדיין אין כאן ${copy.professionalPlural} מאומתים${
+                city ? ` ב${city.nameHe}` : ""
+              }`}
+              body={`Handy נפתחת עכשיו באזור. אפשר לפרסם קריאה כבר היום — ${copy.professional} שיצטרף לאזור יראה אותה בפיד שלו כל עוד היא פתוחה.`}
+              action={
+                <Link
+                  href={CUSTOMER_ROUTES.newRequestFor(category.slug)}
+                  className={BUTTON_CTA}
+                >
+                  פרסם קריאה ל{copy.professional}
+                </Link>
+              }
+            />
+          </div>
         ) : (
           <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {pros.map((pro) => (

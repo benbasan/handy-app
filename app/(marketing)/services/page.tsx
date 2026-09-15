@@ -58,10 +58,9 @@ export default async function ServicesPage() {
           return (
             <li key={category.id} className={`${CARD_BASE} p-5`}>
               <h2 className={`flex items-center gap-2 ${SECTION_TITLE}`}>
-                <CategoryIcon
-                  slug={category.slug}
-                  className="size-6 text-brand"
-                />
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                  <CategoryIcon slug={category.slug} className="size-6" />
+                </span>
                 <Link
                   href={MARKETING_ROUTES.category(category.slug)}
                   className="hover:text-brand"

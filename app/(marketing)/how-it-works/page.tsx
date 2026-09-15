@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PriceUpdateMockup } from "@/components/marketing/ProductMockups";
 import { AppShell } from "@/components/ui/AppShell";
 import {
   BUTTON_CTA,
@@ -46,7 +47,7 @@ const CUSTOMER_STEPS = [
 const PRO_STEPS = [
   {
     title: "פרופיל מאומת",
-    text: "ת.ז, רישיון ותמונה — אישור תוך 24 שעות.",
+    text: "ת.ז ותמונה, ורישיון וביטוח אם יש. צוות Handy בודק ידנית — יעד מענה 24 שעות.",
   },
   { title: "קריאות בסביבה", text: "רק בתחומים ובאזור שבחרת." },
   { title: "מחיר וזמן הגעה", text: "אתה קובע. הלקוח בוחר." },
@@ -114,27 +115,31 @@ export default async function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="mt-14 grid gap-4 sm:grid-cols-3">
-        <Card>
-          <h3 className={SECTION_TITLE}>אין דמי הגעה נסתרים</h3>
-          <p className="mt-2 text-sm text-muted">
-            כל הצעה כוללת את הביקור. אין תשלום נפרד על אבחון.
-          </p>
-        </Card>
-        <Card>
-          <h3 className={SECTION_TITLE}>תשלום רק על עבודה שנלקחה</h3>
-          <p className="mt-2 text-sm text-muted">
-            35 ₪ מבעל המקצוע, כשהוא מאשר שהוא לוקח את הקריאה. הלקוח לא משלם
-            ל-Handy כלום, ואין דמי הרשמה.
-          </p>
-        </Card>
-        <div className="rounded-2xl bg-ink p-5 text-white sm:p-6">
-          <h3 className="text-lg font-bold">שינוי מחיר = תמונה + אישור</h3>
-          <p className="mt-2 text-sm text-white/75">
-            בלי אישור מפורש שלכם, העבודה ממשיכה במחיר שסוכם. זו התנהגות המערכת,
-            לא הבטחה.
-          </p>
+      <section className="mt-14 grid items-start gap-8 lg:grid-cols-[1fr_22rem]">
+        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+          <Card>
+            <h3 className={SECTION_TITLE}>אין דמי הגעה נסתרים</h3>
+            <p className="mt-2 text-sm text-muted">
+              כל הצעה כוללת את הביקור. אין תשלום נפרד על אבחון.
+            </p>
+          </Card>
+          <Card>
+            <h3 className={SECTION_TITLE}>תשלום רק על עבודה שנלקחה</h3>
+            <p className="mt-2 text-sm text-muted">
+              35 ₪ מבעל המקצוע, כשהוא מאשר שהוא לוקח את הקריאה. הלקוח לא משלם
+              ל-Handy כלום, ואין דמי הרשמה.
+            </p>
+          </Card>
+          <div className="rounded-2xl bg-ink p-5 text-white sm:p-6">
+            <h3 className="text-lg font-bold">שינוי מחיר = תמונה + אישור</h3>
+            <p className="mt-2 text-sm text-white/75">
+              בלי אישור מפורש שלכם, העבודה ממשיכה במחיר שסוכם. זו התנהגות
+              המערכת, לא הבטחה.
+            </p>
+          </div>
         </div>
+        {/* What that rule looks like on the customer's screen (Phase 19). */}
+        <PriceUpdateMockup className="mx-auto w-full max-w-sm" />
       </section>
 
       <section className={`mt-12 ${CARD_BASE} p-6 text-center sm:p-8`}>
