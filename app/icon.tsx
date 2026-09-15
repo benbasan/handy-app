@@ -1,25 +1,22 @@
 import { ImageResponse } from "next/og";
+import { BRAND_HEX, BRAND_MARK_PATHS } from "@/components/ui/BrandMark";
 
 /**
- * The browser-tab and home-screen icon, drawn from the design tokens rather
- * than shipped as a binary.
- *
- * `public/` held nothing but the five SVGs `create-next-app` leaves behind, so
- * every tab in the product wore the Next.js default and a link pinned to a
- * phone had no mark at all. There is no artwork to ship — the wordmark in
- * components/ui/Logo.tsx is a filled brand circle carrying an H, and that is
- * exactly what this is. Generated, so the day `--color-brand` changes there is
- * one value to change here and no asset to re-export.
+ * The browser-tab icon, drawn from the same paths as the mark in the header
+ * rather than shipped as a binary — so the day the mark changes there is one
+ * file to change and no asset to re-export (Phase 19).
  */
 
 export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
 
-/** `--color-brand` from the @theme block in app/globals.css. */
-const BRAND = "#1e40af";
-
 export default function Icon() {
-  return new ImageResponse(
+  return new ImageResponse(<MarkImage />, size);
+}
+
+/** Exported for app/apple-icon.tsx, which draws it on a flat ground. */
+export function MarkImage({ ground }: { ground?: string }) {
+  return (
     <div
       style={{
         width: "100%",
@@ -27,15 +24,30 @@ export default function Icon() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: BRAND,
-        color: "white",
-        fontSize: 22,
-        fontWeight: 700,
-        borderRadius: 8,
+        background: ground ?? "transparent",
       }}
     >
-      H
-    </div>,
-    size,
+      <svg
+        viewBox="0 0 32 32"
+        width={ground ? "72%" : "100%"}
+        height={ground ? "72%" : "100%"}
+      >
+        <path d={BRAND_MARK_PATHS.house} fill={BRAND_HEX.brand} />
+        <path
+          d={BRAND_MARK_PATHS.check}
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth={2.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx={BRAND_MARK_PATHS.dot.cx}
+          cy={BRAND_MARK_PATHS.dot.cy}
+          r={BRAND_MARK_PATHS.dot.r}
+          fill={BRAND_HEX.accent}
+        />
+      </svg>
+    </div>
   );
 }

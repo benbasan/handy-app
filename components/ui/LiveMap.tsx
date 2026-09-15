@@ -1,3 +1,4 @@
+import { BrandMark } from "@/components/ui/BrandMark";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { CARD_BASE } from "@/components/ui/primitives";
 import { haversineKm } from "@/lib/maps/geometry";
@@ -58,15 +59,10 @@ export function LiveMap({
             // grey box: this panel is a map-shaped hole, and it should look
             // like one.
             backgroundImage:
-              "repeating-linear-gradient(45deg, #eef2f7 0 10px, #f7f9fc 10px 20px)",
+              "repeating-linear-gradient(45deg, #efe7da 0 10px, #f8f4ec 10px 20px)",
           }}
         >
-          <span
-            aria-hidden
-            className="flex size-14 items-center justify-center rounded-full bg-brand text-xl font-bold text-white"
-          >
-            H
-          </span>
+          <BrandMark className="size-14" />
           <p className="font-semibold text-ink">{caption}</p>
           <p className="max-w-sm text-xs text-muted">
             {location

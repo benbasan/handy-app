@@ -1,30 +1,24 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/ui/BrandMark";
 import { PRO_ROUTES } from "@/lib/routes";
 
 /**
- * "Handy Pro" — the wordmark from every pro screen in design/screens.
- *
- * Same shape as the customer Logo, in the pro side's indigo rather than the
- * customer side's blue, with "Pro" carried in ink. Latin text inside an RTL
- * page, so it declares its own direction instead of leaving the bidi algorithm
- * to guess.
+ * "Handy Pro" — the same mark and wordmark as the customer Logo, with the
+ * house in the pro side's dark petrol and "Pro" in the brand petrol. Since
+ * Phase 19 the two sides are one brand rather than a blue one and an indigo
+ * one. Latin text inside an RTL page, so it declares its own direction.
  */
 export function ProLogo({ href = PRO_ROUTES.landing }: { href?: string }) {
   return (
     <Link
       href={href}
       dir="ltr"
-      className="flex items-center gap-2 text-xl font-bold"
+      className="flex items-center gap-2 font-display text-2xl font-bold"
       aria-label="Handy Pro — לאזור בעלי המקצוע"
     >
-      <span className="text-pro">Handy</span>
-      <span className="text-ink">Pro</span>
-      <span
-        aria-hidden
-        className="flex size-7 items-center justify-center rounded-full bg-pro text-sm font-bold text-white"
-      >
-        H
-      </span>
+      <span className="text-ink">Handy</span>
+      <span className="text-brand">Pro</span>
+      <BrandMark tone="pro" className="size-8" />
     </Link>
   );
 }
