@@ -14,8 +14,12 @@ import { listCategories } from "@/lib/supabase/jobs";
 import { countMyUnreadNotifications } from "@/lib/supabase/notifications";
 import { mySavedPlaces } from "@/lib/supabase/places";
 import { getCurrentUser } from "@/lib/supabase/session";
-import { getPublicProProfile } from "@/lib/supabase/publicProfiles";
-import { DESCRIPTION_MAX } from "@/lib/validation/jobs";
+import {
+  getPricingGuide,
+  getPublicProProfile,
+} from "@/lib/supabase/publicProfiles";
+import { listMySavedPros } from "@/lib/supabase/completion";
+import { DESCRIPTION_MAX, MIN_PRICE_SAMPLE } from "@/lib/validation/jobs";
 
 export const metadata = { title: "פרסום קריאה חדשה — Handy" };
 
@@ -39,16 +43,42 @@ export const dynamic = "force-dynamic";
 export default async function NewRequestPage({
   searchParams,
 }: PageProps<"/new-request">) {
-  const [user, categories, params] = await Promise.all([
+  const [user, categories, params, pricing] = await Promise.all([
     getCurrentUser(),
     listCategories(),
     searchParams,
+    getPricingGuide(),
   ]);
 
   const isCustomer = user?.role === "customer";
-  const [savedPlaces, unreadNotifications] = isCustomer
-    ? await Promise.all([mySavedPlaces(), countMyUnreadNotifications()])
-    : [[], 0];
+  const [savedPlaces, unreadNotifications, savedPros] = isCustomer
+    ? await Promise.all([
+        mySavedPlaces(),
+        countMyUnreadNotifications(),
+        listMySavedPros(),
+      ])
+    : [[], 0, []];
+
+  // "מה זה בדרך כלל עולה" (Phase 14): what closed jobs in each trade actually
+  // cost, from pricing_guide(). A trade with fewer than MIN_PRICE_SAMPLE closed
+  // jobs gets no range at all rather than a confident-looking one.
+  const priceRanges = Object.fromEntries(
+    pricing
+      .filter(
+        (row) =>
+          row.jobsClosed >= MIN_PRICE_SAMPLE &&
+          row.priceLow !== null &&
+          row.priceHigh !== null,
+      )
+      .map((row) => [
+        row.categorySlug,
+        {
+          low: row.priceLow!,
+          high: row.priceHigh!,
+          jobsClosed: row.jobsClosed,
+        },
+      ]),
+  );
 
   // `?category=` carries the tile the visitor already tapped on the landing
   // page or a services page. Resolved here against the table rather than
@@ -111,6 +141,13 @@ export default async function NewRequestPage({
             savedPlaces={savedPlaces}
             initialCategoryId={initialCategoryId}
             initialDescription={typed}
+            priceRanges={priceRanges}
+            savedPros={savedPros
+              .filter((pro) => pro.publicSlug !== null)
+              .map((pro) => ({
+                slug: pro.publicSlug!,
+                fullName: pro.fullName,
+              }))}
             requestedPro={
               requestedPro
                 ? {

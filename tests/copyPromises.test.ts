@@ -73,10 +73,13 @@ const RULES: readonly Rule[] = [
     what: "one-tap rebooking of a saved pro",
     why: "saved_pros has no route into the posting form — Phase 14",
     pattern: /הזמנה\s*חוזרת|להזמין\s*אותו\s*ישירות/,
-    // The home record's button is backed by code since Phase 13.8: it opens
-    // /new-request?pro=<slug>, a call directed at that pro. Allowed there and
-    // only there; the saved-pros list still has no route, so it stays banned.
-    allow: ["app/(customer)/(authed)/account/home/page.tsx"],
+    // Backed by code since Phase 13.8/14: both buttons open
+    // /new-request?pro=<slug>, a call directed at that pro. Allowed on these
+    // two screens and nowhere else — marketing copy still may not promise it.
+    allow: [
+      "app/(customer)/(authed)/account/home/page.tsx",
+      "app/(customer)/(authed)/account/page.tsx",
+    ],
   },
 ];
 

@@ -1,3 +1,4 @@
+import { proMediaUrl } from "./buckets";
 import { createClient } from "./server";
 import {
   type BidSort,
@@ -40,6 +41,13 @@ export type JobBid = {
   /** The hours the pro committed to (Phase 13.7). Both or neither. */
   arrivalWindowStart: string | null;
   arrivalWindowEnd: string | null;
+  /** Phase 14: what the compare screen shows of the pro. Slug only while verified. */
+  proSlug: string | null;
+  proAvatarUrl: string | null;
+  proYearsExperience: number | null;
+  proReviewsCount: number;
+  /** Average minutes from posting to this pro's offers — null under three offers. */
+  proResponseMinutes: number | null;
 };
 
 function toBidStatus(value: string): BidStatus {
@@ -70,6 +78,14 @@ export async function listBidsForJob(jobId: string): Promise<JobBid[]> {
     unreadCount: row.unread_count,
     arrivalWindowStart: row.arrival_window_start,
     arrivalWindowEnd: row.arrival_window_end,
+    proSlug: row.pro_slug,
+    proAvatarUrl: proMediaUrl(row.pro_avatar_path),
+    proYearsExperience: row.pro_years_experience,
+    proReviewsCount: row.pro_reviews_count,
+    proResponseMinutes:
+      row.pro_response_minutes === null
+        ? null
+        : Number(row.pro_response_minutes),
   }));
 }
 

@@ -145,6 +145,13 @@ export function createJobSchema(userId: string) {
 
 export type CreateJobInput = z.infer<ReturnType<typeof createJobSchema>>;
 
+/**
+ * The fewest closed jobs a price range may be drawn from on the posting form.
+ * A "range" over one job is one job's price, said with more confidence than it
+ * has — the same floor `similar_bid_range` uses for the pro's side.
+ */
+export const MIN_PRICE_SAMPLE = 3;
+
 /** The most a customer may add in one go — mirrors `add_job_details()`. */
 export const ADDED_DETAILS_MAX = 500;
 

@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(474);
+select plan(484);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -4847,6 +4847,121 @@ select ok(
      where r.place_label = 'בית'
   ),
   'nor customer A''s saved address'
+);
+
+-- ===========================================================================
+-- Phase 14 — the compare screen, the saved-pros list, the review reminder
+-- ===========================================================================
+
+reset role;
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+-- isnt null rather than a literal: an earlier section of this file renames
+-- this pro's slug, and what matters here is that the offer carries one.
+select isnt(
+  (select pro_slug from public.bids_for_job(:job_a)
+    where pro_id = 'a0000000-0000-4000-8000-000000000003'),
+  null,
+  'an offer carries the verified pro''s public slug, so the card can link to the profile'
+);
+
+select ok(
+  (select pro_reviews_count from public.bids_for_job(:job_a)
+    where pro_id = 'a0000000-0000-4000-8000-000000000003') >= 1,
+  'and the count of reviews behind the stars'
+);
+
+-- Checked as postgres with customer A's claims still set: bids_for_job asks
+-- is_job_owner(), and the sample it is compared against must be every offer
+-- the pro ever made, which customer A's own RLS could never count.
+reset role;
+
+select ok(
+  not exists (
+    select 1
+      from public.bids_for_job(:job_a) f
+     where f.pro_response_minutes is not null
+       and (select count(*) from public.bids b
+              join public.jobs j on j.id = b.job_id
+             where b.pro_id = f.pro_id and b.created_at >= j.created_at) < 3
+  ),
+  'a response time is never shown for a pro with fewer than three offers'
+);
+
+select ok(
+  exists (
+    select 1 from public.bids_for_job(:job_a) f
+     where f.pro_id = 'a0000000-0000-4000-8000-000000000003'
+       and f.pro_response_minutes is not null
+  ),
+  'and is shown for one with enough of them'
+);
+
+select throws_ok(
+  $$ select public.pro_response_minutes('a0000000-0000-4000-8000-000000000003') $$,
+  '42501',
+  null,
+  'the helper itself is not a client''s to call'
+) from (select set_config('role', 'authenticated', true)) as _;
+
+reset role;
+
+insert into public.saved_pros (customer_id, pro_id)
+values (:customer_b, :pro_verified)
+on conflict do nothing;
+
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select isnt(
+  (select public_slug from public.my_saved_pros() where pro_id = :pro_verified),
+  null,
+  'a saved pro carries the slug a repeat booking is addressed to'
+);
+
+-- ---------------------------------------------------------------------------
+-- The review reminder
+-- ---------------------------------------------------------------------------
+
+reset role;
+delete from public.notifications;
+
+update public.jobs set status = 'completed'
+ where id = 'f1380000-0000-4000-8000-0000000000e1';
+update public.job_fees
+   set total_price = 250, payment_method = 'cash',
+       completed_at = now() - interval '4 hours'
+ where job_id = 'f1380000-0000-4000-8000-0000000000e1';
+delete from public.reviews where job_id = 'f1380000-0000-4000-8000-0000000000e1';
+
+select ok(
+  public.remind_unreviewed_jobs() >= 1,
+  'a job finished four hours ago with no review is reminded'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where kind = 'review_reminder'
+      and job_id = 'f1380000-0000-4000-8000-0000000000e1'
+      and user_id = 'a0000000-0000-4000-8000-0000000000c1'),
+  1::bigint,
+  'to the customer who posted it'
+);
+
+select is(
+  public.remind_unreviewed_jobs(),
+  0,
+  'and never twice'
+);
+
+select is(
+  (select count(*) from public.notifications
+    where kind = 'review_reminder'
+      and job_id = 'd0000000-0000-4000-8000-000000000006'),
+  0::bigint,
+  'a job that closed twelve days ago is not reminded weeks late'
 );
 
 reset role;

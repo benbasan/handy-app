@@ -36,6 +36,11 @@ function bid(
     unreadCount: 0,
     arrivalWindowStart: null,
     arrivalWindowEnd: null,
+    proSlug: null,
+    proAvatarUrl: null,
+    proYearsExperience: null,
+    proReviewsCount: 0,
+    proResponseMinutes: null,
   };
 }
 
