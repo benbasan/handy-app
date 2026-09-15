@@ -174,6 +174,7 @@ export default async function SubmitBidPage({
               jobId={jobId}
               price={quickBid.price}
               etaMinutes={quickBid.etaMinutes}
+              stayOnPage={false}
             />
           </div>
         </Card>
