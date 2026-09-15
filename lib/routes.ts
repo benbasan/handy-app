@@ -179,6 +179,8 @@ export const ADMIN_ROUTES = {
   job: (jobId: string) => `/admin/jobs/${jobId}`,
   /** 7.4 מחלוקות ובקרה — captured at admin.handy.co.il/disputes. */
   disputes: "/admin/disputes",
+  /** The contact form's inbox (Phase 17). Written since Phase 8, read here. */
+  support: "/admin/support",
   /** "יצוא דוח" in the header: the filtered jobs table, as CSV. */
   report: "/api/admin/report",
 } as const;

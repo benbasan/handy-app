@@ -102,7 +102,7 @@ function itemsFor(
         { href: ADMIN_ROUTES.jobs, label: "קריאות", icon: MapPinIcon },
         { href: ADMIN_ROUTES.disputes, label: "מחלוקות", icon: MessageIcon },
       ],
-      more: [],
+      more: [{ href: ADMIN_ROUTES.support, label: "פניות", icon: BellIcon }],
     };
   }
 

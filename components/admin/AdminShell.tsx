@@ -22,13 +22,14 @@ const NAV = [
   { href: ADMIN_ROUTES.pros, label: "בעלי מקצוע" },
   { href: ADMIN_ROUTES.jobs, label: "קריאות" },
   { href: ADMIN_ROUTES.disputes, label: "מחלוקות" },
+  { href: ADMIN_ROUTES.support, label: "פניות" },
 ] as const;
 
 export function AdminShell({
   current,
   children,
 }: {
-  /** Which of the four sections is open, so the header can mark it. */
+  /** Which of the sections is open, so the header can mark it. */
   current: (typeof NAV)[number]["href"];
   children: ReactNode;
 }) {
@@ -84,8 +85,8 @@ export function AdminShell({
         {children}
       </main>
 
-      {/* The console's four sections fit the bar exactly, so it has no
-          "עוד" sheet — see itemsFor() in MobileNav. */}
+      {/* Four sections on the bar; the contact-form inbox (Phase 17) sits
+          in the "עוד" sheet — see itemsFor() in MobileNav. */}
       <MobileNav role="admin" />
 
       <footer className="border-t border-line bg-surface">
