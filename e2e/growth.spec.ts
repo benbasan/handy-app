@@ -79,7 +79,11 @@ test("the pro landing page counts open calls by city", async ({ browser }) => {
   });
   await visitor.goto("/pro");
   await expect(
-    visitor.getByRole("heading", { name: "קריאות פתוחות עכשיו, לפי עיר" }),
+    // Counts per city when a city has three open calls; otherwise the card
+    // names the launch area rather than printing a thin number (Phase 19).
+    visitor.getByRole("heading", {
+      name: /קריאות פתוחות עכשיו, לפי עיר|מתחילים בתל אביב והמרכז/,
+    }),
   ).toBeVisible();
 });
 
