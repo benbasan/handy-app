@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(526);
+select plan(538);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -5367,6 +5367,114 @@ select is(
            or public.is_bidding_pro(j.id))),
   :'rls_ids_second',
   'and for a pro who was not'
+);
+
+-- ===========================================================================
+-- Phase 16 — reasons: the admin's to the pro, the pro's to Handy
+-- ===========================================================================
+
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.set_pro_verification('a0000000-0000-4000-8000-000000000004', 'rejected',
+       'צילום תעודת הזהות לא קריא — אנא העלו צילום חדש.') $$,
+  'an admin rejects a pro and says why'
+);
+
+select pg_temp.act_as(:pro_pending);
+set local role authenticated;
+
+select is(
+  (select verification_reason from public.pro_profiles where user_id = :pro_pending),
+  'צילום תעודת הזהות לא קריא — אנא העלו צילום חדש.',
+  'the pro reads the reason on their own row — no more guessing on the status card'
+);
+
+select throws_ok(
+  $$ update public.pro_profiles set verification_reason = null
+      where user_id = 'a0000000-0000-4000-8000-000000000004' $$,
+  '42501', null,
+  'and cannot erase it: the column has no client grant'
+);
+
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.set_pro_verification('a0000000-0000-4000-8000-000000000004', 'verified') $$,
+  'the admin approves the pro after the fix'
+);
+
+reset role;
+
+select is(
+  (select verification_reason from public.pro_profiles where user_id = :pro_pending),
+  null,
+  'and approving clears the old refusal''s words'
+);
+
+-- "לא מתאים לי", with a reason.
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ insert into public.job_dismissals (pro_id, job_id, reason)
+     values ('a0000000-0000-4000-8000-000000000006', 'f1500000-0000-4000-8000-0000000000a4', 'boring') $$,
+  '23514', null,
+  'a dismissal reason is a closed vocabulary'
+);
+
+select lives_ok(
+  $$ insert into public.job_dismissals (pro_id, job_id, reason)
+     values ('a0000000-0000-4000-8000-000000000006', 'f1500000-0000-4000-8000-0000000000a4', 'too_far') $$,
+  'and a real one is stored with the pro''s own hiding of the call'
+);
+
+-- Declining an offer, with a reason.
+reset role;
+
+insert into public.bids (id, job_id, pro_id, price, eta_minutes, status, accept_deadline)
+values ('f1600000-0000-4000-8000-0000000000b1', 'f1500000-0000-4000-8000-0000000000a4',
+        :pro_second, 300, 30, 'selected', now() + interval '1 hour');
+update public.jobs set status = 'awaiting_pro'
+ where id = 'f1500000-0000-4000-8000-0000000000a4';
+
+select pg_temp.act_as(:pro_second);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.decline_job('f1600000-0000-4000-8000-0000000000b1', 'meh') $$,
+  '22023', null,
+  'a decline reason is a closed vocabulary too'
+);
+
+select lives_ok(
+  $$ select public.decline_job('f1600000-0000-4000-8000-0000000000b1', 'too_busy') $$,
+  'the pro declines and says they are too busy'
+);
+
+select is(
+  (select reason from public.decline_reasons where bid_id = 'f1600000-0000-4000-8000-0000000000b1'),
+  'too_busy',
+  'the pro reads back their own reason'
+);
+
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.decline_reasons),
+  0::bigint,
+  'the customer never reads why a pro passed on their call'
+);
+
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select ok(
+  (select count(*) from public.decline_reasons) >= 1,
+  'while an admin does'
 );
 
 reset role;

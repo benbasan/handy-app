@@ -170,6 +170,42 @@ export type Database = {
           },
         ]
       }
+      decline_reasons: {
+        Row: {
+          bid_id: string
+          created_at: string
+          pro_id: string
+          reason: string
+        }
+        Insert: {
+          bid_id: string
+          created_at?: string
+          pro_id: string
+          reason: string
+        }
+        Update: {
+          bid_id?: string
+          created_at?: string
+          pro_id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decline_reasons_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: true
+            referencedRelation: "bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decline_reasons_pro_id_fkey"
+            columns: ["pro_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disputes: {
         Row: {
           created_at: string
@@ -288,16 +324,19 @@ export type Database = {
           created_at: string
           job_id: string
           pro_id: string
+          reason: string | null
         }
         Insert: {
           created_at?: string
           job_id: string
           pro_id: string
+          reason?: string | null
         }
         Update: {
           created_at?: string
           job_id?: string
           pro_id?: string
+          reason?: string | null
         }
         Relationships: [
           {
@@ -778,6 +817,7 @@ export type Database = {
           service_point: unknown
           submitted_at: string | null
           user_id: string
+          verification_reason: string | null
           verification_status: string
           work_days: number[]
           work_end_time: string
@@ -806,6 +846,7 @@ export type Database = {
           service_point?: unknown
           submitted_at?: string | null
           user_id: string
+          verification_reason?: string | null
           verification_status?: string
           work_days?: number[]
           work_end_time?: string
@@ -834,6 +875,7 @@ export type Database = {
           service_point?: unknown
           submitted_at?: string | null
           user_id?: string
+          verification_reason?: string | null
           verification_status?: string
           work_days?: number[]
           work_end_time?: string
@@ -1311,7 +1353,10 @@ export type Database = {
         Args: { p_approve: boolean; p_id: string }
         Returns: string
       }
-      decline_job: { Args: { p_bid_id: string }; Returns: undefined }
+      decline_job: {
+        Args: { p_bid_id: string; p_reason?: string }
+        Returns: undefined
+      }
       dispatch_pending_pushes: { Args: never; Returns: number }
       expire_stale_bids: { Args: never; Returns: number }
       expire_stale_selections: { Args: never; Returns: number }
@@ -1715,7 +1760,7 @@ export type Database = {
         Returns: string
       }
       set_pro_verification: {
-        Args: { p_pro_id: string; p_status: string }
+        Args: { p_pro_id: string; p_reason?: string; p_status: string }
         Returns: string
       }
       similar_bid_range: {
