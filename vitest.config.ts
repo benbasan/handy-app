@@ -47,6 +47,7 @@ export default defineConfig({
         "lib/auth/**",
         "lib/actions/formData.ts",
         "lib/content/intent.ts",
+        "lib/content/visitPrep.ts",
       ],
       /*
        * `localities.data.ts` is generated and is 313 object literals with no

@@ -32,6 +32,8 @@ import {
   PRICE_UPDATE_STATUS_LABEL,
 } from "@/lib/validation/priceUpdates";
 import { AddToCalendar } from "@/components/ui/AddToCalendar";
+import { PrepCard } from "@/components/customer/PrepCard";
+import { visitPrep } from "@/lib/content/visitPrep";
 import { describeWindow, windowHours } from "@/lib/validation/arrivalWindow";
 
 export const metadata = { title: "מעקב אחרי הקריאה — Handy" };
@@ -193,6 +195,12 @@ export default async function JobTrackingPage({
                 />
               </div>
             </Card>
+          )}
+
+          {/* Phase 18: until the pro is at the door. Once work has started,
+              a checklist for getting ready is a list of things too late. */}
+          {enRoute && (
+            <PrepCard list={visitPrep(job.categorySlug)} id="visit-prep" />
           )}
 
           {pending ? (
