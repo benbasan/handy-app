@@ -32,7 +32,6 @@ import {
   BID_SORTS,
   BID_SORT_LABEL,
   isBidSort,
-  minutesLeft,
   type BidSort,
 } from "@/lib/validation/bids";
 import { jobReference } from "@/lib/validation/jobs";
@@ -413,17 +412,6 @@ export default async function JobOffersPage({
               ))}
             </ul>
           )}
-
-          {!chosen &&
-            !waiting &&
-            ordered.some(
-              (bid) =>
-                bid.status === "pending" && minutesLeft(bid.expiresAt) <= 10,
-            ) && (
-              <p className="text-sm font-semibold text-alert">
-                לשים לב: לחלק מההצעות נותרו פחות מ-10 דקות תוקף.
-              </p>
-            )}
         </div>
       </div>
     </div>

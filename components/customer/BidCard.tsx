@@ -20,6 +20,7 @@ import {
   initials,
 } from "@/lib/validation/bids";
 import { Countdown } from "@/components/ui/Countdown";
+import { ProPeekButton } from "@/components/customer/ProPeekButton";
 import { describeWindow } from "@/lib/validation/arrivalWindow";
 
 /**
@@ -31,16 +32,12 @@ import { describeWindow } from "@/lib/validation/arrivalWindow";
  * call-out fees — and is written once in lib/validation/bids.ts so the two
  * screens that promise it cannot drift apart.
  *
- * The avatar is initials rather than a photo, and the reason has expired.
- * This comment used to say a photo was impossible because the only one lived
- * in the private `verification-docs` bucket — but Phase 8 built `pro-media`,
- * the public bucket, and `components/marketing/ProCard.tsx` has been drawing a
- * real portrait from it ever since. So the trust decision is the one screen in
- * the product still showing two grey letters.
- *
- * Fixing it is Phase 14's, not Phase 13.5's: `bids_for_job()` already joins
- * `pro_profiles`, so it is a `create or replace` that adds `avatar_path` and
- * `public_slug` — a migration, and this phase deliberately has none.
+ * Since Phase 14 the card is the pro, not two grey initials: the portrait
+ * from `pro-media` (the public bucket), the reviews behind the stars, the years
+ * of experience, a response time measured over at least three offers, and
+ * "פרופיל וביקורות" — the public profile in a panel over the list, so opening
+ * it never costs the customer the comparison. Every one of those comes from
+ * `bids_for_job()`, which names each column it returns.
  */
 export function BidCard({
   bid,
@@ -120,12 +117,21 @@ export function BidCard({
           in that same order on a narrow screen. */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-56 flex-1 items-start gap-3">
-          <span
-            aria-hidden
-            className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-canvas text-sm font-bold text-muted"
-          >
-            {initials(bid.proName)}
-          </span>
+          {bid.proAvatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- public-bucket portrait, as ProCard draws it
+            <img
+              src={bid.proAvatarUrl}
+              alt=""
+              className="size-14 shrink-0 rounded-xl object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden
+              className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-canvas text-sm font-bold text-muted"
+            >
+              {initials(bid.proName)}
+            </span>
+          )}
 
           <div className="min-w-0 flex-1 text-start">
             <div className="flex flex-wrap items-center gap-2">
@@ -150,8 +156,20 @@ export function BidCard({
                     filled
                     className="me-0.5 inline size-3.5 align-[-2px]"
                   />
-                  <span className="ltr-nums">{bid.proRating.toFixed(1)}</span>{" "}
+                  <span className="ltr-nums">{bid.proRating.toFixed(1)}</span>
+                  {bid.proReviewsCount > 0 && (
+                    <>
+                      {" "}
+                      (<span className="ltr-nums">{bid.proReviewsCount}</span>)
+                    </>
+                  )}{" "}
                   ·{" "}
+                </>
+              )}
+              {bid.proYearsExperience !== null && (
+                <>
+                  <span className="ltr-nums">{bid.proYearsExperience}</span>{" "}
+                  שנות ניסיון ·{" "}
                 </>
               )}
               <span className="ltr-nums">{bid.proJobsCompleted}</span> עבודות
@@ -176,6 +194,22 @@ export function BidCard({
                 מגיע {window.day} ·{" "}
                 <span className="ltr-nums">{window.hours}</span>
               </p>
+            )}
+
+            {/* Measured, never promised: the average over at least three of
+                this pro's offers (pro_response_minutes()), and absent below. */}
+            {bid.proResponseMinutes !== null && (
+              <p className="mt-1 text-sm text-muted">
+                עונה בדרך כלל תוך{" "}
+                <span className="ltr-nums">{bid.proResponseMinutes}</span> דק׳
+                מפרסום קריאה
+              </p>
+            )}
+
+            {bid.proSlug && (
+              <div className="mt-2">
+                <ProPeekButton slug={bid.proSlug} proName={bid.proName} />
+              </div>
             )}
 
             {bid.note && (
@@ -219,6 +253,17 @@ export function BidCard({
               >
                 {BID_STATUS_LABEL[bid.status]}
               </p>
+            )}
+
+            {/* Each live offer's own 45 minutes. Until Phase 14 only one line
+                under the whole list said "some offers have under 10 minutes". */}
+            {live && !decided && (
+              <Countdown
+                deadline={bid.expiresAt}
+                urgentBelow={10}
+                label="תוקף ההצעה"
+                className="justify-center text-sm"
+              />
             )}
 
             {waiting && bid.acceptDeadline && (

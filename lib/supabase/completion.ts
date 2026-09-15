@@ -3,6 +3,7 @@ import {
   PAYMENT_METHODS,
   type PaymentMethod,
 } from "@/lib/validation/completion";
+import { proMediaUrl } from "./buckets";
 
 /**
  * Read side of סיום עבודה, תשלום, עמלה וקבלה — the fifth file in the family
@@ -203,6 +204,9 @@ export type SavedPro = {
   jobsCompletedCount: number;
   verified: boolean;
   savedAt: string;
+  /** The address a repeat booking goes to — only while the pro is verified. */
+  publicSlug: string | null;
+  avatarUrl: string | null;
 };
 
 export async function listMySavedPros(): Promise<SavedPro[]> {
@@ -218,6 +222,8 @@ export async function listMySavedPros(): Promise<SavedPro[]> {
     jobsCompletedCount: row.jobs_completed_count,
     verified: row.verified,
     savedAt: row.saved_at,
+    publicSlug: row.public_slug,
+    avatarUrl: proMediaUrl(row.avatar_path),
   }));
 }
 

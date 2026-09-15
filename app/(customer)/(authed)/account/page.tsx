@@ -116,12 +116,21 @@ export default async function CustomerAccountPage() {
                     key={pro.proId}
                     className="flex items-center gap-3 rounded-xl border border-line p-3"
                   >
-                    <span
-                      aria-hidden
-                      className="flex size-10 shrink-0 items-center justify-center rounded-full bg-canvas font-bold text-brand"
-                    >
-                      {(pro.fullName ?? "??").slice(0, 1)}
-                    </span>
+                    {pro.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- public-bucket portrait
+                      <img
+                        src={pro.avatarUrl}
+                        alt=""
+                        className="size-10 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        aria-hidden
+                        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-canvas font-bold text-brand"
+                      >
+                        {(pro.fullName ?? "??").slice(0, 1)}
+                      </span>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-ink">
                         {pro.fullName ?? "בעל מקצוע"}
@@ -142,6 +151,17 @@ export default async function CustomerAccountPage() {
                         עבודות{pro.verified ? " · מאומת Handy" : ""}
                       </p>
                     </div>
+                    {/* Phase 14: the list stops being a memory aid. A repeat
+                        booking is a call directed at this pro (Phase 13.8's
+                        mechanism) — theirs first, open to everyone if not. */}
+                    {pro.publicSlug && (
+                      <Link
+                        href={CUSTOMER_ROUTES.newRequestTo(pro.publicSlug)}
+                        className={`${BUTTON_QUIET} ${BUTTON_COMPACT} shrink-0`}
+                      >
+                        הזמנה חוזרת
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

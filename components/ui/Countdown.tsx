@@ -35,10 +35,13 @@ export function Countdown({
   /** Minutes below which the deadline is drawn as urgent. */
   urgentBelow = 30,
   className = "",
+  label,
 }: {
   deadline: string;
   urgentBelow?: number;
   className?: string;
+  /** Says what is running out, before the time left — "תוקף ההצעה". */
+  label?: string;
 }) {
   const [now, setNow] = useState<number | null>(null);
 
@@ -71,6 +74,7 @@ export function Countdown({
       } ${className}`}
     >
       <ClockIcon className="size-4 shrink-0" />
+      {label && `${label}: `}
       {timeLeftLabel(deadline, at)}
     </span>
   );

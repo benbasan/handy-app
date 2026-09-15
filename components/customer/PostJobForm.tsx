@@ -37,6 +37,7 @@ import type { UserRole } from "@/lib/validation/auth";
 import {
   BUTTON_COMPACT,
   BUTTON_CTA,
+  CARD_BASE,
   Card,
   ErrorText,
   INPUT_CLASS,
@@ -130,6 +131,13 @@ type Props = {
    * to this pro alone until they pass or the customer opens it to everyone.
    */
   requestedPro?: RequestedPro | null;
+  /** Closed-job price ranges by category slug, only where there are enough. */
+  priceRanges?: Record<
+    string,
+    { low: number; high: number; jobsClosed: number }
+  >;
+  /** The customer's saved pros with a public slug — one tap to send to them. */
+  savedPros?: readonly { slug: string; fullName: string | null }[];
 };
 
 export type RequestedPro = {
@@ -176,6 +184,8 @@ function PostJobFormBody({
   initialCategoryId = null,
   initialDescription = null,
   requestedPro = null,
+  priceRanges = {},
+  savedPros = [],
   draft,
 }: Props & { draft: JobDraft | null }) {
   const [state, formAction, pending] = useActionState(createJob, INITIAL);
@@ -387,6 +397,29 @@ function PostJobFormBody({
           <input type="hidden" name="proSlug" value={requestedPro.slug} />
         )}
 
+        {/* Phase 14: a saved pro is one tap from a repeat booking. At the
+            top, before anything is typed, because choosing one reloads the
+            form around that pro. */}
+        {!requestedPro && savedPros.length > 0 && (
+          <div className={`${CARD_BASE} p-4`}>
+            <p className="text-sm font-semibold text-ink">
+              לשלוח ישירות לבעל מקצוע ששמרתם?
+            </p>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {savedPros.map((pro) => (
+                <li key={pro.slug}>
+                  <Link
+                    href={`/new-request?pro=${encodeURIComponent(pro.slug)}`}
+                    className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm font-medium text-ink transition-colors hover:border-brand hover:text-brand"
+                  >
+                    {pro.fullName ?? "בעל מקצוע"}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/*
           The pro's personal link (Phase 13.8). Said at the top, because it
           changes what "publish" means: this call goes to one person first.
@@ -459,6 +492,31 @@ function PostJobFormBody({
               {fieldErrors.categoryId && (
                 <p className="mt-3">
                   <ErrorText>{fieldErrors.categoryId}</ErrorText>
+                </p>
+              )}
+
+              {/*
+                "מה זה בדרך כלל עולה" (Phase 14) — counted from closed jobs,
+                never invented, and silent for a trade without enough of them.
+                Most price shock happens before an offer exists; this is the
+                cheapest place to take it down.
+              */}
+              {selectedCategory && priceRanges[selectedCategory.slug] && (
+                <p className="mt-4 rounded-xl bg-canvas p-3 text-sm text-ink">
+                  ב-
+                  <span className="ltr-nums">
+                    {priceRanges[selectedCategory.slug]!.jobsClosed}
+                  </span>{" "}
+                  עבודות {selectedCategory.nameHe} שנסגרו ב-Handy, רוב המחירים
+                  היו בין{" "}
+                  <span className="ltr-nums">
+                    {Math.round(priceRanges[selectedCategory.slug]!.low)}
+                  </span>{" "}
+                  ל-
+                  <span className="ltr-nums">
+                    {Math.round(priceRanges[selectedCategory.slug]!.high)}
+                  </span>{" "}
+                  ₪. כל עבודה שונה — ההצעות שתקבלו הן המחיר האמיתי.
                 </p>
               )}
             </SectionCard>
