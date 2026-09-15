@@ -284,3 +284,18 @@ export async function listMyReviews(): Promise<MyReview[]> {
     createdAt: row.created_at,
   }));
 }
+
+/**
+ * "יש 7 קריאות פתוחות בפתח תקווה" (Phase 17) — counted, per city, over the
+ * last fourteen days. An empty list is a real answer, and the page says so.
+ */
+export async function listOpenCallsByCity(): Promise<
+  { city: string; openCalls: number }[]
+> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("open_calls_by_city");
+  return (data ?? []).map((row) => ({
+    city: row.city,
+    openCalls: row.open_calls,
+  }));
+}

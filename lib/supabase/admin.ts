@@ -6,6 +6,12 @@ import {
 } from "@/lib/validation/admin";
 import { isDisputeStatus, type DisputeStatus } from "@/lib/validation/disputes";
 import { logServerError } from "@/lib/observability";
+import {
+  isSupportStatus,
+  isSupportTopic,
+  type SupportStatus,
+  type SupportTopic,
+} from "@/lib/validation/support";
 
 /**
  * Read side of the admin dashboard — product-spec.md section 5.
@@ -361,4 +367,63 @@ export async function listCustomerRatings(
     rating: row.rating,
     comment: row.comment,
   }));
+}
+
+/** One contact-form ticket, as the support screen lists it (Phase 17). */
+export type AdminSupportTicket = {
+  id: string;
+  fullName: string;
+  phone: string;
+  topic: SupportTopic;
+  jobReference: string | null;
+  body: string;
+  status: SupportStatus;
+  createdAt: string;
+  handledAt: string | null;
+  /** Null for a visitor who wrote without signing in. */
+  createdBy: string | null;
+};
+
+/**
+ * פניות לתמיכה. A plain read under "support_tickets: admin reads all", the
+ * policy Phase 8 wrote for a screen that did not exist yet — no function,
+ * because a policy is exactly what picks these rows. Open tickets first, then
+ * newest.
+ */
+export async function listSupportTickets(): Promise<AdminSupportTicket[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("support_tickets")
+    .select(
+      "id, full_name, phone, topic, job_reference, body, status, created_at, handled_at, created_by",
+    )
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    logServerError("admin.listSupportTickets", error);
+    return [];
+  }
+
+  const rank: Record<SupportStatus, number> = {
+    open: 0,
+    answered: 1,
+    closed: 2,
+  };
+
+  return (data ?? [])
+    .map((row) => ({
+      id: row.id,
+      fullName: row.full_name,
+      phone: row.phone,
+      topic: isSupportTopic(row.topic) ? row.topic : "other",
+      jobReference: row.job_reference,
+      body: row.body,
+      status: isSupportStatus(row.status) ? row.status : "open",
+      createdAt: row.created_at,
+      handledAt: row.handled_at,
+      createdBy: row.created_by,
+    }))
+    .sort((a, b) => rank[a.status] - rank[b.status]);
 }

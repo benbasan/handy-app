@@ -36,11 +36,19 @@ import {
 export function DisputeOpener({
   jobId,
   existingStatus,
+  resolutionNote = null,
+  creditAmount = null,
   tone = "brand",
 }: {
   jobId: string;
   /** A live or decided case on this job — one per job is all there can be. */
   existingStatus?: DisputeStatus;
+  /**
+   * What the admin wrote when deciding (Phase 17). Until now a dispute was a
+   * status string that never received a visible answer.
+   */
+  resolutionNote?: string | null;
+  creditAmount?: number | null;
   tone?: "brand" | "pro";
 }) {
   const [state, formAction, pending] = useActionState(
@@ -57,6 +65,17 @@ export function DisputeOpener({
             ? `הפנייה שלכם על הקריאה הזו נמצאת בסטטוס: ${DISPUTE_STATUS_LABEL[existingStatus]}.`
             : "הפנייה נפתחה. צוות Handy בודק אותה מול תיעוד הקריאה המלא."}
         </p>
+        {resolutionNote && (
+          <p className="mt-3 rounded-xl bg-canvas p-3 text-sm text-ink">
+            <span className="font-semibold">תשובת צוות Handy:</span>{" "}
+            {resolutionNote}
+          </p>
+        )}
+        {creditAmount !== null && creditAmount > 0 && (
+          <p className="mt-2 text-sm font-semibold text-cta-strong">
+            אושר זיכוי של <span className="ltr-nums">{creditAmount}</span> ₪.
+          </p>
+        )}
       </div>
     );
   }

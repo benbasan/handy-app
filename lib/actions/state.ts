@@ -202,3 +202,11 @@ export type AddJobDetailsState = {
 };
 
 export const EMPTY_ADD_JOB_DETAILS_STATE: AddJobDetailsState = {};
+
+export type SupportTicketStatusState = {
+  error?: string;
+  /** The status the ticket now has, so the row can show it without a reload. */
+  status?: string;
+};
+
+export const EMPTY_SUPPORT_TICKET_STATUS_STATE: SupportTicketStatusState = {};

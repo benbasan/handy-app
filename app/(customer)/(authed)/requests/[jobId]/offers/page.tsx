@@ -108,7 +108,12 @@ export default async function JobOffersPage({
           }
         />
         {job.cancelledBy !== "customer" && (
-          <DisputeOpener jobId={jobId} existingStatus={disputes[0]?.status} />
+          <DisputeOpener
+            jobId={jobId}
+            existingStatus={disputes[0]?.status}
+            resolutionNote={disputes[0]?.resolutionNote ?? null}
+            creditAmount={disputes[0]?.creditAmount ?? null}
+          />
         )}
       </div>
     );

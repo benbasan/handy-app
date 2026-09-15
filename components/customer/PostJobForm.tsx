@@ -136,6 +136,8 @@ type Props = {
     string,
     { low: number; high: number; jobsClosed: number }
   >;
+  /** Phase 17: maintenance guides worth a look before posting, per trade. */
+  guides?: Record<string, readonly { slug: string; title: string }[]>;
   /** The customer's saved pros with a public slug — one tap to send to them. */
   savedPros?: readonly { slug: string; fullName: string | null }[];
 };
@@ -185,6 +187,7 @@ function PostJobFormBody({
   initialDescription = null,
   requestedPro = null,
   priceRanges = {},
+  guides = {},
   savedPros = [],
   draft,
 }: Props & { draft: JobDraft | null }) {
@@ -563,6 +566,30 @@ function PostJobFormBody({
                   <ErrorText>{fieldErrors.description}</ErrorText>
                 </p>
               )}
+
+              {/* Phase 17: "מה כבר ניסיתם?" — the guides nobody reached,
+                  offered where they help. In a new tab, and the draft is kept
+                  either way (lib/jobDraft.ts), so reading one never costs the
+                  form. */}
+              {selectedCategory &&
+                (guides[selectedCategory.slug]?.length ?? 0) > 0 && (
+                  <p className="mt-3 text-sm text-muted">
+                    לפני שמפרסמים — אולי זה נפתר לבד:{" "}
+                    {guides[selectedCategory.slug]!.map((guide, index) => (
+                      <span key={guide.slug}>
+                        {index > 0 && " · "}
+                        <a
+                          href={`/guides/${guide.slug}`}
+                          target="_blank"
+                          rel="noopener"
+                          className="font-semibold text-brand underline-offset-2 hover:underline"
+                        >
+                          {guide.title}
+                        </a>
+                      </span>
+                    ))}
+                  </p>
+                )}
 
               {/*
               The jobs people post most in this trade, as one tap each. They

@@ -60,3 +60,37 @@ export const supportTicketSchema = z.object({
 });
 
 export type SupportTicketInput = z.infer<typeof supportTicketSchema>;
+
+/**
+ * What the support team did with a ticket (Phase 17). The same three values
+ * as the check on `support_tickets.status`; `set_support_ticket_status()` is
+ * the only way to move one.
+ */
+export const SUPPORT_STATUSES = ["open", "answered", "closed"] as const;
+
+export type SupportStatus = (typeof SUPPORT_STATUSES)[number];
+
+export const SUPPORT_STATUS_LABEL: Record<SupportStatus, string> = {
+  open: "פתוחה",
+  answered: "נענתה",
+  closed: "סגורה",
+};
+
+export function isSupportStatus(value: unknown): value is SupportStatus {
+  return (
+    typeof value === "string" &&
+    (SUPPORT_STATUSES as readonly string[]).includes(value)
+  );
+}
+
+export function isSupportTopic(value: unknown): value is SupportTopic {
+  return (
+    typeof value === "string" &&
+    (SUPPORT_TOPICS as readonly string[]).includes(value)
+  );
+}
+
+export const supportTicketStatusSchema = z.object({
+  ticketId: z.uuid({ error: "פנייה לא מזוהה" }),
+  status: z.enum(SUPPORT_STATUSES, { error: "סטטוס לא מוכר" }),
+});

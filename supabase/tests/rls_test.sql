@@ -19,7 +19,7 @@ create extension if not exists pgtap with schema extensions;
 
 -- An explicit count, not no_plan(): if a statement aborts the transaction
 -- half way through, a bare "everything I ran passed" would still look green.
-select plan(538);
+select plan(552);
 
 -- Seed identities, restated so the tests read as English rather than as UUIDs.
 \set customer_a '''a0000000-0000-4000-8000-000000000001'''
@@ -3422,6 +3422,8 @@ insert into pg_temp_anon_expected (signature) values
   ('is_job_owner(p_job_id uuid)'),
   ('is_verified_pro()'),
   ('job_city(p_address text)'),
+  -- Phase 17: counts per city for the pro landing page. Never a call.
+  ('open_calls_by_city()'),
   ('pricing_guide()'),
   ('pro_has_bid(p_job_id uuid, p_pro_id uuid)'),
   ('pro_public_profile(p_slug text)'),
@@ -3431,7 +3433,10 @@ insert into pg_temp_anon_expected (signature) values
   -- here; the one-argument version revokes it. Nothing is lost: it reads
   -- auth.uid(), which is null for anon, and can_read_job_media() calls it from
   -- inside a security definer function, where the definer's privileges apply.
-  ('public_pro_slugs()');
+  ('public_pro_slugs()'),
+  -- Phase 17: a receipt share link opens without an account, by design (the
+  -- user's decision, 15.9.2026). It returns nothing without a live token.
+  ('shared_receipt(p_token text)');
 
 create temporary view pg_temp_anon_actual as
   select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' as signature
@@ -5475,6 +5480,139 @@ set local role authenticated;
 select ok(
   (select count(*) from public.decline_reasons) >= 1,
   'while an admin does'
+);
+
+-- ===========================================================================
+-- Phase 17 — demand counts, receipt share links, answering the contact form
+-- ===========================================================================
+
+reset role;
+set local role anon;
+
+select ok(
+  (select count(*) from public.open_calls_by_city()) >= 1,
+  'a visitor sees how many open calls there are per city'
+);
+
+select is(
+  (select count(*) from public.shared_receipt('not-a-token')),
+  0::bigint,
+  'an unknown token opens no receipt'
+);
+
+reset role;
+
+-- d0000000-…-04 is customer A's finished job.
+select pg_temp.act_as(:customer_b);
+set local role authenticated;
+
+select throws_ok(
+  $$ select * from public.create_receipt_share_link('d0000000-0000-4000-8000-000000000004') $$,
+  '42501', null,
+  'only the customer who posted a job may share its receipt'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select * from public.create_receipt_share_link('f1500000-0000-4000-8000-0000000000a1') $$,
+  '22023', null,
+  'a job that never finished (this one was cancelled) has no receipt to share'
+);
+
+select token as shared_token
+  from public.create_receipt_share_link('d0000000-0000-4000-8000-000000000004') \gset
+
+select is(
+  (select count(*) from public.receipt_share_links
+    where job_id = 'd0000000-0000-4000-8000-000000000004'),
+  1::bigint,
+  'the customer reads back the link they created'
+);
+
+select throws_ok(
+  $$ select token_hash from public.receipt_share_links $$,
+  '42501', null,
+  'but not even its hash'
+);
+
+reset role;
+set local role anon;
+
+select results_eq(
+  format($q$ select count(*)::int, bool_and(total_price > 0) from public.shared_receipt(%L) $q$, :'shared_token'),
+  $$ values (1, true) $$,
+  'a visitor holding the link opens the receipt, with its total'
+);
+
+reset role;
+
+select is(
+  (select count(*) from public.receipt_share_links
+    where token_hash = :'shared_token'),
+  0::bigint,
+  'the table never holds the token itself — only its hash'
+);
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select is(
+  public.revoke_receipt_share_links('d0000000-0000-4000-8000-000000000004'),
+  1,
+  'the customer switches the link off'
+);
+
+reset role;
+set local role anon;
+
+select is(
+  (select count(*) from public.shared_receipt(:'shared_token')),
+  0::bigint,
+  'and the same link opens nothing any more'
+);
+
+reset role;
+
+update public.receipt_share_links set revoked_at = null, expires_at = now() - interval '1 minute'
+ where job_id = 'd0000000-0000-4000-8000-000000000004';
+
+set local role anon;
+
+select is(
+  (select count(*) from public.shared_receipt(:'shared_token')),
+  0::bigint,
+  'and neither does a link past its seven days'
+);
+
+reset role;
+
+insert into public.support_tickets (id, full_name, phone, topic, body)
+values ('f1700000-0000-4000-8000-0000000000c1', 'פונה לדוגמה', '050-1111111', 'other',
+        'שאלה על קריאה שלא קיבלה הצעות.');
+
+select pg_temp.act_as(:customer_a);
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.set_support_ticket_status('f1700000-0000-4000-8000-0000000000c1', 'closed') $$,
+  '42501', null,
+  'a customer cannot close a support ticket'
+);
+
+select pg_temp.act_as(:admin_user);
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.set_support_ticket_status('f1700000-0000-4000-8000-0000000000c1', 'answered') $$,
+  'an admin marks a ticket answered'
+);
+
+select isnt(
+  (select handled_at from public.support_tickets where id = 'f1700000-0000-4000-8000-0000000000c1'),
+  null,
+  'and when'
 );
 
 reset role;

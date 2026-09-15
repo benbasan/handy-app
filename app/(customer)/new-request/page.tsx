@@ -8,6 +8,7 @@ import {
   PAGE_TITLE,
 } from "@/components/ui/primitives";
 import { matchCategoryIntent } from "@/lib/content/intent";
+import { guidesBeforePosting } from "@/lib/content/guides";
 import { getBrowserMapsKey } from "@/lib/maps/config";
 import { ROLE_HOME } from "@/lib/routes";
 import { listCategories } from "@/lib/supabase/jobs";
@@ -142,6 +143,9 @@ export default async function NewRequestPage({
             initialCategoryId={initialCategoryId}
             initialDescription={typed}
             priceRanges={priceRanges}
+            guides={Object.fromEntries(
+              categories.map((c) => [c.slug, guidesBeforePosting(c.slug)]),
+            )}
             savedPros={savedPros
               .filter((pro) => pro.publicSlug !== null)
               .map((pro) => ({

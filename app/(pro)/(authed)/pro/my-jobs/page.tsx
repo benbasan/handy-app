@@ -71,7 +71,10 @@ export default async function ProMyJobsPage({
   // Read only for the tab that shows it. `disputes: participants read` is what
   // scopes these rows — a pro sees the cases on jobs they bid on, and nothing
   // else — so this is a projection of their own history, not a lookup.
-  const disputes = new Map<string, DisputeStatus>();
+  const disputes = new Map<
+    string,
+    { status: DisputeStatus; resolutionNote: string | null }
+  >();
   if (showingHistory) {
     const rows = await Promise.all(
       completed.map(async (job) => ({
@@ -80,8 +83,13 @@ export default async function ProMyJobsPage({
       })),
     );
     for (const row of rows) {
-      const status = row.cases[0]?.status;
-      if (status) disputes.set(row.jobId, status);
+      const first = row.cases[0];
+      if (first) {
+        disputes.set(row.jobId, {
+          status: first.status,
+          resolutionNote: first.resolutionNote,
+        });
+      }
     }
   }
 
@@ -345,7 +353,10 @@ function HistoryList({
 }: {
   jobs: Awaited<ReturnType<typeof listMyCompletedJobs>>;
   /** Any case already open on a job, keyed by job id — at most one per job. */
-  disputes: Map<string, DisputeStatus>;
+  disputes: Map<
+    string,
+    { status: DisputeStatus; resolutionNote: string | null }
+  >;
   /** Jobs whose customer this pro already rated. */
   rated: Set<string>;
 }) {
@@ -435,7 +446,8 @@ function HistoryList({
           <div className="mt-4">
             <DisputeOpener
               jobId={job.jobId}
-              existingStatus={disputes.get(job.jobId)}
+              existingStatus={disputes.get(job.jobId)?.status}
+              resolutionNote={disputes.get(job.jobId)?.resolutionNote ?? null}
               tone="pro"
             />
           </div>

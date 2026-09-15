@@ -5,6 +5,7 @@ import type {
   AdminDecisionState,
   ProEnforcementActionState,
   ResolveDisputeState,
+  SupportTicketStatusState,
 } from "@/lib/actions/state";
 import { logServerError } from "@/lib/observability";
 import { ADMIN_ROUTES } from "@/lib/routes";
@@ -13,6 +14,7 @@ import { requireRole } from "@/lib/supabase/session";
 import { proEnforcementSchema } from "@/lib/validation/admin";
 import { resolveDisputeSchema } from "@/lib/validation/disputes";
 import { setVerificationSchema } from "@/lib/validation/pros";
+import { supportTicketStatusSchema } from "@/lib/validation/support";
 
 /**
  * אישור בעלי מקצוע — design/screens/admin-7.2-pro-approvals.png, and since
@@ -165,4 +167,44 @@ export async function applyProEnforcement(
   revalidatePath(ADMIN_ROUTES.disputes);
   revalidatePath(ADMIN_ROUTES.pros);
   return { applied: data ?? parsed.data.action };
+}
+
+/**
+ * פניות לתמיכה — marking a contact-form ticket answered, closed or open again
+ * (Phase 17). `support_tickets` has no UPDATE grant for any client role;
+ * `set_support_ticket_status()` checks `is_admin()` itself and stamps
+ * `handled_at`.
+ */
+export async function setSupportTicketStatus(
+  _prevState: SupportTicketStatusState,
+  formData: FormData,
+): Promise<SupportTicketStatusState> {
+  await requireRole("admin");
+
+  const parsed = supportTicketStatusSchema.safeParse({
+    ticketId: formData.get("ticketId"),
+    status: formData.get("status"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "קלט לא תקין" };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("set_support_ticket_status", {
+    p_ticket_id: parsed.data.ticketId,
+    p_status: parsed.data.status,
+  });
+
+  if (error) {
+    logServerError("admin.setSupportTicketStatus", error, {
+      ticketId: parsed.data.ticketId,
+      status: parsed.data.status,
+    });
+    return { error: "עדכון הפנייה נכשל. רעננו את הדף ונסו שוב." };
+  }
+
+  revalidatePath(ADMIN_ROUTES.support);
+  return { status: parsed.data.status };
 }
