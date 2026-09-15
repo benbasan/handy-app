@@ -4,6 +4,7 @@ This file is the single source of truth Claude Code reads at the start of every 
 
 Read alongside this file, in this order, at the start of any new phase of work:
 
+0. `docs/project-status.md` — **where the project stands right now**: what is built, what is deployed, test counts, the working commands, the traps that already cost time, and what is waiting on the user. Read it first in a new session, and update it when a phase closes
 1. `docs/product-spec.md` — what we're building and why (business rules, roles, flows)
 2. `docs/architecture.md` — how it's built (stack, folder layout, data model)
 3. `docs/roadmap.md` — what to build **right now** (current phase only — do not jump ahead)
