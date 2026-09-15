@@ -187,7 +187,7 @@ The product is Hebrew-facing, but all code (tables, variables, routes, types) is
 | מה קרה? | `matchCategoryIntent()` · `lib/content/intent.ts` | A sentence to one trade, by whole words. A tie, or no match, is null |
 | טיוטת קריאה | `lib/jobDraft.ts` | The four typed answers in `localStorage`. Media is not kept. Cleared on the published screen |
 | קריאה מופנית | `jobs.requested_pro_id` · `opened_to_all_at` | A call the customer directed at one pro through their link. Insertable, never updatable; `opened_to_all_at` has no client grant |
-| הגעת קריאה לבעל מקצוע | `pro_reaches_job()` | The reachability rule — see section 3. Replaced `pro_serves_job()` everywhere a job is asked about |
+| הגעת קריאה לבעל מקצוע | `pro_reaches_job()` | The reachability rule — see section 3. Called per job by `can_bid_on_job()`, `can_read_job_media()`, `record_job_view()`; the RLS policy on `jobs` writes the same rule out as expressions, because a definer function per row doubled the feed's cost (pgTAP holds the two equal). **Any change to a policy on `jobs` runs `npm run perf:postgis` in the same phase** |
 | פתחו לכל בעלי המקצוע | `open_job_to_all()` · `release_directed_job()` | Opens a directed call and fans out `job_in_radius`. Also fired by the requested pro's dismissal or decline |
 | ביקשו אותך / בעל המקצוע לא יכול | `job_requested` · `requested_pro_passed` | The two notification kinds a directed call adds |
 | פטור מדמי קבלת עבודה | `job_acceptance_fee_for()` · `my_fee_for_job()` | 0 on a new customer's first job through the pro's link; 35 otherwise |
